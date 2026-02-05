@@ -19,10 +19,10 @@
 
         <!-- Declaration -->
         <b-form-checkbox v-model="accepted">
-          اینجانب <strong>{{ user.full_name }}</strong>
-          با کد ملی <strong>{{ user.nationalCode }}</strong>
-          و کد پرسنلی <strong>{{ user.personnelCode }}</strong>
-          با آخرین پست <strong>{{ user.position }}</strong>
+          اینجانب <strong>{{ currentUser.full_name }}</strong>
+          با کد ملی <strong>{{ currentUser.national_id }}</strong>
+          و کد پرسنلی <strong>{{ currentUser.personnel_code }}</strong>
+          با آخرین پست <strong>{{ currentUser.orgPositionDesc }}</strong>
           متقاضی ثبت‌نام در انتخابات می‌باشم.
         </b-form-checkbox>
 
@@ -60,6 +60,7 @@
 </template>
 
 <script>
+import { currentUser } from "../../constants/config";
 import { isMobile } from "../../utils";
 import { mapGetters, mapActions, mapMutations } from "vuex";
 export default {

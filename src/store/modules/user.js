@@ -85,43 +85,22 @@ export default {
   actions: {
 
 
-    async LoginUserSSO({ commit }, payload) {
+     LoginUserSSO({ commit }, payload) {
       commit('setProcessing', true)
+setTimeout(() => {
+  
 
       try {
-        let response
- localStorage.removeItem('user')
-        if (USE_MOCK) {
-          response = {
-            user: {
-              nationalId: "1234567890",
-              fullName: "میلاد فراهانی",
-              token: "test",
-              roles: [payload?.myToken]
-            },
-            requestStatus: 'SUBMITTED',
-            hasActiveRequest: true
-          }
-        } else {
-          await apiservice({ name: "AccountLogin", params: payload }, { commit })
-            .then(response => {
-          
-              if (response.status) {
-                commit('setUser', {...response.user,token:response.token})
-                commit('setRequestStatus', response.requestStatus)
-                commit('setHasActiveRequest', response.hasActiveRequest)
-                commit('clearError')
-              }
-            })
-        }
-
-        // --- ذخیره تمیز ---
-
-
-        // commit('setUser', response.user)
-        // commit('setRequestStatus', response.requestStatus)
-        // commit('setHasActiveRequest', response.hasActiveRequest)
-        // commit('clearError')
+        localStorage.removeItem('user')
+         apiservice({ name: "AccountLogin", params: payload }, { commit })
+          .then(response => {
+            if (response.status) {
+              commit('setUser', { ...response.user, token: response.token })
+              commit('setRequestStatus', response.requestStatus)
+              commit('setHasActiveRequest', response.hasActiveRequest)
+              commit('clearError')
+            }
+          })
 
       } catch (e) {
         commit('setLogout')
@@ -129,21 +108,9 @@ export default {
       } finally {
         commit('setProcessing', false)
       }
+      }, 2000);
     },
 
-    /////rtb
-    GetEmployeeInfo({
-      commit,
-      state
-    }, payload) {
-      apiservice({ name: "GetEmployeeInfo", params: payload }, { commit })
-        .then(response => {
-          if (response)
-            commit('setEmployeeInfo', response)
-          else
-            commit('setError', response.data)
-        })
-    },
 
   }
 }
