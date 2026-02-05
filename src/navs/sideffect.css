@@ -1,0 +1,216 @@
+.profileLogos{
+  position: relative;
+  z-index: 10;
+}
+.profileLogo {
+  /* padding: 10px 25px; */
+  /* color: #5F5D5D;
+  font-size: 15px;
+  border-radius: 25px;
+  position: relative;
+  text-align: center;
+  transition: 0.4s; */
+}
+
+/* .profileLogo:nth-child(2n + 1) {
+  padding-right: 50px;
+} */
+
+/* .profileLogo:nth-child(2n + 1) .profileLogo__icon-wrapper {
+  right: 0;
+  transform: translate(50%, -50%);
+} */
+
+.profileLogo:nth-child(2n) {
+  padding-left: 50px;
+}
+
+.profileLogo:nth-child(2n) .profileLogo__icon-wrapper {
+  left: 0;
+}
+
+.profileLogo__icon-wrapper {
+
+  width: 110px;
+  top: -50px;
+  /* transform: translate(-50%, -50%); */
+  /* background-color: #fff; */
+  /* width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center; */
+  /* box-shadow: 0 0 5px rgba(0, 0, 0, 0.25); */
+}
+.star1__icon-wrapper {
+  position: relative;
+  width: 110px;
+  top: -22px;
+}
+.calender__icon-wrapper {
+  position: relative;
+  width: 110px;
+  top: -22px;
+}
+.profileLogo__icon-border {
+  position: absolute;
+  width: calc(100% + 10px);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(15deg);
+  transition: 0.4s;
+}
+
+.profileLogo:hover {
+  background-color: var(--color-hover);
+  color: #fff;
+  font-weight: 600;
+}
+
+.profileLogo:hover .profileLogo__icon-border {
+  width: calc(100% + 30px);
+  animation-name: rotate;
+  animation-duration: 4s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes rotate {
+  0% {
+      transform: translate(-50%, -50%) rotate(15deg);
+  }
+
+  100% {
+      transform: translate(-50%, -50%) rotate(375deg);
+  }
+}
+
+.profileLogo__icon {
+  width: 50%;
+}
+
+
+.profileLogo__material-icon {
+  font-size: 28px;
+  color: #5F5D5D !important;
+}
+
+@media (max-width: 950px) {
+  .profileLogos {
+      grid-gap: 50px;
+  }
+
+  .profileLogo:nth-child(2n + 1), .profileLogo:nth-child(2n) {
+      padding-right: 50px;
+  }
+
+  .profileLogo:nth-child(2n + 1) .profileLogo__icon-wrapper, .profileLogo:nth-child(2n) .profileLogo__icon-wrapper {
+      right: 0;
+      transform: translate(50%, -50%);
+  }
+}
+
+.gov-nav-buttons{
+  position: relative;
+  z-index: 10;
+}
+.gov-nav-button {
+  padding: 10px 25px;
+  /* color: #5F5D5D;
+  font-size: 15px;
+  border-radius: 25px;
+  position: relative;
+  text-align: center;
+  transition: 0.4s; */
+}
+
+/* .gov-nav-button:nth-child(2n + 1) {
+  padding-right: 50px;
+} */
+
+/* .gov-nav-button:nth-child(2n + 1) .gov-nav-button__icon-wrapper {
+  right: 0;
+  transform: translate(50%, -50%);
+} */
+
+.gov-nav-button:nth-child(2n) {
+  padding-left: 50px;
+}
+
+.gov-nav-button:nth-child(2n) .gov-nav-button__icon-wrapper {
+  left: 0;
+}
+
+.gov-nav-button__icon-wrapper {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #fff;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.25);
+}
+
+.gov-nav-button__icon-border {
+  position: absolute;
+  width: calc(100% + 10px);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(15deg);
+  transition: 0.4s;
+}
+
+.gov-nav-button:hover {
+  background-color: var(--color-hover);
+  color: #fff;
+  font-weight: 600;
+}
+
+.gov-nav-button:hover .gov-nav-button__icon-border {
+  width: calc(100% + 30px);
+  animation-name: rotate;
+  animation-duration: 4s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes rotate {
+  0% {
+      transform: translate(-50%, -50%) rotate(15deg);
+  }
+
+  100% {
+      transform: translate(-50%, -50%) rotate(375deg);
+  }
+}
+
+.gov-nav-button__icon {
+  width: 50%;
+}
+
+
+.gov-nav-button__material-icon {
+  font-size: 28px;
+  color: #5F5D5D !important;
+}
+
+@media (max-width: 950px) {
+  .gov-nav-buttons {
+      grid-gap: 50px;
+  }
+
+  .gov-nav-button:nth-child(2n + 1), .gov-nav-button:nth-child(2n) {
+      padding-right: 50px;
+  }
+
+  .gov-nav-button:nth-child(2n + 1) .gov-nav-button__icon-wrapper, .gov-nav-button:nth-child(2n) .gov-nav-button__icon-wrapper {
+      right: 0;
+      transform: translate(50%, -50%);
+  }
+}
+

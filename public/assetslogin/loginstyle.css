@@ -1,0 +1,93 @@
+@font-face {
+      font-family: 'iransans';
+      src: url('fonts/iransans/eot/IRANSansWeb.eot?-rdmvgc');
+      src: url('fonts/iransans/eot/IRANSansWeb.eot?#iefix-rdmvgc') format('embedded-opentype'),
+        url('fonts/iransans/woff/IRANSansWeb(FaNum).woff?-rdmvgc') format('woff'),
+        url('fonts/iransans/ttf/IRANSansWeb.ttf?-rdmvgc') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: fallback;
+    }
+
+    body {
+      font-family: "iransans";
+    }
+
+    .loginnew .fxt-switcher-wrap div:first-child a.switcher-text {
+      border-radius: 0 15px 15px 0;
+      color: #000;
+    }
+
+    .loginnew .fxt-switcher-wrap a.switcher-text {
+      padding: 5px;
+      display: block;
+      background-image: -webkit-gradient(linear, left top, left bottom, from(rgb(209, 172, 246)), to(rgb(209, 172, 246)));
+      background-image: linear-gradient(rgb(209, 172, 246), rgb(209, 172, 246));
+      color: #000;
+      color: #ffffff;
+      font-size: 15px;
+      -webkit-transition: all 0.3s ease-in-out;
+      transition: all 0.3s ease-in-out;
+    }
+
+    .loginnew .fxt-switcher-wrap div:last-child a.switcher-text {
+      border-radius: 15px 0 0 15px;
+      color: #000;
+      background-image: -webkit-gradient(linear, left top, left bottom, from(rgb(183, 219, 244)), to(rgb(183, 219, 244)));
+      background-image: linear-gradient(rgb(183, 219, 244), rgb(183, 219, 244));
+    }
+
+    .borderdaste {
+      border-bottom: 1px dashed #7676;
+      position: relative;
+      width: 100%;
+      top: 14px;
+    }
+
+    .inputuser {
+      max-width: 120px;
+      height: 50px;
+      position: absolute;
+      top: 0px;
+      left: -5px;
+    }
+
+    .form-control {
+      height: 50px;
+      border-radius: 5px !important;
+    }
+
+    .form-group {
+      position: relative;
+    }
+
+    .icons {
+      position: absolute;
+      z-index: 2;
+      width: 100%;
+    }
+
+    .copyr {
+      color: rgba(39, 50, 122, 1);
+      font-size: 13px;
+      display: -webkit-box;
+      display: -ms-flexbox;
+      display: flex;
+      -ms-flex-wrap: nowrap;
+      flex-wrap: nowrap;
+      -webkit-box-pack: center;
+      -ms-flex-pack: center;
+      justify-content: center;
+      -webkit-box-align: center;
+      -ms-flex-align: center;
+      align-items: center;
+    }
+
+    .captcham {
+      background-color: #fff;
+    }
+
+    .captcha {
+      border-radius: 10px;
+      width: 120px;
+    }

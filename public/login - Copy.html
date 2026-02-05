@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+  <base href=".">
+
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, shrink-to-fit=no">
+  <link rel="stylesheet" href="assetslogin/bootstrap.min.css">
+  <!-- <link rel="stylesheet" href="assetslogin/loginstyle.css"> -->
+  <script src="assetslogin/jquery.min.js"></script>
+  <!-- <script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.7/dist/umd/popper.min.js"></script> -->
+  <script src="assetslogin/bootstrap.min.js"></script>
+
+  <title>پنجره واحد خدمات الکترونیک وزارت آموزش و پرورش</title>
+</head>
+
+<body class="rtl no-footer">
+  <div class="h-100">
+    <div class="homepage">
+      <div class="landing-page" style="min-height: 92vh;">
+
+        <div class="main-container">
+
+          <nav class="bg-warning navbar navbar-expand-lg navbar-light">
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+              aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse " id="navbarSupportedContent">
+              <ul class="navbar-nav ">
+                <li class="nav-item active">
+                  <a class="nav-link" href="https://medu.gov.ir" target="_blank">پرتال آموزش و پرورش </a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="/help">راهنما</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="/help">تماس با ما</a>
+                </li>
+              </ul>
+            </div>
+            <!-- <a class="navbar-brand " href="#">کاربران آنلاین:</a> -->
+            <p id="onlineUsers"></p>
+          </nav>
+
+
+        </div>
+        <div id="home" class="content-container">
+          <div id="service1" class="content-container">
+            <div class="loginnew">
+              <div class="row d-flex flex-column justify-content-center align-items-center mx-0"
+                style="min-height: 90vh !important; margin-top: 60px;">
+                <div class="p-1 col-lg-10 col-xl-8 col-xxl-6 col-xs-10 col-12" style="z-index: 2; margin: 0px auto;">
+                  <div class="card d-flex m-auto" style="background-color: rgb(236, 236, 236); border-radius: 30px;">
+                    <!----><!---->
+                    <div class="row text-center m-0" style="height: 530px;">
+                      <div class="m-0 p-0 col-lg-6 col-xs-12" style="scale: 0.95;">
+                        <p class="m-0" style="font-size: 0.6rem; color: rgb(58, 58, 58); line-height: 1.2rem;">جمهوری
+                          اسلامی ایران
+                        </p>
+                        <p class="m-0" style="font-size: 0.7rem; color: rgb(58, 58, 58); line-height: 1.2rem;">وزارت
+                          آموزش و پرورش
+                        </p>
+                        <p class="m-1" style="color: rgb(58, 58, 58); font-size: 0.8rem; line-height: 1.2rem;">پنجره
+                          واحد خدمات
+                          الکترونیک آموزش و پرورش</p>
+
+                        <section style="max-width: 80%; margin: auto;" class="fxt-template-animation loaded">
+                          <div class="fxt-content">
+                            <div class="text-center animate__animated animate__fadeInDown fxt-animation-delay-1">
+                              <div class="row text-center m-0 fxt-switcher-wrap">
+                                <div class="m-0 p-0 col col-xs-6"><a
+                                    href="https://sso.my.gov.ir/oauth2/authorize?response_type=code&scope=openid profile&client_id=my.medu&state=state1&redirect_uri=https://my.medu.ir/api/Login/callback"
+                                    target="_blank" class="switcher-text"><span class="label"
+                                      style="font-weight: normal;">
+                                      کارپوشه شخصی
+                                    </span><br> <span class="label" style="font-size: 0.7rem; padding: 1px;">
+                                      ورود فرهنگیان/عموم
+                                    </span></a></div>
+                                <div class="m-0 p-0 col col-xs-6"><a
+                                    href="https://sso.my.gov.ir/oauth2/authorize?response_type=code&scope=openid profile&client_id=auth.medu&state=state1&redirect_uri=https://auth.medu.ir/core-api/v1/data-provider/g/medu--login--gov--redirect/KeQAMtHwagu7LSvqyG4PWV8jBJFm93NT"
+                                    target="_blank" class="switcher-text"><span class="label"
+                                      style="font-weight: normal;">
+                                      کارپوشه سازمانی
+                                    </span><br> <span class="label" style="font-size: 0.7rem; padding: 1px;">
+                                      ورود سُها
+                                    </span></a></div>
+                              </div>
+                            </div>
+                          </div>
+                        </section> <!---->
+                        <form class="av-tooltip tooltip-label-bottom" id="submit_notice"
+                          style="max-width: 80%; margin: auto;">
+                          <div class="m-2" style="color: rgb(0, 0, 0);">
+                            <div class="borderdaste"></div>
+                            <div class="titledaste">
+                              <div>ورود دانش آموزان</div>
+                            </div>
+                          </div>
+                          <div>
+                            <div class="input-group mb-3">
+                              <div class="input-group-prepend">
+                                <span class="input-group-text" id="basic-addon1">کدملی</span>
+                              </div>
+                              <input type="tel" onkeypress="isNumber(event)" id="NationalID" name="NationalID" class="form-control"
+                                placeholder="ده رقمی" required aria-label="NationalID" maxlength="15" aria-describedby="basic-addon1">
+                            </div>
+                            <div class="input-group mb-3">
+                              <div class="input-group-prepend">
+                                <span class="input-group-text" id="basic-addon1">رمز عبور</span>
+                              </div>
+                              <input type="password" required class="form-control" maxlength="20" name="password" id="password" placeholder="">
+                            </div>
+
+                            <div class="input-group mb-3">
+                              <div class="input-group-prepend">
+                                <span class="input-group-text" id="basic-addon1">کدامنیتی</span>
+                              </div>
+                              <input type="tel" required onkeypress="isNumber(event)" class="form-control" maxlength="5" name="captchaResponse" id="captchaResponse"
+                                placeholder="">
+                            </div>
+                            <fieldset class="form-group m-0 p-0 d-block d-xs-none mb-2" id="__BVID__53"><!---->
+                              <div tabindex="-1" role="group" class="bv-no-focus-ring">
+                                <div class="row">
+                                  <div class="col col-12">
+                                    <div class="justify-content-between align-items-center">
+                                      <span><img id="captchasrc" src="assetslogin/Loading.gif" width="120px"
+                                          height="50px" alt="کد" class="captcha bg-light" onclick="GetCaptcha()"
+                                          style="cursor: pointer;"></span>
+                                    </div>
+                                    <div class="d-none" id="hiddenvalue"></div>
+                                  </div>
+                                </div><!----><!----><!---->
+                              </div>
+                            </fieldset>
+                            <fieldset class="form-group mt-2 mb-2" id="__BVID__55"><!---->
+                              <div tabindex="-1" role="group" class="bv-no-focus-ring">
+                                <div class="row">
+                                  <div class="col col-12"><a onclick='$("#Terms").modal("show")' href="javascript:"
+                                      aria-label="حریم خصوصی">مطالعه بیانیه حریم
+                                      خصوصی</a></div>
+                                </div><!----><!----><!---->
+                              </div>
+                            </fieldset>
+                          </div>
+                          <div class="d-flex justify-content-between align-items-center mb-2"><button type="submit"
+                              class="btn btn-primary btn-multiple-state btn-shadow"
+                              style="width: 100%; background-image: linear-gradient(rgb(94, 204, 219), rgb(89, 194, 208));"><span
+                                class="spinner d-inline-block"><span class="bounce1"></span> <span
+                                  class="bounce2"></span> <span class="bounce3"></span></span> <span
+                                class="icon success"><i class="simple-icon-check"></i></span> <span class="icon fail"><i
+                                  class="simple-icon-exclamation"></i></span> <span class="label"
+                                style="font-weight: normal;">ورود </span></button></div>
+                          <div class="d-flex justify-content-between align-items-center"
+                            style="font-size: small; margin: 0px -15px;"></div>
+                        </form>
+                      </div>
+                      <div class="m-0 p-0 d-none d-lg-block col-lg-6 col-xs-12"
+                        style="border-radius: 30px 0px 0px 30px;">
+                        <div class="icons pt-2" style="z-index: 12;">
+                          <div class="row m-0">
+                            <div class="m-0 pt-2 p-0 col" title="راهنما"><a href="/help" class=""
+                                aria-label="راهنما"><svg width="22" height="22" viewBox="0 0 22 22" fill="none"
+                                  xmlns="http://www.w3.org/2000/svg" class="iconimg">
+                                  <path
+                                    d="M6.55556 1H6.33333C4.46649 1 3.53307 1 2.82003 1.36331C2.19282 1.68289 1.68289 2.19282 1.36331 2.82003C1 3.53307 1 4.46649 1 6.33333V6.55556M6.55556 21H6.33333C4.46649 21 3.53307 21 2.82003 20.6367C2.19282 20.3171 1.68289 19.8072 1.36331 19.18C1 18.4669 1 17.5335 1 15.6667V15.4444M21 6.55556V6.33333C21 4.46649 21 3.53307 20.6367 2.82003C20.3171 2.19282 19.8072 1.68289 19.18 1.36331C18.4669 1 17.5335 1 15.6667 1H15.4444M21 15.4444V15.6667C21 17.5335 21 18.4669 20.6367 19.18C20.3171 19.8072 19.8072 20.3171 19.18 20.6367C18.4669 21 17.5335 21 15.6667 21H15.4444M6 6.55556V8.22222M16 6.55556V8.22222M9.88889 11.6668C10.7778 11.6668 11.5556 10.889 11.5556 10.0001V6.55556M14.5558 14.5555C12.5558 16.5555 9.33355 16.5555 7.33355 14.5555"
+                                    stroke="#FF5485" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                  </path>
+                                </svg></a></div>
+                            <div class="m-0 pt-2 p-0 col" title="سوالات متداول"><a href="/faq"
+                                class="blueColor" aria-label="سوالات متداول"><svg width="22" height="22"
+                                  viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" class="iconimg">
+                                  <path
+                                    d="M21 17.6667V11C21 5.47715 16.5228 1 11 1C5.47715 1 1 5.47715 1 11V17.6667M3.77778 21C2.24365 21 1 19.7563 1 18.2222V16C1 14.4659 2.24365 13.2222 3.77778 13.2222C5.3119 13.2222 6.55556 14.4659 6.55556 16V18.2222C6.55556 19.7563 5.3119 21 3.77778 21ZM18.2222 21C16.6881 21 15.4444 19.7563 15.4444 18.2222V16C15.4444 14.4659 16.6881 13.2222 18.2222 13.2222C19.7563 13.2222 21 14.4659 21 16V18.2222C21 19.7563 19.7563 21 18.2222 21Z"
+                                    stroke="#FF5485" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                  </path>
+                                </svg></a> </div>
+                            <div class="m-0 pt-2 p-0 col" title="تماس با ما"><a href="/help"
+                                aria-label="تماس با ما"><svg width="22" height="23" viewBox="0 0 22 23" fill="none"
+                                  xmlns="http://www.w3.org/2000/svg" class="iconimg">
+                                  <path
+                                    d="M13.0777 4.98605C14.051 5.17596 14.9456 5.65198 15.6468 6.35321C16.348 7.05443 16.824 7.94895 17.0139 8.92228M13.0777 1C15.0999 1.22465 16.9856 2.13022 18.4252 3.56802C19.8649 5.00583 20.7728 6.8904 21 8.91232M9.26803 12.8217C8.07064 11.6243 7.12516 10.2704 6.43159 8.82585C6.37193 8.7016 6.3421 8.63947 6.31918 8.56085C6.23774 8.28148 6.29624 7.93842 6.46566 7.70181C6.51333 7.63524 6.57029 7.57828 6.6842 7.46436C7.03259 7.11598 7.20678 6.94178 7.32067 6.76662C7.75016 6.10604 7.75016 5.25444 7.32067 4.59386C7.20678 4.41869 7.03259 4.2445 6.6842 3.89611L6.49001 3.70192C5.96042 3.17233 5.69563 2.90754 5.41124 2.7637C4.84566 2.47763 4.17773 2.47763 3.61215 2.7637C3.32776 2.90754 3.06297 3.17233 2.53338 3.70192L2.37629 3.85901C1.84852 4.38678 1.58463 4.65067 1.38309 5.00945C1.15945 5.40756 0.99865 6.02589 1.00001 6.48252C1.00123 6.89402 1.08106 7.17526 1.24071 7.73774C2.09867 10.7606 3.71748 13.6129 6.09714 15.9926C8.47679 18.3723 11.3292 19.9911 14.352 20.849C14.9145 21.0087 15.1957 21.0885 15.6072 21.0897C16.0638 21.0911 16.6822 20.9303 17.0803 20.7067C17.4391 20.5051 17.703 20.2412 18.2307 19.7134L18.3878 19.5564C18.9174 19.0268 19.1822 18.762 19.326 18.4776C19.6121 17.912 19.6121 17.2441 19.326 16.6785C19.1822 16.3941 18.9174 16.1293 18.3878 15.5997L18.1936 15.4055C17.8452 15.0571 17.671 14.883 17.4959 14.7691C16.8353 14.3396 15.9837 14.3396 15.3231 14.7691C15.148 14.883 14.9738 15.0571 14.6254 15.4055C14.5115 15.5194 14.4545 15.5764 14.3879 15.6241C14.1513 15.7935 13.8083 15.852 13.5289 15.7706C13.4503 15.7476 13.3881 15.7178 13.2639 15.6582C11.8193 14.9646 10.4654 14.0191 9.26803 12.8217Z"
+                                    stroke="#FF5485" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                  </path>
+                                </svg></a> </div>
+                            <div class="m-0 pt-2 p-0 col" title="به زودی"><svg width="22" height="22"
+                                viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path
+                                  d="M5.44198 11.5263H10.9944V16.7895M1.0111 11.5263H1M6.56358 16.7895H6.55247M11.0056 21H10.9944M21 11.5263H20.9889M1 16.7895H2.66574M14.8812 11.5263H17.1022M1 21H6.55247M10.9944 1V7.31579M17.2132 21H19.2121C19.834 21 20.145 21 20.3826 20.8853C20.5915 20.7844 20.7614 20.6233 20.8679 20.4253C20.9889 20.2001 20.9889 19.9053 20.9889 19.3158V17.4211C20.9889 16.8315 20.9889 16.5368 20.8679 16.3116C20.7614 16.1135 20.5915 15.9525 20.3826 15.8516C20.145 15.7368 19.834 15.7368 19.2121 15.7368H17.2132C16.5913 15.7368 16.2803 15.7368 16.0428 15.8516C15.8338 15.9525 15.6639 16.1135 15.5575 16.3116C15.4364 16.5368 15.4364 16.8315 15.4364 17.4211V19.3158C15.4364 19.9053 15.4364 20.2001 15.5575 20.4253C15.6639 20.6233 15.8338 20.7844 16.0428 20.8853C16.2803 21 16.5913 21 17.2132 21ZM17.2132 7.31579H19.2121C19.834 7.31579 20.145 7.31579 20.3826 7.20106C20.5915 7.10014 20.7614 6.93911 20.8679 6.74104C20.9889 6.51587 20.9889 6.22111 20.9889 5.63158V3.73684C20.9889 3.14731 20.9889 2.85255 20.8679 2.62738C20.7614 2.42931 20.5915 2.26828 20.3826 2.16736C20.145 2.05263 19.834 2.05263 19.2121 2.05263H17.2132C16.5913 2.05263 16.2803 2.05263 16.0428 2.16736C15.8338 2.26828 15.6639 2.42931 15.5575 2.62738C15.4364 2.85255 15.4364 3.14731 15.4364 3.73684V5.63158C15.4364 6.22111 15.4364 6.51587 15.5575 6.74104C15.6639 6.93911 15.8338 7.10014 16.0428 7.20106C16.2803 7.31579 16.5913 7.31579 17.2132 7.31579ZM2.77679 7.31579H4.77568C5.39762 7.31579 5.70858 7.31579 5.94613 7.20106C6.15508 7.10014 6.32497 6.93911 6.43143 6.74104C6.55247 6.51587 6.55247 6.22111 6.55247 5.63158V3.73684C6.55247 3.14731 6.55247 2.85255 6.43143 2.62738C6.32497 2.42931 6.15508 2.26828 5.94613 2.16736C5.70858 2.05263 5.39762 2.05263 4.77568 2.05263H2.77679C2.15486 2.05263 1.84389 2.05263 1.60634 2.16736C1.39739 2.26828 1.2275 2.42931 1.12104 2.62738C1 2.85255 1 3.14731 1 3.73684V5.63158C1 6.22111 1 6.51587 1.12104 6.74104C1.2275 6.93911 1.39739 7.10014 1.60634 7.20106C1.84389 7.31579 2.15486 7.31579 2.77679 7.31579Z"
+                                  stroke="#FF5485" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                </path>
+                              </svg> </div>
+                          </div>
+                        </div>
+                        <div
+                          style="background-color: rgb(236, 236, 236); height: 530px; overflow: hidden; border-radius: 30px 0px 0px 30px;">
+                          <div class="mt-4" style="font-size: 0.7rem; padding: 30px 2rem 1rem;">
+                            مرکز توسعه آموزش مجازی،فناوری و امنیت اطلاعات وزارت آموزش و پرورش
+                          </div>
+                          <div style="padding: 0px 2rem 1rem;">
+                            <ol style="font-size: 0.8rem;">
+                              <li class="text-justify"> زمان ثبت نام ترمیم معدل هنوز اعلام نشده و به
+                                محض آغاز ثبت نام اطلاع رسانی از منابع معتبر آموزش و پرورش انجام خواهد شد.</li>
+                              <li class="text-justify">در صورتی که دانش آموز هستید و با خطای اشتباه
+                                بودن رمز عبور مواجه میشوید، مجدد نسبت به تنظیم رمز عبور اقدام نمایید.</li>
+                            </ol>
+                          </div>
+                        </div>
+                      </div>
+                    </div><!----><!---->
+                  </div>
+                </div>
+              </div> <!----> <!---->
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="container-fluid pt-2 pb-2 footer1" style="min-height: 4vh; background-color: rgb(213, 216, 237);">
+        <div class="row">
+          <div class="mb-0 copyr text-center col-md-12">
+            <div>
+              مالکیت مادی و معنوی این سایت متعلق به وزارت آموزش و پرورش می باشد.<br>طــراحی، تولیـد و
+              توسعه توسط ایــزایران
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="ErrorModal" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+      <div class="alert text-center modal-content">
+        <div class="" id="successInfo"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="Terms" tabindex="-1" >
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-body">
+          <div class="text-justify px-2" style="line-height: 2rem;">
+            <h3 class="text-center mb-4">بسمه تعالی</h3>
+  
+            <h4 class="text-success mt-4">بيانيه حريم خصوصی و توافقنامه با کاربران:</h4>
+            <div class="text-justify">اطلاعات مربوط به هر شخص، حریم خصوصی وی محسوب می‌شود. حفاظت و حراست از اطلاعات شخصی
+              شهروندان در پنجره واحد خدمات الکترونیک وزارت آموزش و پرورش، نه تنها موجب حفظ امنیت کاربران می‌شود، بلکه باعث
+              اعتماد بیشتر و مشارکت آنها در فعالیت‌های جاری می‌گردد.
+            </div>
+            <div class="text-justify mt-2">
+              هدف از این بیانیه، از یک سو، آگاه ساختن شما درباره ی نوع و نحوه ی استفاده از اطلاعاتی است که در هنگام استفاده
+              از پنجره واحد خدمات الکترونیک وزارت آموزش و پرورش، از جانب شما دریافت می‌گردد. وزارت آموزش و پرورش خود را ملزم
+              به
+              رعایت حریم خصوصی همه شهروندان و کاربران سامانه دانسته و آن دسته از اطلاعات کاربران را که فقط به منظور ارائه
+              خدمات کفایت می‌کند، دریافت کرده و از انتشار آن یا در اختیار قرار دادن آن به دیگران خودداری می نماید.
+            </div>
+            <div class="text-justify mt-2">
+              در طرف مقابل، همه کاربران متعهد به رعایت الزامات قانونی و حقوقی برای حفاظت از اطلاعات کاربری و دسترسی خود
+              هستند.
+              در اختیار گذاشتن حساب کاربری شما به افراد غیر، تخطی از قوانین رسمی کشور محسوب شده و در صورت بروز هر گونه
+              مخاطره
+              یا دسترسی یا تغییر غیر موجه در پرونده ها و اطلاعات شما یا واحد سازمانی تحت نظارت شما، مسئولیت حقوقی هرگونه
+              سوءاستفاده از حساب کاربری تان، به عهده شما خواهد بود.
+            </div>
+  
+            <h4 class="text-success mt-4">چگونگی جمع آوری و استفاده از اطلاعات کاربران:</h4>
+            <span style="">الف:</span> اطلاعاتی که از طریق درگاه ملی دولت هوشمند دریافت می‌شود، شامل موارد زير هستند:
+            <br />
+            در پنجره واحد خدمات وزارت آموزش و پرورش، اقلام اطلاعاتی شامل شماره تلفن همراه، تاریخ تولد، کد پستی و کد ملی
+            کاربران از درگاه ملی دولت هوشمند دریافت می نماییم و از این اقلام، جهت احراز هویت کاربران استفاده خواهد شد.
+            <br />اطلاعات دریافتی از درگاه دولت، ملاک عمل در تمام سامانه های وزارت آموزش و پرورش می باشد.
+            <div class="text-justify mt-2">
+              <span >ب:</span> برخی اطلاعات ديگر که به صورت خودکار از شما دريافت می‌شود شامل موارد زير می‌باشد:
+              <ul style="list-style-type: none;" class="p-0">
+                <li><i class="text-success glyph-icon simple-icon-check"></i> خدمات الکترونیکی که به آنها مراجعه می‌کنید.
+                </li>
+                <li><i class="text-success glyph-icon simple-icon-check"></i> نام و نسخه سیستم عامل وbrowser کامپیوتر شما.
+                </li>
+                <li><i class="text-success glyph-icon simple-icon-check"></i> اطلاعات صفحات بازدید شده.</li>
+                <li><i class="text-success glyph-icon simple-icon-check"></i> تعداد بازدیدهای روزانه در درگاه.</li>
+              </ul>
+              هدف ما از دریافت این اطلاعات استفاده از آنها در تحلیل عملکرد کاربران پنجره واحد می‌باشد تا بتوانیم در خدمت
+              رسانی بهتر عمل کنیم.
+            </div>
+            <h4 class="text-success mt-4">امنیت اطلاعات:</h4>
+            <div class="text-justify"> متعهدیم که امنیت اطلاعات شما را تضمین نماییم و برای جلوگیری از هر نوع دسترسی غیرمجاز
+              و افشای اطلاعات شما از همه شیوه‌‌های لازم استفاده می‌کنیم تا امنیت اطلاعاتی که به صورت آنلاین گردآوری می‌شود،
+              حفظ نماییم.
+              <br /> لازم به ذکر است در این سامانه ممکن است به سایت های دیگری لینک شوید. توجه داشته باشید تنها سامانه
+              هایی که با دامنه رسمی وزارت آموزش و پرورش (medu.ir و medu.gov.ir) فعالیت می‌کنند تحت حمایت و نظارت وزارت آموزش
+              و پرورش می باشند.
+              <br />اما در مورد سایر سایتها (که روی دامنه medu.ir یا medu.gov.ir نیستند)، دستگاه تعهدی بر حفظ حریم شخصی
+              کاربران در
+              سایت مقصد نخواهد داشت و مراجعه کنندگان می‌بایست به بیانیه حریم خصوصی آن سایت ها مراجعه نمایند.
+            </div>
+  
+            <h4 class="text-success mt-4">تغييرات در بيانيه حریم خصوصی و توافقنامه کاربران:</h4>
+            <div class="text-justify">ما این حق را برای خود محفوظ می‌داریم که بنا به اقتضائات زمانی، این بیانیه را ویرایش
+              نموده و تغییرات خود را اعمال نماییم. در این شرایط شما آخرین تغییرات ما را در بیانیه از طریق سامانه مشاهده
+              نموده و از آن مطلع شوید.
+            (<span class="text-left" style="font-size: 0.8rem;">نسخه 1.0</span>)
+            </div>
+          </div>
+          
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick='$("#Terms").modal("hide")' data-bs-dismiss="modal">بستن</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- <script src="assetslogin/loginjs.js"></script> -->
+
+</body>
+
+</html>
