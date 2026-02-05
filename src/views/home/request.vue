@@ -29,38 +29,41 @@
         <hr />
 
         <!-- Conditions -->
-        <ul class="conditions">
-          <li v-for="c in conditions" :key="c.key">
-            <div class="icon">
-              <b-spinner small v-if="c.state === 'checking'" variant="secondary" />
-              <b-icon v-else-if="c.state === 'success'" icon="check-circle-fill" variant="success"
-                class="icon-animate" />
-              <b-icon v-else icon="x-circle-fill" variant="danger" class="icon-animate" />
-            </div>
-
-            <div class="content">
-              <div class="label">{{ c.label }}</div>
-              <div v-if="c.state === 'error'" class="reason text-danger">
-                {{ c.reason }}
+        <div v-if="userstatusInfo">
+          <ul class="conditions">
+            <li v-for="c in conditions" :key="c.key">
+              <div class="icon">
+                <b-spinner small v-if="c.state === 'checking'" variant="secondary" />
+                <b-icon v-else-if="c.state === 'success'" icon="check-circle-fill" variant="success"
+                  class="icon-animate" />
+                <b-icon v-else icon="x-circle-fill" variant="danger" class="icon-animate" />
               </div>
-            </div>
-          </li>
-        </ul>
 
-        <!-- Action -->
-        <div class="text-center mt-4">
-          <b-button variant="primary" :disabled="!canContinue" @click="nextStep">
-            ادامه
-          </b-button>
+              <div class="content">
+                <div class="label">{{ c.label }}</div>
+                <div v-if="c.state === 'error'" class="reason text-danger">
+                  {{ c.reason }}
+                </div>
+              </div>
+            </li>
+          </ul>
+          <!-- Action -->
+          <div class="text-center mt-4">
+            <b-button variant="primary" :disabled="!canContinue" @click="nextStep">
+              ادامه
+            </b-button>
+          </div>
         </div>
-
+        <b-card v-else class="mb-4 text-center">
+          در حال بررسی...
+          <img src="/assets/img/Loading.gif" style="max-width: 100%; width: 50px" />
+        </b-card>
       </b-card>
     </b-container>
   </div>
 </template>
 
 <script>
-import { currentUser } from "../../constants/config";
 import { isMobile } from "../../utils";
 import { mapGetters, mapActions, mapMutations } from "vuex";
 export default {
@@ -68,11 +71,10 @@ export default {
   components: {
   },
   async mounted() {
-
-    this.runChecks()
+    this.userstatus()
   },
   computed: {
-    ...mapGetters(["sidebarVisible", "processing", "loginError", "currentUser"]),
+    ...mapGetters(["sidebarVisible", "processing", "loginError", "currentUser", "userstatusInfo"]),
     canContinue() {
       if (!this.accepted || !this.checksFinished) return false
       return this.conditions.every(c => c.state === 'success')
@@ -84,18 +86,6 @@ export default {
       accepted: false,
       checksFinished: false,
       progress: 0,
-
-      user: {
-        fullName: 'میلاد فراهانی',
-        nationalCode: '1234567890',
-        personnelCode: '98765',
-        position: 'دبیر رسمی',
-        region: 'منطقه ۳ تهران',
-        degree: 'BSC',
-        membershipActive: true,
-        membershipYears: 2,
-        alreadyRegistered: false
-      },
 
       conditions: [
         {
@@ -131,9 +121,17 @@ export default {
       ]
     }
   },
+  watch: {
+    userstatusInfo(val) {
+      if (val) {
+
+        this.runChecks()
+      }
+    }
+  },
   methods: {
-    ...mapMutations(["setsidebarVisible", "setRequestStatus"]),
-    ...mapActions(["GetNationalCardPhoto"]),
+    ...mapMutations(["setRequestStatus"]),
+    ...mapActions(["userstatus"]),
     async runChecks() {
       const step = 100 / this.conditions.length
 
@@ -156,27 +154,27 @@ export default {
     evaluate(key) {
       switch (key) {
         case 'membership':
-          return this.user.membershipActive
+          return this.userstatusInfo.membershipActive
             ? { ok: true }
             : { ok: false, reason: 'عضویت فعال در صندوق احراز نشد' }
 
         case 'duration':
-          return this.user.membershipYears >= 1
+          return this.userstatusInfo.membershipYears
             ? { ok: true }
             : { ok: false, reason: 'سابقه عضویت کمتر از یک سال است' }
 
         case 'degree':
-          return ['BSC', 'MSC', 'PHD'].includes(this.user.degree)
+          return this.userstatusInfo.degree
             ? { ok: true }
             : { ok: false, reason: 'مدرک تحصیلی کمتر از کارشناسی است' }
 
         case 'region':
-          return this.user.region
+          return this.currentUser.regionId
             ? { ok: true }
             : { ok: false, reason: 'منطقه خدمتی کاربر شناسایی نشد' }
 
         case 'notRegistered':
-          return !this.user.alreadyRegistered
+          return !this.userstatusInfo.alreadyRegistered
             ? { ok: true }
             : { ok: false, reason: 'قبلاً برای این انتخابات ثبت‌نام انجام شده است' }
 

@@ -1,20 +1,7 @@
 <?php
-header("Access-Control-Allow-Origin: http://localhost:2000");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
-header("Access-Control-Allow-Credentials: true");
-
-    
-// برای درخواست‌های OPTIONS (preflight)
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
 require_once 'database.php';
 require_once 'jdf.php';
-define('JWT_SECRET', 'CHANGE_THIS_SECRET_KEY_!@#'); // حتماً عوضش کن
-define('JWT_ISSUER', 'your-system-name');
-define('JWT_EXPIRE', 3600 * 8); // 8 ساعت
+require_once 'config.php';
 
 header('Content-Type: application/json; charset=utf-8');
 function base64UrlEncode($data) {
@@ -222,13 +209,13 @@ if (!empty($data['ozvsandogh'])) {
     if ($chkAddr->num_rows) {
         $db->query("
             UPDATE userstatus
-            SET nationalId  = {$nationalId},ozvsandogh = {$data['ozvsandogh']}, sabegheO = {$data['sabegheO']}, madrak = {$data['madrak']}
+            SET nationalId  = '{$nationalId}',ozvsandogh = {$data['ozvsandogh']}, sabegheO = {$data['sabegheO']}, madrak = {$data['madrak']}
             WHERE user_id = {$userId}
         ");
     } else {
         $db->query("
             INSERT INTO userstatus (user_Id,nationalId ,ozvsandogh, sabegheO, madrak)
-            VALUES ({$userId },{$nationalId },{$data['ozvsandogh']}, '{$data['sabegheO']}', '{$data['madrak']}')
+            VALUES ({$userId },'{$nationalId}',{$data['ozvsandogh']}, '{$data['sabegheO']}', '{$data['madrak']}')
         ");
     }
 }

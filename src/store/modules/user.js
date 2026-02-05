@@ -6,12 +6,12 @@ const USE_MOCK = false
 export default {
   state: {
     currentUser: isAuthGuardActive ? getCurrentUser() : null,
+    userstatusInfo: null,
     requestStatus: null,
     hasActiveRequest: false,
     electionActive: true,
     loginError: null,
     processing: false,
-    ///RTB//
     sidebarVisible: true,
     panelactiveparvande: 'home',
     candidateFiles: {
@@ -26,6 +26,8 @@ export default {
     requestStatus: state => state.requestStatus,
     panelactiveparvande: state => state.panelactiveparvande,
     currentUser: state => state.currentUser,
+    userstatusInfo: state => state.userstatusInfo,
+    
     processing: state => state.processing,
     loginError: state => state.loginError,
     candidateFiles: state => state.candidateFiles,
@@ -76,7 +78,10 @@ export default {
         state.loginError = payload
       state.processing = false
     },
-
+    setuserstatusInfo(state, payload) {
+      state.userstatusInfo = payload
+      state.loginError = null
+    },
     clearError(state) {
       state.loginError = null
       state.processing = false
@@ -85,32 +90,44 @@ export default {
   actions: {
 
 
-     LoginUserSSO({ commit }, payload) {
+    LoginUserSSO({ commit }, payload) {
       commit('setProcessing', true)
-setTimeout(() => {
-  
-
+      setTimeout(() => {
+        try {
+          localStorage.removeItem('user')
+          apiservice({ name: "AccountLogin", params: payload }, { commit })
+            .then(response => {
+              if (response.status) {
+                commit('setUser', { ...response.user, token: response.token })
+                commit('setRequestStatus', response.requestStatus)
+                commit('setHasActiveRequest', response.hasActiveRequest)
+                commit('clearError')
+              }
+            })
+        } catch (e) {
+          commit('setLogout')
+          commit('setError', 'خطا در ورود. لطفاً مجدد تلاش نمایید')
+        } finally {
+          commit('setProcessing', false)
+        }
+      }, 2000);
+    },
+    userstatus({ commit }, payload) {
+      commit('setProcessing', true)
       try {
-        localStorage.removeItem('user')
-         apiservice({ name: "AccountLogin", params: payload }, { commit })
+        apiservice({ name: "userstatus", params: payload }, { commit })
           .then(response => {
             if (response.status) {
-              commit('setUser', { ...response.user, token: response.token })
-              commit('setRequestStatus', response.requestStatus)
-              commit('setHasActiveRequest', response.hasActiveRequest)
+              commit('setuserstatusInfo', response.data)
               commit('clearError')
             }
           })
-
       } catch (e) {
-        commit('setLogout')
         commit('setError', 'خطا در ورود. لطفاً مجدد تلاش نمایید')
       } finally {
         commit('setProcessing', false)
       }
-      }, 2000);
     },
-
 
   }
 }
