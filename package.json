@@ -1,7 +1,7 @@
 {
   "name": "mymedu",
   "version": "3.8.1",
-  "description": "پنجره واحد خدمات الکترونیک وزارت آموزش و پرورش",
+  "description": "انتخابات صندوق ذخیره فرهنگیان",
   "author": "مهندس فراهانی",
   "private": true,
   "scripts": {
