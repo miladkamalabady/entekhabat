@@ -5,6 +5,9 @@ const global = {
     },userstatus: {
         url: "/user-status",
         method: 'GET'
+    },UploadUserDocuments: {
+        url: "/UploadUserDocuments",
+        method: 'POST'
     }
     
 };

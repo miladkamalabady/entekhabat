@@ -1,64 +1,55 @@
 <template>
   <div class="px-2">
 
-        <div class="mt-4">
-          <b-container fluid class="upload-wrapper">
-            <!-- Wizard -->
-            <ul class="wizard mb-3">
-              <li class="done">1. بررسی شرایط احراز</li>
-              <li class="done">2. قبول شرایط</li>
-              <li class="active">3. بارگذاری مدارک</li>
-              <li>4. تأیید ثبت‌نام</li>
-            </ul>
-            <b-progress
-              height="6px"
-              class="mb-4"
-              :value="progress"
-              max="100"
-              variant="primary"
-            />
+    <div class="mt-4">
+      <b-container fluid class="upload-wrapper">
+        <!-- Wizard -->
+        <ul class="wizard mb-3">
+          <li class="done">1. بررسی شرایط احراز</li>
+          <li class="done">2. قبول شرایط</li>
+          <li class="active">3. بارگذاری مدارک</li>
+          <li>4. تأیید ثبت‌نام</li>
+        </ul>
+        <b-progress height="6px" class="mb-4" :value="progress" max="100" variant="primary" />
 
-            <!-- Upload Documents -->
-            <b-card>
-              <h6 class="mb-3">بارگذاری مدارک موردنیاز</h6>
-
-              <document-upload
-                title="عکس پرسنلی"
-                :file.sync="files.photo"
-              />
-              <document-upload
-                title="مدرک تحصیلی"
-                :file.sync="files.degree"
-              />
-              <document-upload
-                title="گواهی عدم اعتیاد"
-                :file.sync="files.noAddiction"
-              />
-
-              <!-- Actions -->
-              <div class="d-flex justify-content-between mt-4">
-                <b-button variant="outline-secondary" @click="goBack">بازگشت</b-button>
-                <div>
-                  <b-button variant="outline-danger" class="mr-2" @click="cancel">انصراف</b-button>
-                  <b-button variant="primary" :disabled="!canSubmit" @click="submit">ثبت نهایی</b-button>
-                </div>
-              </div>
-            </b-card>
-          </b-container>
-        </div>
-      </div>
+        <!-- Upload Documents -->
+        <b-card>
+          <h6 class="mb-3">بارگذاری مدارک موردنیاز</h6>
+          <b-row>
+            <b-colxx xxs="12" xs="4">
+              <document-upload title="عکس پرسنلی" :file.sync="files.photo" />
+            </b-colxx>
+            <b-colxx xxs="12" xs="4">
+              <document-upload title="مدرک تحصیلی" :file.sync="files.degree" />
+            </b-colxx>
+            <b-colxx xxs="12" xs="4">
+              <document-upload title="گواهی عدم اعتیاد" :file.sync="files.noAddiction" />
+            </b-colxx>
+          </b-row>
+          <!-- Actions -->
+          <div class="d-flex justify-content-between mt-4">
+            <b-button variant="outline-secondary" @click="goBack">بازگشت</b-button>
+            <div>
+              <b-button variant="outline-danger" class="mr-2" @click="cancel">انصراف</b-button>
+              <b-button variant="primary" :disabled="!canSubmit" @click="submit">ثبت نهایی</b-button>
+            </div>
+          </div>
+        </b-card>
+      </b-container>
+    </div>
+  </div>
 </template>
 
 <script>
 import { isMobile } from "../../utils";
-import { mapGetters, mapMutations } from "vuex";
+import { mapGetters, mapMutations,mapActions } from "vuex";
 import DocumentUpload from "../../components/Common/DocumentUpload";
 
 export default {
   name: "UploadDocuments",
-  components: {  DocumentUpload },
+  components: { DocumentUpload },
   computed: {
-    ...mapGetters(["sidebarVisible"]),
+    ...mapGetters(["UploadUserDocumentsInfo"]),
     canSubmit() {
       return Object.values(this.files).every(f => f !== null);
     },
@@ -77,7 +68,8 @@ export default {
     };
   },
   methods: {
-    ...mapMutations(["setsidebarVisible", "setCandidateFiles","setRequestStatus"]),
+    ...mapMutations(["setCandidateFiles", "setRequestStatus"]),
+     ...mapActions(["UploadUserDocuments"]),
 
     goBack() {
       this.setRequestStatus("CANDIDATE")
@@ -91,18 +83,18 @@ export default {
     },
 
     submit() {
-       Object.keys(this.files).forEach(key => {
-    const f = this.files[key];
-    if (f && !f.preview && f.raw && f.raw.type.startsWith("image/")) {
-      const reader = new FileReader();
-      reader.onload = e => {
-        f.preview = e.target.result;
-        this.$set(this.files, key, f);
-      };
-      reader.readAsDataURL(f.raw);
-    }
-  });
-  
+      Object.keys(this.files).forEach(key => {
+        const f = this.files[key];
+        if (f && !f.preview && f.raw && f.raw.type.startsWith("image/")) {
+          const reader = new FileReader();
+          reader.onload = e => {
+            f.preview = e.target.result;
+            this.$set(this.files, key, f);
+          };
+          reader.readAsDataURL(f.raw);
+        }
+      });
+
       this.setCandidateFiles(this.files);
       this.setRequestStatus("DOCUMENTS_UPLOADED")
       this.$router.push("/candidate/Confirmation");
@@ -124,6 +116,7 @@ export default {
   padding: 0;
   font-size: 13px;
 }
+
 .wizard li {
   flex: 1;
   text-align: center;
@@ -131,11 +124,13 @@ export default {
   padding: 8px;
   color: #999;
 }
+
 .wizard li.active {
   border-color: #3f51b5;
   color: #3f51b5;
   font-weight: 600;
 }
+
 .wizard li.done {
   border-color: #4caf50;
   color: #4caf50;

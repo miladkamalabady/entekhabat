@@ -2,11 +2,11 @@
 import apiservice from '../../store/modules/apiservice'
 import { isAuthGuardActive } from '../../constants/config'
 import { getCurrentUser } from '../../utils'
-const USE_MOCK = false
 export default {
   state: {
     currentUser: isAuthGuardActive ? getCurrentUser() : null,
     userstatusInfo: null,
+    UploadUserDocumentsInfo:null,
     requestStatus: null,
     hasActiveRequest: false,
     electionActive: true,
@@ -27,7 +27,7 @@ export default {
     panelactiveparvande: state => state.panelactiveparvande,
     currentUser: state => state.currentUser,
     userstatusInfo: state => state.userstatusInfo,
-    
+    UploadUserDocumentsInfo: state => state.UploadUserDocumentsInfo,
     processing: state => state.processing,
     loginError: state => state.loginError,
     candidateFiles: state => state.candidateFiles,
@@ -81,6 +81,9 @@ export default {
     setuserstatusInfo(state, payload) {
       state.userstatusInfo = payload
       state.loginError = null
+    },setUploadUserDocumentsInfo(state, payload) {
+      state.UploadUserDocumentsInfo = payload
+      state.loginError = null
     },
     clearError(state) {
       state.loginError = null
@@ -113,12 +116,25 @@ export default {
       }, 2000);
     },
     userstatus({ commit }, payload) {
-      commit('setProcessing', true)
       try {
         apiservice({ name: "userstatus", params: payload }, { commit })
           .then(response => {
             if (response.status) {
               commit('setuserstatusInfo', response.data)
+              commit('clearError')
+            }
+          })
+      } catch (e) {
+        commit('setError', 'خطا در ورود. لطفاً مجدد تلاش نمایید')
+      } finally {
+        commit('setProcessing', false)
+      }
+    },UploadUserDocuments({ commit }, payload) {
+      try {
+        apiservice({ name: "UploadUserDocuments", params: payload }, { commit })
+          .then(response => {
+            if (response.status) {
+              commit('setUploadUserDocumentsInfo', response.data)
               commit('clearError')
             }
           })
