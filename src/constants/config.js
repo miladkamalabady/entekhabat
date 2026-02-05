@@ -5,14 +5,13 @@ export const adminRoot = '/app';
 export const searchPath = `${adminRoot}/pages/miscellaneous/search`
 export const buyUrl = '#'
 
-export var apiUrlrtb = 'http://192.168.13.63:8080/api';
-export var apiUrlhrm = 'https://hrm1.medu.ir/api';
+export var apiUrlrtb = 'http://localhost/apiEntekhabat';
 
 async function doGetRequest() {
   let res = await axios.get('/../config.js');
   apiUrlrtb = (JSON.parse(res.data)[0].apiUrlrtb);
 }
-doGetRequest();
+//doGetRequest();
 
 
 export const subHiddenBreakpoint = 1440

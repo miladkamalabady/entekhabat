@@ -1072,8 +1072,8 @@ const global = {
         url: "/rtb/CommitedToService/GetAll",
         method: 'GET'
     },AccountLogin: {
-        url: "/rtb/Account/Login",
-        method: 'POST'
+        url: "/AccountLogin",
+        method: 'GET'
     },StationGetAll: {
         url: "/rtb/Station/GetAll",
         method: 'GET'

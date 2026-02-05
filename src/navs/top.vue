@@ -106,7 +106,7 @@
       />
 
       <span class="small">
-        {{ currentUser?.fullName }} 
+        {{ currentUser?.full_name }} 
       </span>
       
     </div>

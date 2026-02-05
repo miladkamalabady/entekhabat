@@ -16,7 +16,7 @@
         </b-col>
         <b-col cols="12" md="4" class="text-left text-md-right">
           <div class="voter-info">
-            <div class="voter-name">{{ currentUser.fullName }}</div>
+            <div class="voter-name">{{ currentUser.full_name }}</div>
             <div class="voter-id">کد ملی: {{ voterInfo.nationalId }}</div>
             <div class="voter-status">
               <b-badge :variant="voteStatus === 'voted' ? 'success' : 'warning'">
@@ -1065,7 +1065,7 @@ export default {
         
         اطلاعات رأی‌دهنده:
         -----------------
-        نام: ${this.currentUser.fullName}
+        نام: ${this.currentUser.full_name}
         کد ملی: ${this.voterInfo.nationalId}
         
         کاندیدای انتخاب شده:

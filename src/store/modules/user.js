@@ -2,13 +2,13 @@
 import apiservice from '../../store/modules/apiservice'
 import { isAuthGuardActive } from '../../constants/config'
 import { getCurrentUser } from '../../utils'
-const USE_MOCK = true
+const USE_MOCK = false
 export default {
   state: {
     currentUser: isAuthGuardActive ? getCurrentUser() : null,
     requestStatus: null,
     hasActiveRequest: false,
-    electionActive:true,
+    electionActive: true,
     loginError: null,
     processing: false,
     ///RTB//
@@ -40,14 +40,14 @@ export default {
 
     setUser(state, payload) {
       localStorage.setItem('user', JSON.stringify(payload))
-      
+
       state.currentUser = payload
-      
+
       state.processing = false
       state.loginError = null
-    },setRequestStatus(state, payload) {
+    }, setRequestStatus(state, payload) {
       state.requestStatus = payload
-    },setHasActiveRequest(state, payload) {
+    }, setHasActiveRequest(state, payload) {
       state.hasActiveRequest = payload
     },
     setsidebarVisible(state, payload) {
@@ -90,7 +90,7 @@ export default {
 
       try {
         let response
-
+ localStorage.removeItem('user')
         if (USE_MOCK) {
           response = {
             user: {
@@ -103,18 +103,25 @@ export default {
             hasActiveRequest: true
           }
         } else {
-          response = await apiservice(
-            { name: "AccountLogin", params: payload }
-          )
+          await apiservice({ name: "AccountLogin", params: payload }, { commit })
+            .then(response => {
+          
+              if (response.status) {
+                commit('setUser', {...response.user,token:response.token})
+                commit('setRequestStatus', response.requestStatus)
+                commit('setHasActiveRequest', response.hasActiveRequest)
+                commit('clearError')
+              }
+            })
         }
 
         // --- ذخیره تمیز ---
-        
 
-        commit('setUser', response.user)
-        commit('setRequestStatus', response.requestStatus)
-        commit('setHasActiveRequest', response.hasActiveRequest)
-        commit('clearError')
+
+        // commit('setUser', response.user)
+        // commit('setRequestStatus', response.requestStatus)
+        // commit('setHasActiveRequest', response.hasActiveRequest)
+        // commit('clearError')
 
       } catch (e) {
         commit('setLogout')

@@ -19,7 +19,7 @@
 
         <!-- Declaration -->
         <b-form-checkbox v-model="accepted">
-          اینجانب <strong>{{ user.fullName }}</strong>
+          اینجانب <strong>{{ user.full_name }}</strong>
           با کد ملی <strong>{{ user.nationalCode }}</strong>
           و کد پرسنلی <strong>{{ user.personnelCode }}</strong>
           با آخرین پست <strong>{{ user.position }}</strong>

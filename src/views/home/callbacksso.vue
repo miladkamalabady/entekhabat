@@ -62,7 +62,7 @@ export default {
   if (!code && !this.currentUser) return
 
   if (code) {
-    await this.LoginUserSSO({ myToken: code })
+    await this.LoginUserSSO({ code: code })
   }
 
 

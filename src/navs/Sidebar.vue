@@ -16,7 +16,7 @@
           <div class="d-flex align-items-center profile-card" style="gap:0.5rem">
             <!-- <img :src="currentUser?.img" class="profile" /> -->
             <p class="muirtl-78ml10">
-              {{ currentUser?.fullName }}
+              {{ currentUser?.full_name }}
             </p>
           </div>
           <hr class="my-2" />
@@ -160,8 +160,9 @@ export default {
     filteredMenu() {
       return this.profilecontent.filter(item => {
         let roleAllowed=true
+        
         if(item?.roles)
-        roleAllowed = item?.roles.includes(this.currentUser?.roles[0])
+        roleAllowed = item?.roles?.includes(this.currentUser?.roles[0])
  
         const disabled= item.requiresActive && !this.electionActive
         return roleAllowed && !disabled

@@ -1,5 +1,5 @@
 import {
-  apiUrlrtb, apiUrlhrm
+  apiUrlrtb
 } from '../../constants/config'
 
 
@@ -23,7 +23,7 @@ commit.commit('setProcessing', true)
   let user = userinfo.state.currentUser;
 
   let config = {
-    url: apiUrlrtb + url,
+    url: apiUrlrtb + url+".php",
     method: method || 'POST',
     retry: 1,
     retryDelay: 32000,
@@ -36,25 +36,6 @@ commit.commit('setProcessing', true)
     },
   };
 
-
-  if (data.name == 'logoutsso')
-    config.url = "https://sso.my.gov.ir/logout"
-
-
-  if (url.includes('/rtb/')) {
-    const newUrl = url.replace('/rtb/', '/')
-    config.url = `${apiUrlrtb}${newUrl}`
- 
-  } else if (url.includes('/RtbN/')) {
-    const newUrl = url.replace('/RtbN/', '/')
-    config.url = `https://profile1.medu.ir/rtb/api/rtb${newUrl}`
-    // if (location.origin.includes('http://localhost'))
-    // config.url = `http://192.168.13.63:8012/api/rtb${newUrl}`
-
-  } else if (url.includes('/External/')) {
-    const newUrl = url
-    config.url = `${apiUrlhrm}${newUrl}`
-  } 
 
    if (user?.token) config.headers.Authorization = `Bearer ${user.token}`;
 
@@ -111,25 +92,16 @@ commit.commit('setProcessing', true)
         commit.commit('setError', err)
         setTimeout(() => {
           // if (location.href == 'https://profile.medu.ir/')
-            location.replace("https://my.medu.ir");
+            // location.replace("https://my.medu.ir");
         }, 500)
 
       } else if (error.response?.status == 500) {
-        commit.commit('setError', error.response.data.Title)
+        commit.commit('setError', error.response.message)
       }
       else if (error.response?.data) {
         const data = error.response.data;
-        const arrayFailed = Object.entries(data).map((arr) => ({
-          message: arr,
-        }));
         
-        
-        let err = ""
-        arrayFailed.map(function (value, key) {
-          err = err + value.message + "<br/>"
-        });
-        
-        commit.commit('setError', err)
+        commit.commit('setError',data.message)
 
       } else if (error?.response?.status == 404) {
         let err = "خطای دریافت اطلاعات! مجدد تلاش نمایید"

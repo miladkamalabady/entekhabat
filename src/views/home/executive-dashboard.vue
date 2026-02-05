@@ -16,7 +16,7 @@
         </b-col>
         <b-col cols="12" md="4" class="text-left text-md-right">
           <div class="supervisor-info">
-            <div class="supervisor-name">{{ currentUser.fullName }}</div>
+            <div class="supervisor-name">{{ currentUser.full_name }}</div>
             <div class="supervisor-role">{{ supervisor.role }}</div>
             <div class="supervisor-stats">
               <b-badge variant="info" class="mr-2">
