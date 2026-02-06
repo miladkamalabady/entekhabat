@@ -44,6 +44,9 @@ const global = {
     },getVote: {
         url: "/getVote",
         method: 'GET'
+    },getInfoVote: {
+        url: "/getInfoVote",
+        method: 'GET'
     }
     
 };

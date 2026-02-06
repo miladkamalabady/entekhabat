@@ -19,11 +19,11 @@
           <div class="timer-card">
             <div class="timer-label">زمان باقیمانده تا پایان انتخابات</div>
             <div class="timer">
-              <div class="time-unit">
+              <div class="time-unit" v-if="timeRemaining.days > 0">
                 <span class="time-value">{{ timeRemaining.days }}</span>
                 <span class="time-label">روز</span>
               </div>
-              <div class="time-separator">:</div>
+              <div class="time-separator" v-if="timeRemaining.days > 0">:</div>
               <div class="time-unit">
                 <span class="time-value">{{ timeRemaining.hours }}</span>
                 <span class="time-label">ساعت</span>
@@ -32,6 +32,11 @@
               <div class="time-unit">
                 <span class="time-value">{{ timeRemaining.minutes }}</span>
                 <span class="time-label">دقیقه</span>
+              </div>
+              <div class="time-separator">:</div>
+              <div class="time-unit">
+                <span class="time-value">{{ timeRemaining.seconds }}</span>
+                <span class="time-label">ثانیه</span>
               </div>
             </div>
           </div>
@@ -43,26 +48,26 @@
     <b-container class="election-container">
       <!-- Quick Stats -->
       <b-row class="mb-4">
-        <b-col cols="6" md="3">
+        <b-col cols="6" md="4">
           <b-card class="stat-card text-center">
             <div class="stat-icon voters-icon">
               <b-icon icon="people-fill"></b-icon>
             </div>
-            <div class="stat-number">{{ formatNumber(totalVoters) }}</div>
+            <div class="stat-number">{{ formatNumber(infoVote?.totalVoters) }}</div>
             <div class="stat-label">کل واجدین شرایط</div>
             <div class="stat-change text-success">
               <b-icon icon="arrow-up"></b-icon>
-              {{ voterParticipation }}% مشارکت
+              {{ infoVote?.voterParticipation.toFixed(2) }}% مشارکت
             </div>
           </b-card>
         </b-col>
-        
-        <b-col cols="6" md="3">
+
+        <b-col cols="6" md="4">
           <b-card class="stat-card text-center">
             <div class="stat-icon vote-icon">
               <b-icon icon="check-circle-fill"></b-icon>
             </div>
-            <div class="stat-number">{{ formatNumber(totalVotes) }}</div>
+            <div class="stat-number">{{ formatNumber(infoVote?.totalVotes) }}</div>
             <div class="stat-label">آرای ثبت شده</div>
             <div class="stat-change">
               <b-icon icon="clock-history"></b-icon>
@@ -70,80 +75,23 @@
             </div>
           </b-card>
         </b-col>
-        
-        <b-col cols="6" md="3">
+
+        <b-col cols="6" md="4">
           <b-card class="stat-card text-center">
             <div class="stat-icon candidate-icon">
               <b-icon icon="person-badge-fill"></b-icon>
             </div>
-            <div class="stat-number">{{ candidates.length }}</div>
+            <div class="stat-number">{{ infoVote?.Candidates }}</div>
             <div class="stat-label">کاندیداها</div>
             <div class="stat-change text-info">
               <b-icon icon="person-plus"></b-icon>
-              {{ activeCandidates }} کاندیدای فعال
+              {{ infoVote?.activeCandidates }} کاندیدای تایید شده
             </div>
           </b-card>
         </b-col>
-        
-        <b-col cols="6" md="3">
-          <b-card class="stat-card text-center">
-            <div class="stat-icon progress-icon">
-              <b-icon icon="graph-up"></b-icon>
-            </div>
-            <div class="stat-number">{{ participationRate }}%</div>
-            <div class="stat-label">میزان مشارکت</div>
-            <b-progress
-              :value="participationRate"
-              :max="100"
-              height="6px"
-              class="mt-2"
-              variant="success"
-            ></b-progress>
-          </b-card>
-        </b-col>
+
       </b-row>
 
-      <!-- Real-time Updates -->
-      <b-card class="mb-4 realtime-card">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h5 class="mb-0">
-            <b-icon icon="lightning-fill" variant="warning" class="ml-2"></b-icon>
-            به‌روزرسانی‌های لحظه‌ای
-          </h5>
-          <div class="update-rate">
-            <b-badge variant="info">
-              هر ۳۰ ثانیه بروزرسانی می‌شود
-            </b-badge>
-          </div>
-        </div>
-        
-        <div class="realtime-updates">
-          <div
-            v-for="update in realtimeUpdates"
-            :key="update.id"
-            class="update-item"
-            :class="`update-${update.type}`"
-          >
-            <div class="update-time">{{ update.time }}</div>
-            <div class="update-content">
-              <b-icon :icon="getUpdateIcon(update.type)" class="ml-2"></b-icon>
-              {{ update.message }}
-            </div>
-          </div>
-        </div>
-        
-        <div class="text-center mt-3">
-          <b-button
-            variant="outline-primary"
-            size="sm"
-            @click="loadMoreUpdates"
-            :disabled="loadingUpdates"
-          >
-            <b-spinner small v-if="loadingUpdates" class="ml-1"></b-spinner>
-            بارگذاری بیشتر
-          </b-button>
-        </div>
-      </b-card>
 
       <!-- Main Dashboard -->
       <b-row class="mb-4">
@@ -154,79 +102,54 @@
               <h5 class="mb-0">رتبه‌بندی کاندیداها</h5>
               <div class="ranking-actions">
                 <b-button-group size="sm">
-                  <b-button
-                    :variant="rankingView === 'table' ? 'primary' : 'outline-primary'"
-                    @click="rankingView = 'table'"
-                  >
+                  <b-button :variant="rankingView === 'table' ? 'primary' : 'outline-primary'"
+                    @click="rankingView = 'table'">
                     <b-icon icon="table"></b-icon>
                   </b-button>
-                  <b-button
-                    :variant="rankingView === 'chart' ? 'primary' : 'outline-primary'"
-                    @click="rankingView = 'chart'"
-                  >
+                  <b-button :variant="rankingView === 'chart' ? 'primary' : 'outline-primary'"
+                    @click="rankingView = 'chart'">
                     <b-icon icon="bar-chart-fill"></b-icon>
                   </b-button>
                 </b-button-group>
               </div>
             </div>
-            
+
             <!-- Table View -->
             <div v-if="rankingView === 'table'" class="table-responsive">
-              <b-table
-                :items="sortedCandidates"
-                :fields="candidateFields"
-                striped
-                hover
-                class="text-right"
-              >
+              <b-table :items="sortedCandidates" :fields="candidateFields" striped hover class="text-right">
                 <template #cell(rank)="data">
                   <div class="rank-badge" :class="`rank-${data.index + 1}`">
                     {{ data.index + 1 }}
                   </div>
                 </template>
-                
+
                 <template #cell(candidate)="data">
                   <div class="candidate-info">
-                    <img
-                      v-if="data.item.photo"
-                      :src="data.item.photo"
-                      class="candidate-photo"
-                      :alt="data.item.name"
-                    />
+                    <img v-if="data.item.user_photo" :src="`${apiUrlrtb}/${data.item.user_photo}`"
+                      class="candidate-photo" :alt="data.item.name" />
                     <div v-else class="candidate-photo placeholder">
                       <b-icon icon="person-circle"></b-icon>
                     </div>
                     <div class="candidate-details">
-                      <strong>{{ data.item.name }}</strong>
-                      <small class="text-muted d-block">{{ data.item.position }}</small>
+                      <strong>{{ data.item.first_name }} {{ data.item.last_name }}</strong>
+                      <small class="text-muted d-block">{{ data.item.org_position_desc }}</small>
                     </div>
                   </div>
                 </template>
-                
-                <template #cell(votes)="data">
+
+                <template #cell(vote_count)="data">
                   <div class="votes-info">
-                    <div class="votes-count">{{ formatNumber(data.item.votes) }}</div>
+                    <div class="votes-count">{{ formatNumber(data.item.vote_count) }}</div>
                     <div class="votes-percentage">
-                      <b-progress
-                        :value="data.item.votes"
-                        :max="maxVotes"
-                        height="4px"
-                        class="votes-progress"
-                      ></b-progress>
-                      <small>{{ ((data.item.votes / totalVotes) * 100).toFixed(1) }}%</small>
+                      <b-progress :value="data.item.vote_count" :max="maxVotes" height="4px"
+                        class="votes-progress"></b-progress>
+                      <small>{{ ((data.item.vote_count / infoVote?.totalVotes) * 100).toFixed(1) }}%</small>
                     </div>
-                  </div>
-                </template>
-                
-                <template #cell(trend)="data">
-                  <div class="trend-indicator" :class="getTrendClass(data.item.trend)">
-                    <b-icon :icon="getTrendIcon(data.item.trend)"></b-icon>
-                    {{ data.item.trend }}%
                   </div>
                 </template>
               </b-table>
             </div>
-            
+
             <!-- Chart View -->
             <div v-else class="chart-container">
               <div class="chart-wrapper">
@@ -235,28 +158,18 @@
             </div>
           </b-card>
         </b-col>
-        
+
         <!-- Voting Progress by Region -->
         <b-col lg="4" class="mb-4">
           <b-card class="region-card">
             <h5 class="mb-4">مشارکت بر اساس استان</h5>
-            
+
             <div class="region-list">
-              <div
-                v-for="region in regions"
-                :key="region.id"
-                class="region-item"
-                @click="viewRegionDetails(region)"
-              >
+              <div v-for="region in regions" :key="region.id" class="region-item" @click="viewRegionDetails(region)">
                 <div class="region-name">{{ region.name }}</div>
                 <div class="region-stats">
                   <div class="region-progress">
-                    <b-progress
-                      :value="region.participation"
-                      :max="100"
-                      height="6px"
-                      class="mb-1"
-                    ></b-progress>
+                    <b-progress :value="region.participation" :max="100" height="6px" class="mb-1"></b-progress>
                     <small class="text-muted">{{ region.participation }}%</small>
                   </div>
                   <div class="region-votes">
@@ -265,7 +178,7 @@
                 </div>
               </div>
             </div>
-            
+
             <div class="text-center mt-3">
               <b-button variant="link" size="sm" @click="showAllRegions">
                 مشاهده همه استان‌ها
@@ -276,168 +189,11 @@
         </b-col>
       </b-row>
 
-      <!-- Real-time Chart -->
-      <b-card class="mb-4">
-        <h5 class="mb-3">نمودار لحظه‌ای آرای ثبت شده</h5>
-        <div class="chart-wrapper-large">
-          <canvas ref="realTimeChart"></canvas>
-        </div>
-        <div class="chart-controls text-center mt-3">
-          <b-button-group>
-            <b-button
-              :variant="timeRange === '1h' ? 'primary' : 'outline-primary'"
-              @click="changeTimeRange('1h')"
-              size="sm"
-            >
-              ۱ ساعت
-            </b-button>
-            <b-button
-              :variant="timeRange === '6h' ? 'primary' : 'outline-primary'"
-              @click="changeTimeRange('6h')"
-              size="sm"
-            >
-              ۶ ساعت
-            </b-button>
-            <b-button
-              :variant="timeRange === '24h' ? 'primary' : 'outline-primary'"
-              @click="changeTimeRange('24h')"
-              size="sm"
-            >
-              ۲۴ ساعت
-            </b-button>
-          </b-button-group>
-        </div>
-      </b-card>
-
-      <!-- Voting Locations Status -->
-      <b-row class="mb-4">
-        <b-col md="6" class="mb-4">
-          <b-card>
-            <h5 class="mb-3">وضعیت شعبه‌های رأی‌گیری</h5>
-            <div class="locations-status">
-              <div class="status-item">
-                <div class="status-indicator active"></div>
-                <div class="status-info">
-                  <div class="status-count">{{ activeLocations }}</div>
-                  <div class="status-label">شعبه فعال</div>
-                </div>
-              </div>
-              <div class="status-item">
-                <div class="status-indicator busy"></div>
-                <div class="status-info">
-                  <div class="status-count">{{ busyLocations }}</div>
-                  <div class="status-label">شلوغ</div>
-                </div>
-              </div>
-              <div class="status-item">
-                <div class="status-indicator offline"></div>
-                <div class="status-info">
-                  <div class="status-count">{{ offlineLocations }}</div>
-                  <div class="status-label">غیرفعال</div>
-                </div>
-              </div>
-            </div>
-            
-            <div class="mt-3">
-              <b-button
-                variant="outline-info"
-                size="sm"
-                block
-                @click="showLocationsMap"
-              >
-                <b-icon icon="geo-alt" class="ml-1"></b-icon>
-                مشاهده روی نقشه
-              </b-button>
-            </div>
-          </b-card>
-        </b-col>
-        
-        <b-col md="6">
-          <b-card>
-            <h5 class="mb-3">پیش‌بینی نهایی</h5>
-            <div class="prediction">
-              <div class="prediction-item">
-                <div class="prediction-label">برآورد مشارکت نهایی:</div>
-                <div class="prediction-value">{{ finalParticipationPrediction }}%</div>
-              </div>
-              <div class="prediction-item">
-                <div class="prediction-label">ساعات اوج مشارکت:</div>
-                <div class="prediction-value">۱۰:۰۰ - ۱۴:۰۰</div>
-              </div>
-              <div class="prediction-item">
-                <div class="prediction-label">پیش‌بینی زمان اعلام نتایج:</div>
-                <div class="prediction-value">ساعت ۲۴:۰۰</div>
-              </div>
-            </div>
-            
-            <div class="alert alert-info mt-3">
-              <b-icon icon="info-circle" class="ml-1"></b-icon>
-              این اطلاعات بر اساس الگوهای مشارکت پیشین برآورد شده است.
-            </div>
-          </b-card>
-        </b-col>
-      </b-row>
-
-      <!-- Social Feed -->
-      <b-card class="social-feed-card">
-        <h5 class="mb-3">
-          <b-icon icon="chat-left-text-fill" class="ml-2"></b-icon>
-          واکنش‌های کاربران
-        </h5>
-        
-        <div class="social-feed">
-          <div
-            v-for="feed in socialFeed"
-            :key="feed.id"
-            class="feed-item"
-            :class="`sentiment-${feed.sentiment}`"
-          >
-            <div class="feed-header">
-              <img
-                v-if="feed.avatar"
-                :src="feed.avatar"
-                class="feed-avatar"
-                alt="کاربر"
-              />
-              <div class="feed-user">
-                <strong>{{ feed.user }}</strong>
-                <small class="text-muted">{{ feed.time }}</small>
-              </div>
-              <b-badge :variant="getSentimentBadge(feed.sentiment)" class="mr-auto">
-                {{ getSentimentText(feed.sentiment) }}
-              </b-badge>
-            </div>
-            <div class="feed-content">{{ feed.content }}</div>
-            <div class="feed-footer">
-              <div class="feed-actions">
-                <span class="mr-3">
-                  <b-icon icon="hand-thumbs-up"></b-icon>
-                  {{ feed.likes }}
-                </span>
-                <span class="mr-3">
-                  <b-icon icon="chat"></b-icon>
-                  {{ feed.comments }}
-                </span>
-                <span>
-                  <b-icon icon="share"></b-icon>
-                  اشتراک‌گذاری
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </b-card>
     </b-container>
 
     <!-- Region Details Modal -->
-    <b-modal
-      v-model="showRegionModal"
-      :title="selectedRegion ? selectedRegion.name : ''"
-      size="lg"
-      hide-footer
-      centered
-      scrollable
-    >
+    <b-modal v-model="showRegionModal" :title="selectedRegion ? selectedRegion.name : ''" size="lg" hide-footer centered
+      scrollable>
       <div v-if="selectedRegion" class="region-details">
         <b-row class="mb-4">
           <b-col md="6">
@@ -456,37 +212,14 @@
               </b-badge>
             </div>
           </b-col>
-          <b-col md="6">
-            <div class="detail-item">
-              <strong>شعبه‌های فعال:</strong>
-              <span>{{ selectedRegion.activeLocations }} شعبه</span>
-            </div>
-            <div class="detail-item">
-              <strong>کاندیدای برتر:</strong>
-              <span>{{ selectedRegion.topCandidate }}</span>
-            </div>
-            <div class="detail-item">
-              <strong>رشد مشارکت:</strong>
-              <span :class="`text-${selectedRegion.growth >= 0 ? 'success' : 'danger'}`">
-                {{ selectedRegion.growth >= 0 ? '+' : '' }}{{ selectedRegion.growth }}%
-              </span>
-            </div>
-          </b-col>
         </b-row>
-        
+
         <h6 class="mb-3">توزیع آرا بین کاندیداها</h6>
         <div class="candidates-distribution">
-          <div
-            v-for="candidate in selectedRegion.candidates"
-            :key="candidate.id"
-            class="distribution-item"
-          >
+          <div v-for="candidate in selectedRegion.candidates" :key="candidate.id" class="distribution-item">
             <div class="candidate-name">{{ candidate.name }}</div>
             <div class="distribution-bar">
-              <div
-                class="bar-fill"
-                :style="{ width: candidate.percentage + '%' }"
-              ></div>
+              <div class="bar-fill" :style="{ width: candidate.percentage + '%' }"></div>
             </div>
             <div class="distribution-percentage">{{ candidate.percentage }}%</div>
           </div>
@@ -501,12 +234,7 @@
     </div>
 
     <!-- Refresh Button -->
-    <b-button
-      variant="primary"
-      class="refresh-button"
-      @click="manualRefresh"
-      :disabled="refreshing"
-    >
+    <b-button variant="primary" class="refresh-button" @click="manualRefresh" :disabled="refreshing">
       <b-spinner small v-if="refreshing" class="ml-1"></b-spinner>
       <b-icon v-else icon="arrow-clockwise" class="ml-1"></b-icon>
       بروزرسانی
@@ -516,77 +244,27 @@
 
 <script>
 import Chart from "chart.js";
-
+import { apiUrlrtb } from '../../constants/config'
+import { mapGetters, mapActions, mapMutations } from "vuex";
 export default {
   name: "LiveElectionDashboard",
   data() {
     return {
-      // Timer
-      electionEndTime: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
+      apiUrlrtb,
+      infoVote: null,
       timeRemaining: {
         days: 0,
         hours: 0,
         minutes: 0,
         seconds: 0
       },
-      
+
       // Statistics
-      totalVoters: 150000,
-      totalVotes: 87542,
       lastUpdate: 'لحظاتی پیش',
-      participationRate: 58.4,
-      voterParticipation: 65.2,
-      activeCandidates: 8,
-      
+
       // Candidates Data
-      candidates: [
-        {
-          id: 1,
-          name: 'دکتر محمدرضا احمدی',
-          position: 'استاد دانشگاه - علوم تربیتی',
-          photo: 'assets/img/avatars/image1.png?text=MA',
-          votes: 24560,
-          trend: 2.5,
-          color: '#3F51B5'
-        },
-        {
-          id: 2,
-          name: 'مهندس سید علی حسینی',
-          position: 'مدیر آموزش و پرورش منطقه ۵',
-          photo: 'assets/img/avatars/image2.png?text=SH',
-          votes: 19875,
-          trend: 1.8,
-          color: '#4CAF50'
-        },
-        {
-          id: 3,
-          name: 'دکتر فاطمه کریمی',
-          position: 'معاون پژوهشی - پژوهشگاه مطالعات',
-          photo: 'assets/img/avatars/image3.png?text=FK',
-          votes: 15680,
-          trend: -0.5,
-          color: '#FF9800'
-        },
-        {
-          id: 4,
-          name: 'دکتر مهدی محمدی',
-          position: 'رئیس اسبق صندوق ذخیره',
-          photo: 'assets/img/avatars/image4.png?text=MM',
-          votes: 9875,
-          trend: 3.2,
-          color: '#9C27B0'
-        },
-        {
-          id: 5,
-          name: 'مهندس رضا نوروزی',
-          position: 'مدیر فناوری اطلاعات آموزش و پرورش',
-          photo: 'assets/img/avatars/image5.png?text=RN',
-          votes: 7654,
-          trend: 1.2,
-          color: '#2196F3'
-        }
-      ],
-      
+      candidates: [],
+
       // Regions Data
       regions: [
         { id: 1, name: 'تهران', votes: 25480, participation: 72.5, eligibleVoters: 35100, activeLocations: 45, topCandidate: 'دکتر محمدرضا احمدی', growth: 2.1 },
@@ -595,96 +273,95 @@ export default {
         { id: 4, name: 'شیراز', votes: 7650, participation: 58.7, eligibleVoters: 13020, activeLocations: 18, topCandidate: 'دکتر محمدرضا احمدی', growth: 2.5 },
         { id: 5, name: 'تبریز', votes: 6540, participation: 55.4, eligibleVoters: 11800, activeLocations: 16, topCandidate: 'مهندس سید علی حسینی', growth: 1.2 }
       ],
-      
-      // Voting Locations
-      activeLocations: 85,
-      busyLocations: 32,
-      offlineLocations: 3,
-      
-      // Realtime Updates
-      realtimeUpdates: [
-        { id: 1, type: 'vote', time: '۲ دقیقه پیش', message: '۱۰۰ رأی جدید از استان تهران ثبت شد' },
-        { id: 2, type: 'announcement', time: '۵ دقیقه پیش', message: 'شعبه رأی‌گیری منطقه ۳ به حالت فعال بازگشت' },
-        { id: 3, type: 'candidate', time: '۱۰ دقیقه پیش', message: 'دکتر احمدی در منطقه ۵ در حال پیشی گرفتن است' },
-        { id: 4, type: 'system', time: '۱۵ دقیقه پیش', message: 'سیستم با موفقیت به‌روزرسانی شد' },
-        { id: 5, type: 'milestone', time: '۲۰ دقیقه پیش', message: 'میزان مشارکت به ۵۰٪ رسید' }
-      ],
-      
-      // Social Feed
-      socialFeed: [
-        { id: 1, user: 'علی محمدی', avatar: 'assets/img/avatars/image6.png?text=AM', time: '۵ دقیقه پیش', content: 'بسیار انتخابات پر رقابتی شکل گرفته!', sentiment: 'positive', likes: 24, comments: 5 },
-        { id: 2, user: 'فاطمه رضایی', avatar: 'assets/img/avatars/image7.png?text=FR', time: '۱۲ دقیقه پیش', content: 'سیستم رأی‌گیری الکترونیکی بسیار روان کار می‌کند', sentiment: 'positive', likes: 18, comments: 3 },
-        { id: 3, user: 'محمد حسینی', avatar: 'assets/img/avatars/image8.png?text=MH', time: '۲۵ دقیقه پیش', content: 'امیدوارم نتایج به نفع فرهنگیان باشد', sentiment: 'neutral', likes: 12, comments: 8 },
-        { id: 4, user: 'سارا کریمی', avatar: 'assets/img/avatars/imagen7.png?text=SK', time: '۴۰ دقیقه پیش', content: 'شعبه ما کمی شلوغ بود اما روند سریعی داشت', sentiment: 'neutral', likes: 8, comments: 2 }
-      ],
-      
+
+
       // UI State
       rankingView: 'table',
-      timeRange: '6h',
       showRegionModal: false,
       selectedRegion: null,
       autoRefresh: true,
       refreshing: false,
-      loadingUpdates: false,
-      
+
       // Chart Instances
       votesChart: null,
       realTimeChart: null,
-      
+
       // Table Fields
       candidateFields: [
         { key: 'rank', label: 'رتبه', sortable: false },
         { key: 'candidate', label: 'کاندیدا', sortable: false },
-        { key: 'votes', label: 'آرا', sortable: true },
-        { key: 'trend', label: 'روند', sortable: true }
+        { key: 'vote_count', label: 'آرا', sortable: true },
       ],
-      
+
       // Predictions
       finalParticipationPrediction: 68
     };
   },
   computed: {
+    ...mapGetters(["ConfigInfo", "currentUser"]),
     sortedCandidates() {
-      return [...this.candidates].sort((a, b) => b.votes - a.votes);
+      return [...this.candidates].sort((a, b) => b.vote_count - a.vote_count);
     },
-    
+
     maxVotes() {
-      return Math.max(...this.candidates.map(c => c.votes));
+      if (!this.candidates.length) return 1;
+      return Math.max(...this.candidates.map(c => c.vote_count));
     }
   },
-  mounted() {
+  async mounted() {
+    if (!this.ConfigInfo)
+      await this.getConfig()
     this.startTimer();
-    this.initializeCharts();
     this.startAutoRefresh();
+
+    this.infoVote = await this.getInfoVote()
+    this.candidates = this.infoVote?.listCan
+
+    this.$nextTick(() => {
+      if (this.rankingView === 'chart') {
+        this.createVotesChart();
+      }
+    });
   },
   beforeDestroy() {
     clearInterval(this.timerInterval);
     clearInterval(this.refreshInterval);
     if (this.votesChart) this.votesChart.destroy();
     if (this.realTimeChart) this.realTimeChart.destroy();
+  }, watch: {
+    rankingView(val) {
+      if (val === 'chart') {
+        this.$nextTick(() => {
+          this.createVotesChart();
+        });
+      }
+    }
   },
   methods: {
+    ...mapActions(["getConfig", "getInfoVote"]),
     // Timer Functions
     startTimer() {
       this.updateTimer();
       this.timerInterval = setInterval(this.updateTimer, 1000);
     },
-    
+
     updateTimer() {
       const now = new Date();
-      const diff = this.electionEndTime - now;
-      
+      const startDate = new Date(this.ConfigInfo?.startDate);
+      const endDate = new Date(this.ConfigInfo?.EndDate);
+
+      const diff = endDate - now;
       if (diff <= 0) {
         this.timeRemaining = { days: 0, hours: 0, minutes: 0, seconds: 0 };
         clearInterval(this.timerInterval);
         return;
       }
-      
+
       const days = Math.floor(diff / (1000 * 60 * 60 * 24));
       const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-      
+
       this.timeRemaining = {
         days: days.toString().padStart(2, '0'),
         hours: hours.toString().padStart(2, '0'),
@@ -692,94 +369,42 @@ export default {
         seconds: seconds.toString().padStart(2, '0')
       };
     },
-    
-    // Chart Functions
-    initializeCharts() {
-      this.createVotesChart();
-      this.createRealTimeChart();
-    },
-    
     createVotesChart() {
-      const ctx = this.$refs.votesChart?.getContext('2d');
-      if (!ctx) return;
-      
-      if (this.votesChart) this.votesChart.destroy();
-      
-      const labels = this.sortedCandidates.map(c => c.name.split(' ').pop());
-      const data = this.sortedCandidates.map(c => c.votes);
-      const colors = this.sortedCandidates.map(c => c.color);
-      
+      if (!this.$refs.votesChart) return;
+
+      const ctx = this.$refs.votesChart.getContext('2d');
+
+      if (!ctx || !this.sortedCandidates.length) return;
+
+      if (this.votesChart) {
+        this.votesChart.destroy();
+        this.votesChart = null;
+      }
+
+      const labels = this.sortedCandidates.map(c => c.first_name + ' ' + c.last_name);
+      const data = this.sortedCandidates.map(c => Number(c.vote_count));
+
+      const colors = this.sortedCandidates.map(() =>
+        `hsl(${Math.random() * 360},70%,60%)`
+      );
+
       this.votesChart = new Chart(ctx, {
         type: 'bar',
         data: {
-          labels: labels,
+          labels,
           datasets: [{
             label: 'تعداد آرا',
-            data: data,
+            data,
             backgroundColor: colors,
-            borderColor: colors.map(c => c + 'CC'),
-            borderWidth: 1,
-            borderRadius: 6
+            borderWidth: 0,
+            borderRadius: 8,
+            barThickness: 28
           }]
         },
         options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: (context) => {
-                  const candidate = this.sortedCandidates[context.dataIndex];
-                  return `${candidate.name}: ${this.formatNumber(context.raw)} رأی`;
-                }
-              }
-            }
+          animation: {
+            duration: 700
           },
-          scales: {
-            y: {
-              beginAtZero: true,
-              title: {
-                display: true,
-                text: 'تعداد آرا'
-              }
-            },
-            x: {
-              title: {
-                display: true,
-                text: 'کاندیداها'
-              }
-            }
-          }
-        }
-      });
-    },
-    
-    createRealTimeChart() {
-      const ctx = this.$refs.realTimeChart?.getContext('2d');
-      if (!ctx) return;
-      
-      if (this.realTimeChart) this.realTimeChart.destroy();
-      
-      // Generate time labels based on selected range
-      const labels = this.generateTimeLabels();
-      const data = this.generateVoteData(labels.length);
-      
-      this.realTimeChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'آرای ثبت شده',
-            data: data,
-            borderColor: '#4CAF50',
-            backgroundColor: 'rgba(76, 175, 80, 0.1)',
-            borderWidth: 3,
-            tension: 0.4,
-            fill: true
-          }]
-        },
-        options: {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
@@ -788,84 +413,28 @@ export default {
           scales: {
             y: {
               beginAtZero: true,
-              title: {
-                display: true,
-                text: 'تعداد آرا'
+              ticks: {
+                precision: 0
               }
             },
             x: {
-              title: {
-                display: true,
-                text: 'زمان'
+              ticks: {
+                autoSkip: false,
+                maxRotation: 45,
+                minRotation: 45
               }
             }
           }
         }
       });
     },
-    
-    generateTimeLabels() {
-      const now = new Date();
-      const labels = [];
-      const count = this.timeRange === '1h' ? 12 : this.timeRange === '6h' ? 24 : 48;
-      
-      for (let i = count - 1; i >= 0; i--) {
-        const time = new Date(now - i * 30 * 60 * 1000); // Every 30 minutes
-        labels.push(time.getHours().toString().padStart(2, '0') + ':' + 
-                   time.getMinutes().toString().padStart(2, '0'));
-      }
-      
-      return labels;
-    },
-    
-    generateVoteData(count) {
-      const data = [];
-      let base = 80000;
-      
-      for (let i = 0; i < count; i++) {
-        const increment = Math.floor(Math.random() * 500) + 100;
-        base += increment;
-        data.push(base);
-      }
-      
-      return data;
-    },
-    
-    changeTimeRange(range) {
-      this.timeRange = range;
-      setTimeout(() => {
-        this.createRealTimeChart();
-      }, 100);
-    },
-    
+
     // Data Functions
     formatNumber(num) {
       return new Intl.NumberFormat('fa-IR').format(num);
     },
-    
-    getTrendClass(trend) {
-      if (trend > 0) return 'trend-up';
-      if (trend < 0) return 'trend-down';
-      return 'trend-neutral';
-    },
-    
-    getTrendIcon(trend) {
-      if (trend > 0) return 'arrow-up';
-      if (trend < 0) return 'arrow-down';
-      return 'dash';
-    },
-    
-    getUpdateIcon(type) {
-      const icons = {
-        vote: 'check-circle',
-        announcement: 'megaphone',
-        candidate: 'person',
-        system: 'gear',
-        milestone: 'trophy'
-      };
-      return icons[type] || 'info-circle';
-    },
-    
+
+
     getSentimentBadge(sentiment) {
       const variants = {
         positive: 'success',
@@ -874,7 +443,7 @@ export default {
       };
       return variants[sentiment] || 'secondary';
     },
-    
+
     getSentimentText(sentiment) {
       const texts = {
         positive: 'مثبت',
@@ -883,14 +452,14 @@ export default {
       };
       return texts[sentiment] || sentiment;
     },
-    
+
     getParticipationVariant(rate) {
       if (rate >= 70) return 'success';
       if (rate >= 50) return 'info';
       if (rate >= 30) return 'warning';
       return 'danger';
     },
-    
+
     // UI Actions
     viewRegionDetails(region) {
       // Add candidates distribution for the region
@@ -904,86 +473,37 @@ export default {
       };
       this.showRegionModal = true;
     },
-    
+
     showAllRegions() {
       // In real app, navigate to regions page
       alert('صفحه استان‌ها در حال توسعه است');
     },
-    
+
     showLocationsMap() {
       // In real app, show map with locations
       alert('نقشه شعبه‌ها در حال توسعه است');
     },
-    
-    loadMoreUpdates() {
-      this.loadingUpdates = true;
-      setTimeout(() => {
-        const newUpdate = {
-          id: this.realtimeUpdates.length + 1,
-          type: 'vote',
-          time: 'همین لحظه',
-          message: '۵۰ رأی جدید از استان اصفهان ثبت شد'
-        };
-        this.realtimeUpdates.unshift(newUpdate);
-        this.loadingUpdates = false;
-      }, 1000);
-    },
-    
-    // Refresh Functions
+
     startAutoRefresh() {
-      this.refreshInterval = setInterval(() => {
-        if (this.autoRefresh) {
-          this.simulateDataUpdate();
+      this.refreshInterval = setInterval(async () => {
+        if (!this.autoRefresh) return;
+
+        const data = await this.getInfoVote();
+        this.infoVote = data;
+        this.candidates = data?.listCan || [];
+
+        this.lastUpdate = new Date().toLocaleTimeString('fa-IR');
+
+        if (this.rankingView === 'chart') {
+          this.$nextTick(() => this.createVotesChart());
         }
-      }, 30000); // Every 30 seconds
+      }, 30000);
     },
-    
-    simulateDataUpdate() {
-      // Simulate new votes
-      const voteIncrement = Math.floor(Math.random() * 100) + 50;
-      this.totalVotes += voteIncrement;
-      
-      // Update candidates votes randomly
-      this.candidates.forEach(candidate => {
-        const increment = Math.floor(Math.random() * 20) + 5;
-        candidate.votes += increment;
-        candidate.trend = (Math.random() * 4 - 2).toFixed(1);
-      });
-      
-      // Update participation rate
-      this.participationRate = Math.min(100, ((this.totalVotes / this.totalVoters) * 100).toFixed(1));
-      
-      // Update regions
-      this.regions.forEach(region => {
-        region.votes += Math.floor(Math.random() * 50) + 20;
-        region.participation = Math.min(100, ((region.votes / region.eligibleVoters) * 100).toFixed(1));
-      });
-      
-      // Update last update time
-      this.lastUpdate = 'لحظاتی پیش';
-      
-      // Refresh charts
-      if (this.votesChart) {
-        this.votesChart.data.datasets[0].data = this.sortedCandidates.map(c => c.votes);
-        this.votesChart.update('none');
-      }
-      
-      // Add realtime update
-      const update = {
-        id: this.realtimeUpdates.length + 1,
-        type: 'vote',
-        time: 'همین لحظه',
-        message: `${voteIncrement} رأی جدید ثبت شد`
-      };
-      this.realtimeUpdates.unshift(update);
-      if (this.realtimeUpdates.length > 10) {
-        this.realtimeUpdates.pop();
-      }
-    },
-    
+
+
     manualRefresh() {
       this.refreshing = true;
-      this.simulateDataUpdate();
+      this.getInfoVote();
       setTimeout(() => {
         this.refreshing = false;
       }, 1000);
@@ -1025,9 +545,17 @@ export default {
 }
 
 @keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.5; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+
+  100% {
+    opacity: 1;
+  }
 }
 
 .live-text {
@@ -1242,7 +770,8 @@ export default {
   background: linear-gradient(135deg, #CD7F32 0%, #D2691E 100%);
 }
 
-.rank-4, .rank-5 {
+.rank-4,
+.rank-5 {
   background: #f0f0f0;
   color: #666;
 }
@@ -1290,29 +819,6 @@ export default {
   margin-left: 10px;
 }
 
-.trend-indicator {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.trend-up {
-  background: rgba(76, 175, 80, 0.1);
-  color: #2E7D32;
-}
-
-.trend-down {
-  background: rgba(244, 67, 54, 0.1);
-  color: #C62828;
-}
-
-.trend-neutral {
-  background: rgba(158, 158, 158, 0.1);
-  color: #616161;
-}
 
 /* Region Card */
 .region-card {
@@ -1612,26 +1118,26 @@ export default {
     flex-direction: column;
     gap: 5px;
   }
-  
+
   .time-unit {
     flex-direction: row;
     gap: 5px;
     min-width: auto;
   }
-  
+
   .time-separator {
     display: none;
   }
-  
+
   .locations-status {
     flex-direction: column;
   }
-  
+
   .feed-actions {
     flex-direction: column;
     gap: 5px;
   }
-  
+
   .refresh-button {
     bottom: 10px;
     left: 10px;
