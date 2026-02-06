@@ -18,8 +18,9 @@
       </b-row>
     </b-container>
 
+
     <!-- Main Content -->
-    <b-container class="ads-container">
+    <b-container class="ads-container" v-if="electionStatusAll === 'upcoming'">
       <!-- Search and Filter -->
       <b-card class="mb-4 filter-card">
         <b-row>
@@ -30,11 +31,7 @@
                   <b-icon icon="search"></b-icon>
                 </b-input-group-text>
               </template>
-              <b-form-input
-                v-model="searchQuery"
-                placeholder="جستجوی در تبلیغات..."
-                @input="filterAds"
-              ></b-form-input>
+              <b-form-input v-model="searchQuery" placeholder="جستجوی در تبلیغات..." @input="filterAds"></b-form-input>
               <template #append>
                 <b-button variant="outline-secondary" @click="clearSearch">
                   پاک کردن
@@ -45,22 +42,14 @@
           <b-col md="6">
             <b-row>
               <b-col cols="6">
-                <b-form-select
-                  v-model="selectedType"
-                  :options="filterTypes"
-                  @change="filterAds"
-                >
+                <b-form-select v-model="selectedType" :options="filterTypes" @change="filterAds">
                   <template #first>
                     <option value="">همه انواع</option>
                   </template>
                 </b-form-select>
               </b-col>
               <b-col cols="6">
-                <b-form-select
-                  v-model="sortBy"
-                  :options="sortOptions"
-                  @change="sortAds"
-                ></b-form-select>
+                <b-form-select v-model="sortBy" :options="sortOptions" @change="sortAds"></b-form-select>
               </b-col>
             </b-row>
           </b-col>
@@ -73,41 +62,22 @@
           <b-icon icon="star-fill" variant="warning" class="ml-2"></b-icon>
           تبلیغات فعال
         </h4>
-        
+
         <!-- Banner Ads Carousel -->
         <div v-if="bannerAds.length > 0" class="mb-4">
-          <b-carousel
-            id="ads-carousel"
-            v-model="carouselSlide"
-            :interval="5000"
-            controls
-            indicators
-            background="#f8f9fa"
-            img-width="1024"
-            img-height="320"
-            style="text-shadow: 1px 1px 2px #333;"
-            @sliding-start="onSlideStart"
-            @sliding-end="onSlideEnd"
-          >
-            <b-carousel-slide
-              v-for="(ad, index) in bannerAds"
-              :key="`banner-${ad.id}`"
-              :img-src="ad.image || '/placeholder-banner.jpg'"
-              :caption="ad.title"
-              :text="ad.description"
-              @click.native="viewAdDetails(ad)"
-            >
+          <b-carousel id="ads-carousel" v-model="carouselSlide" :interval="5000" controls indicators
+            background="#f8f9fa" img-width="1024" img-height="320" style="text-shadow: 1px 1px 2px #333;"
+            @sliding-start="onSlideStart" @sliding-end="onSlideEnd">
+            <b-carousel-slide v-for="(ad, index) in bannerAds" :key="`banner-${ad.id}`"
+              :img-src="`${apiUrlrtb}/${ad.image}` || '/placeholder-banner.jpg'" :caption="ad.title"
+              :text="ad.description" @click.native="viewAdDetails(ad)">
               <template #img>
                 <div class="carousel-image-wrapper" @click="viewAdDetails(ad)">
-                  <img
-                    class="d-block img-fluid w-100 carousel-image"
-                    :src="ad.image || '/placeholder-banner.jpg'"
-                    :alt="ad.title"
-                  />
+                  <img class="d-block img-fluid w-100 carousel-image" :src="ad.image || '/placeholder-banner.jpg'"
+                    :alt="ad.title" />
                   <div class="carousel-caption-overlay">
                     <h5>{{ ad.title }}</h5>
                     <p>{{ ad.description }}</p>
-                    <small>تا تاریخ: {{ ad.endDate }}</small>
                   </div>
                 </div>
               </template>
@@ -117,19 +87,8 @@
 
         <!-- Other Active Ads -->
         <b-row v-if="otherActiveAds.length > 0">
-          <b-col
-            v-for="ad in otherActiveAds"
-            :key="`active-${ad.id}`"
-            cols="12"
-            md="6"
-            lg="4"
-            class="mb-4"
-          >
-            <b-card
-              class="ad-card h-100"
-              :class="{ 'featured-ad': ad.isFeatured }"
-              @click="viewAdDetails(ad)"
-            >
+          <b-col v-for="ad in otherActiveAds" :key="`active-${ad.id}`" cols="12" md="6" lg="4" class="mb-4">
+            <b-card class="ad-card h-100" :class="{ 'featured-ad': ad.isFeatured }" @click="viewAdDetails(ad)">
               <!-- Ad Badges -->
               <div class="ad-badges">
                 <b-badge v-if="ad.isFeatured" variant="warning" class="ml-1">
@@ -142,12 +101,7 @@
 
               <!-- Ad Image -->
               <div class="ad-image-container mb-3">
-                <img
-                  v-if="ad.image"
-                  :src="ad.image"
-                  class="ad-image"
-                  :alt="ad.title"
-                />
+                <img v-if="ad.image" :src="`${apiUrlrtb}/${ad.image}`" class="ad-image" :alt="ad.title" />
                 <div v-else class="ad-image-placeholder">
                   <b-icon icon="image" font-scale="3"></b-icon>
                 </div>
@@ -158,18 +112,9 @@
               <p class="ad-description text-muted">
                 {{ truncateText(ad.description, 100) }}
               </p>
-
               <!-- Ad Footer -->
               <div class="ad-footer">
-                <small class="text-muted">
-                  <b-icon icon="calendar" class="ml-1"></b-icon>
-                  تا {{ ad.endDate }}
-                </small>
-                <b-button
-                  size="sm"
-                  variant="outline-primary"
-                  @click.stop="viewAdDetails(ad)"
-                >
+                <b-button size="sm" variant="outline-primary" @click.stop="viewAdDetails(ad)">
                   مشاهده جزئیات
                 </b-button>
               </div>
@@ -185,86 +130,16 @@
         </div>
       </div>
 
-      <!-- Upcoming Ads Section -->
-      <div v-if="upcomingAds.length > 0" class="mb-5">
-        <h4 class="section-title mb-3">
-          <b-icon icon="clock-fill" variant="info" class="ml-2"></b-icon>
-          تبلیغات آتی
-        </h4>
-        <b-row>
-          <b-col
-            v-for="ad in upcomingAds"
-            :key="`upcoming-${ad.id}`"
-            cols="12"
-            md="6"
-            class="mb-3"
-          >
-            <b-card class="upcoming-ad-card">
-              <b-row no-gutters class="align-items-center">
-                <b-col md="4" class="text-center">
-                  <div class="upcoming-date">
-                    <div class="date-day">{{ getDay(ad.startDate) }}</div>
-                    <div class="date-month">{{ getMonth(ad.startDate) }}</div>
-                  </div>
-                </b-col>
-                <b-col md="8">
-                  <h6>{{ ad.title }}</h6>
-                  <p class="text-muted small mb-2">
-                    {{ truncateText(ad.description, 80) }}
-                  </p>
-                  <small class="text-info">
-                    <b-icon icon="clock" class="ml-1"></b-icon>
-                    شروع از {{ ad.startDate }}
-                  </small>
-                </b-col>
-              </b-row>
-            </b-card>
-          </b-col>
-        </b-row>
-      </div>
-
-      <!-- Statistics -->
-      <b-card class="statistics-card mt-4">
-        <h5 class="mb-3">آمار تبلیغات</h5>
-        <b-row>
-          <b-col cols="6" md="3" class="text-center mb-3">
-            <div class="stat-item">
-              <div class="stat-number text-primary">{{ totalAds }}</div>
-              <div class="stat-label">کل تبلیغات</div>
-            </div>
-          </b-col>
-          <b-col cols="6" md="3" class="text-center mb-3">
-            <div class="stat-item">
-              <div class="stat-number text-success">{{ activeAdsCount }}</div>
-              <div class="stat-label">تبلیغات فعال</div>
-            </div>
-          </b-col>
-          <b-col cols="6" md="3" class="text-center mb-3">
-            <div class="stat-item">
-              <div class="stat-number text-info">{{ upcomingAds.length }}</div>
-              <div class="stat-label">تبلیغات آتی</div>
-            </div>
-          </b-col>
-          <b-col cols="6" md="3" class="text-center mb-3">
-            <div class="stat-item">
-              <div class="stat-number text-warning">{{ bannerAds.length }}</div>
-              <div class="stat-label">بنر اصلی</div>
-            </div>
-          </b-col>
-        </b-row>
+    </b-container>
+    <b-container class="ads-container" v-else>
+      <!-- Search and Filter -->
+      <b-card class="mb-4 filter-card">
+        <b-alert variant="danger" class="text-center" show>زمان تبلیغات به اتمام رسیده است!</b-alert>
       </b-card>
     </b-container>
-
     <!-- Ad Details Modal -->
-    <b-modal
-      v-model="showAdModal"
-      :title="selectedAd ? selectedAd.title : ''"
-      size="lg"
-      hide-footer
-      centered
-      scrollable
-      @hidden="resetSelectedAd"
-    >
+    <b-modal v-model="showAdModal" :title="selectedAd ? selectedAd.title : ''" size="lg" hide-footer centered scrollable
+      @hidden="resetSelectedAd">
       <div v-if="selectedAd" class="ad-details">
         <!-- Ad Header -->
         <div class="ad-details-header mb-4">
@@ -284,13 +159,8 @@
               </div>
             </b-col>
             <b-col cols="4" class="text-left">
-              <b-button
-                v-if="selectedAd.targetLink"
-                variant="outline-primary"
-                size="sm"
-                :href="selectedAd.targetLink"
-                target="_blank"
-              >
+              <b-button v-if="selectedAd.targetLink" variant="outline-primary" size="sm" :href="selectedAd.targetLink"
+                target="_blank">
                 مشاهده لینک
                 <b-icon icon="box-arrow-up-right" class="mr-1"></b-icon>
               </b-button>
@@ -298,13 +168,16 @@
           </b-row>
         </div>
 
+        <div v-if="selectedAd.first_name" class="detail-item mb-3">
+          <strong>منتشر کننده:</strong>
+          <span class="mr-2">{{ selectedAd.first_name }} {{ selectedAd.last_name }}(کد {{ selectedAd.code * 1404
+          }})</span>
+        </div>
+
         <!-- Ad Image -->
         <div v-if="selectedAd.image" class="ad-details-image mb-4">
-          <img
-            :src="selectedAd.image"
-            class="img-fluid rounded"
-            :alt="selectedAd.title"
-          />
+          <img :src="`${apiUrlrtb}/${selectedAd.image}`" style="height:200px;object-fit:contain"
+            class="img-fluid rounded" :alt="selectedAd.title" />
         </div>
 
         <!-- Ad Content -->
@@ -312,34 +185,6 @@
           <h6 class="mb-3">توضیحات کامل:</h6>
           <p class="ad-description-full">{{ selectedAd.description }}</p>
         </div>
-
-        <!-- Ad Details -->
-        <b-card class="details-card">
-          <b-row>
-            <b-col md="6">
-              <div class="detail-item mb-3">
-                <strong>تاریخ شروع:</strong>
-                <span class="mr-2">{{ selectedAd.startDate }}</span>
-              </div>
-              <div class="detail-item mb-3">
-                <strong>تاریخ پایان:</strong>
-                <span class="mr-2">{{ selectedAd.endDate }}</span>
-              </div>
-            </b-col>
-            <b-col md="6">
-              <div class="detail-item mb-3">
-                <strong>وضعیت:</strong>
-                <b-badge :variant="getStatusBadge(selectedAd.status)" class="mr-2">
-                  {{ getStatusText(selectedAd.status) }}
-                </b-badge>
-              </div>
-              <div v-if="selectedAd.createdBy" class="detail-item mb-3">
-                <strong>منتشر کننده:</strong>
-                <span class="mr-2">{{ selectedAd.createdBy }}</span>
-              </div>
-            </b-col>
-          </b-row>
-        </b-card>
 
         <!-- Share Options -->
         <div class="share-section mt-4">
@@ -363,31 +208,17 @@
     </b-modal>
 
     <!-- Floating Action Button for Important Ads -->
-    <b-button
-      v-if="importantAds.length > 0"
-      variant="warning"
-      class="floating-action-btn"
-      @click="showImportantAds"
-    >
+    <b-button v-if="importantAds.length > 0" variant="warning" class="floating-action-btn" @click="showImportantAds">
       <b-icon icon="exclamation-triangle-fill"></b-icon>
       <span class="badge-count">{{ importantAds.length }}</span>
     </b-button>
 
     <!-- Important Ads Modal -->
-    <b-modal
-      v-model="showImportantModal"
-      title="تبلیغات مهم و فوری"
-      hide-footer
-      centered
-    >
+    <b-modal v-model="showImportantModal" title="تبلیغات مهم و فوری" hide-footer centered>
       <div v-for="ad in importantAds" :key="`important-${ad.id}`" class="mb-3">
         <b-alert variant="warning" show>
           <h6>{{ ad.title }}</h6>
           <p class="mb-2">{{ ad.description }}</p>
-          <small>
-            <b-icon icon="clock" class="ml-1"></b-icon>
-            معتبر تا: {{ ad.endDate }}
-          </small>
         </b-alert>
       </div>
     </b-modal>
@@ -395,11 +226,13 @@
 </template>
 
 <script>
+import { mapGetters, mapActions, mapMutations } from "vuex";
+import { apiUrlrtb } from '../../constants/config'
 export default {
   name: "UserAdvertisements",
   data() {
     return {
-      // Ads Data
+      apiUrlrtb,
       allAds: [],
       filteredAds: [],
       searchQuery: "",
@@ -407,12 +240,12 @@ export default {
       sortBy: "newest",
       carouselSlide: 0,
       sliding: null,
-      
+
       // Modals
       showAdModal: false,
       showImportantModal: false,
       selectedAd: null,
-      
+
       // Filter Options
       filterTypes: [
         { value: "banner", text: "بنر" },
@@ -421,50 +254,50 @@ export default {
         { value: "popup", text: "پاپ‌آپ" },
         { value: "announcement", text: "اطلاعیه" }
       ],
-      
+
       // Sort Options
       sortOptions: [
         { value: "newest", text: "جدیدترین" },
         { value: "oldest", text: "قدیمی‌ترین" },
-        { value: "most_viewed", text: "پربازدیدترین" },
-        { value: "ending_soon", text: "زودتر پایان می‌یابند" }
+        { value: "most_viewed", text: "پربازدیدترین" }
       ]
     };
   },
   computed: {
+    ...mapGetters(["sidebarVisible", "electionStatusAll"]),
     // Active Ads
     activeAds() {
       return this.filteredAds.filter(ad => ad.status === "active");
     },
-    
+
     // Banner Ads for Carousel
     bannerAds() {
       return this.activeAds.filter(ad => ad.type === "banner" && ad.isCarousel);
     },
-    
+
     // Other Active Ads (non-banner)
     otherActiveAds() {
       return this.activeAds.filter(ad => ad.type !== "banner" || !ad.isCarousel);
     },
-    
+
     // Upcoming Ads
     upcomingAds() {
       const today = new Date().toISOString().split("T")[0];
-      return this.allAds.filter(ad => 
+      return this.allAds.filter(ad =>
         ad.status === "upcoming" && ad.startDate > today
       );
     },
-    
+
     // Important Ads
     importantAds() {
       return this.activeAds.filter(ad => ad.isImportant);
     },
-    
+
     // Statistics
     totalAds() {
       return this.allAds.length;
     },
-    
+
     activeAdsCount() {
       return this.activeAds.length;
     }
@@ -474,116 +307,49 @@ export default {
     this.trackView();
   },
   methods: {
+    ...mapMutations([]),
+    ...mapActions(["getAdvertisements", "increaseViewAdd"]),
     // Load Ads Data
     async loadAds() {
       try {
-        // Mock data - در پروژه واقعی از API استفاده کنید
-        this.allAds = [
-          {
-            id: 1,
-            title: "دوره انتخابات صندوق ذخیره فرهنگیان",
-            description: "انتخابات دوره جدید صندوق ذخیره فرهنگیان آغاز شد. کلیه فرهنگیان محترم می‌توانند در این انتخابات شرکت نمایند.",
-            type: "banner",
-            image: "assets/img/adver/ent1.jpg?text=انتخابات+فرهنگیان",
-            startDate: "1402/10/15",
-            endDate: "1402/11/15",
-            status: "active",
-            isFeatured: true,
-            isCarousel: true,
-            isImportant: true,
-            views: 2450,
-            createdBy: "اداره انتخابات",
-            targetLink: "https://example.com/election"
-          },
-          {
-            id: 2,
-            title: "مهلت ثبت‌نام کاندیداتوری",
-            description: "آخرین مهلت ثبت‌نام کاندیداتوری تا پایان روز چهارشنبه می‌باشد.",
-            type: "announcement",
-            image: "assets/img/adver/ent1.jpg?text=مهلت+ثبت+نام",
-            startDate: "1402/10/10",
-            endDate: "1402/10/20",
-            status: "active",
-            isFeatured: false,
-            isImportant: true,
-            views: 1876,
-            createdBy: "کمیسیون انتخابات"
-          },
-          {
-            id: 3,
-            title: "شرایط احراز صلاحیت",
-            description: "شرایط و ضوابط احراز صلاحیت کاندیداها اعلام گردید.",
-            type: "text",
-            image: null,
-            startDate: "1402/10/12",
-            endDate: "1402/11/12",
-            status: "active",
-            isFeatured: true,
-            views: 1245,
-            createdBy: "کمیته نظارت"
-          },
-          {
-            id: 4,
-            title: "انتخابات آنلاین",
-            description: "راهنمای استفاده از سامانه انتخابات آنلاین",
-            type: "video",
-            image: "assets/img/adver/ent1.jpg?text=آموزش+انتخابات",
-            startDate: "1402/11/01",
-            endDate: "1402/12/01",
-            status: "upcoming",
-            views: 0,
-            createdBy: "فناوری اطلاعات"
-          },
-          {
-            id: 5,
-            title: "اعلام نتایج",
-            description: "نتایج انتخابات بلافاصله پس از پایان رأی‌گیری اعلام خواهد شد.",
-            type: "announcement",
-            image: "assets/img/adver/ent1.jpg?text=نتایج+انتخابات",
-            startDate: "1402/11/20",
-            endDate: "1402/11/25",
-            status: "active",
-            views: 876,
-            createdBy: "شورای نظارت"
-          }
-        ];
-        
+        this.allAds = await this.getAdvertisements()
+        this.allAds = this.allAds?.filter(x => !x.deleter)
         this.filteredAds = [...this.allAds];
       } catch (error) {
         console.error("Error loading ads:", error);
       }
     },
-    
+
     // Filter Ads
     filterAds() {
       let filtered = [...this.allAds];
-      
+
       // Filter by search query
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase();
-        filtered = filtered.filter(ad => 
+        filtered = filtered.filter(ad =>
           ad.title.toLowerCase().includes(query) ||
           ad.description.toLowerCase().includes(query)
         );
       }
-      
+
       // Filter by type
       if (this.selectedType) {
         filtered = filtered.filter(ad => ad.type === this.selectedType);
       }
-      
+
       // Apply sorting
       this.sortAdsList(filtered);
     },
-    
+
     // Sort Ads
     sortAds() {
       this.sortAdsList(this.filteredAds);
     },
-    
+
     sortAdsList(list) {
       const sorted = [...list];
-      
+
       switch (this.sortBy) {
         case "newest":
           sorted.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
@@ -594,62 +360,60 @@ export default {
         case "most_viewed":
           sorted.sort((a, b) => (b.views || 0) - (a.views || 0));
           break;
-        case "ending_soon":
-          sorted.sort((a, b) => new Date(a.endDate) - new Date(b.endDate));
-          break;
       }
-      
+
       this.filteredAds = sorted;
     },
-    
+
     // Clear Search
     clearSearch() {
       this.searchQuery = "";
       this.filterAds();
     },
-    
+
     // View Ad Details
     viewAdDetails(ad) {
       this.selectedAd = ad;
       this.showAdModal = true;
-      
+
       // Increment view count
       this.incrementViewCount(ad.id);
     },
-    
+
     // Increment View Count
     incrementViewCount(adId) {
       const adIndex = this.allAds.findIndex(ad => ad.id === adId);
       if (adIndex !== -1) {
-        this.allAds[adIndex].views = (this.allAds[adIndex].views || 0) + 1;
+        this.allAds[adIndex].views = Number((this.allAds[adIndex].views || 0)) + 1;
+        this.increaseViewAdd({ id: adId })
       }
     },
-    
+
     // Show Important Ads
     showImportantAds() {
       this.showImportantModal = true;
     },
-    
+
     // Carousel Events
     onSlideStart(slide) {
       this.sliding = true;
     },
-    
+
     onSlideEnd(slide) {
       this.sliding = false;
     },
-    
+
     // Reset Selected Ad
     resetSelectedAd() {
       this.selectedAd = null;
     },
-    
+
     // Utility Functions
     truncateText(text, length) {
       if (text.length <= length) return text;
       return text.substring(0, length) + "...";
     },
-    
+
     getTypeBadge(type) {
       const variants = {
         banner: "primary",
@@ -660,7 +424,7 @@ export default {
       };
       return variants[type] || "secondary";
     },
-    
+
     getStatusBadge(status) {
       const variants = {
         active: "success",
@@ -670,7 +434,7 @@ export default {
       };
       return variants[status] || "secondary";
     },
-    
+
     getTypeText(type) {
       const typeMap = {
         banner: "بنر",
@@ -681,7 +445,7 @@ export default {
       };
       return typeMap[type] || type;
     },
-    
+
     getStatusText(status) {
       const statusMap = {
         active: "فعال",
@@ -691,12 +455,12 @@ export default {
       };
       return statusMap[status] || status;
     },
-    
+
     getDay(date) {
       // Extract day from date
       return date.split("/")[2];
     },
-    
+
     getMonth(date) {
       const months = [
         "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
@@ -705,7 +469,7 @@ export default {
       const monthIndex = parseInt(date.split("/")[1]) - 1;
       return months[monthIndex] || "";
     },
-    
+
     // Track Page View
     trackView() {
       // Send analytics or track page view
@@ -754,7 +518,7 @@ export default {
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
   color: white;
   padding: 20px;
   text-align: right;
@@ -810,7 +574,7 @@ export default {
 .ad-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .ad-image-placeholder {
@@ -968,15 +732,15 @@ export default {
   .carousel-image-wrapper {
     height: 200px;
   }
-  
+
   .carousel-caption-overlay h5 {
     font-size: 1.2rem;
   }
-  
+
   .carousel-caption-overlay p {
     font-size: 0.9rem;
   }
-  
+
   .floating-action-btn {
     bottom: 10px;
     left: 10px;
@@ -990,7 +754,7 @@ export default {
   .ad-image-container {
     height: 150px;
   }
-  
+
   .stat-number {
     font-size: 1.5rem;
   }

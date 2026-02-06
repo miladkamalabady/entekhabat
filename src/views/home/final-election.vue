@@ -1,7 +1,12 @@
 <template>
   <div class="election-results-page">
+    <b-container class="ads-container mt-4" v-if="electionStatusAll !== 'ended'">
+
+      <b-alert variant="danger" class="text-center" show>زمان تبلیغات به اتمام نرسیده است!</b-alert>
+
+    </b-container>
     <!-- Celebration Header -->
-    <b-container fluid class="celebration-header py-5">
+    <b-container fluid class="celebration-header py-5" v-if="electionStatusAll === 'ended'">
       <div class="text-center">
         <div class="celebration-icon">
           <b-icon icon="trophy-fill"></b-icon>
@@ -18,7 +23,7 @@
     </b-container>
 
     <!-- Results Summary -->
-    <b-container class="results-container">
+    <b-container class="results-container" v-if="electionStatusAll === 'ended'">
       <!-- Overall Stats -->
       <b-row class="mb-5">
         <b-col cols="12">
@@ -72,26 +77,22 @@
           </h3>
           <p class="text-muted">برنده نهایی انتخابات</p>
         </div>
-        
+
         <b-row class="align-items-center">
           <b-col md="4" class="text-center">
             <div class="winner-photo-container">
-              <img
-                :src="winner.photo"
-                :alt="winner.name"
-                class="winner-photo"
-              />
+              <img :src="winner.photo" :alt="winner.name" class="winner-photo" />
               <div class="winner-crown">
                 <b-icon icon="crown-fill"></b-icon>
               </div>
             </div>
           </b-col>
-          
+
           <b-col md="8">
             <div class="winner-info">
               <h2 class="winner-name">{{ winner.name }}</h2>
               <p class="winner-position">{{ winner.position }}</p>
-              
+
               <div class="winner-stats">
                 <b-row>
                   <b-col>
@@ -114,7 +115,7 @@
                   </b-col>
                 </b-row>
               </div>
-              
+
               <div class="winner-quote mt-4">
                 <b-icon icon="quote" variant="secondary" class="ml-2"></b-icon>
                 <em>{{ winner.quote }}</em>
@@ -122,11 +123,12 @@
             </div>
           </b-col>
         </b-row>
-        
+
         <div class="victory-message text-center mt-4">
           <b-alert variant="success" show class="d-inline-block">
             <h5 class="alert-heading mb-2">پیروزی با {{ winner.name.split(' ')[1] }}!</h5>
-            <p class="mb-0">با کسب {{ winner.percentage }}% از آراء به عنوان عضو جدید هیئت مدیره صندوق ذخیره فرهنگیان انتخاب شدند.</p>
+            <p class="mb-0">با کسب {{ winner.percentage }}% از آراء به عنوان عضو جدید هیئت مدیره صندوق ذخیره فرهنگیان
+              انتخاب شدند.</p>
           </b-alert>
         </div>
       </b-card>
@@ -137,34 +139,22 @@
           <h4>رتبه‌بندی نهایی کاندیداها</h4>
           <div class="ranking-actions">
             <b-button-group>
-              <b-button
-                :variant="viewMode === 'table' ? 'primary' : 'outline-primary'"
-                @click="viewMode = 'table'"
-              >
+              <b-button :variant="viewMode === 'table' ? 'primary' : 'outline-primary'" @click="viewMode = 'table'">
                 <b-icon icon="table"></b-icon>
                 جدول
               </b-button>
-              <b-button
-                :variant="viewMode === 'chart' ? 'primary' : 'outline-primary'"
-                @click="viewMode = 'chart'"
-              >
+              <b-button :variant="viewMode === 'chart' ? 'primary' : 'outline-primary'" @click="viewMode = 'chart'">
                 <b-icon icon="bar-chart-fill"></b-icon>
                 نمودار
               </b-button>
             </b-button-group>
           </div>
         </div>
-        
+
         <!-- Table View -->
         <div v-if="viewMode === 'table'" class="table-responsive">
-          <b-table
-            :items="sortedCandidates"
-            :fields="rankingFields"
-            striped
-            hover
-            class="text-right"
-            thead-class="bg-primary text-white"
-          >
+          <b-table :items="sortedCandidates" :fields="rankingFields" striped hover class="text-right"
+            thead-class="bg-primary text-white">
             <template #cell(rank)="data">
               <div class="rank-display" :class="`rank-${data.index + 1}`">
                 <span class="rank-number">{{ data.index + 1 }}</span>
@@ -179,14 +169,10 @@
                 </span>
               </div>
             </template>
-            
+
             <template #cell(candidate)="data">
               <div class="candidate-info">
-                <img
-                  :src="data.item.photo"
-                  class="candidate-photo"
-                  :alt="data.item.name"
-                />
+                <img :src="data.item.photo" class="candidate-photo" :alt="data.item.name" />
                 <div class="candidate-details">
                   <strong>{{ data.item.name }}</strong>
                   <small class="text-muted d-block">{{ data.item.position }}</small>
@@ -201,23 +187,18 @@
                 </div>
               </div>
             </template>
-            
+
             <template #cell(votes)="data">
               <div class="votes-display">
                 <div class="votes-count">{{ formatNumber(data.item.votes) }}</div>
                 <div class="votes-percentage">
-                  <b-progress
-                    :value="data.item.votes"
-                    :max="maxVotes"
-                    height="6px"
-                    class="mt-1"
-                    :variant="getProgressVariant(data.index)"
-                  ></b-progress>
+                  <b-progress :value="data.item.votes" :max="maxVotes" height="6px" class="mt-1"
+                    :variant="getProgressVariant(data.index)"></b-progress>
                   <small>{{ data.item.percentage }}%</small>
                 </div>
               </div>
             </template>
-            
+
             <template #cell(comparison)="data">
               <div class="comparison" :class="getComparisonClass(data.item.comparison)">
                 <b-icon :icon="getComparisonIcon(data.item.comparison)" class="ml-1"></b-icon>
@@ -227,7 +208,7 @@
                 <span v-else>ثابت</span>
               </div>
             </template>
-            
+
             <template #cell(status)="data">
               <b-badge :variant="getStatusVariant(data.item.status)">
                 {{ getStatusText(data.item.status) }}
@@ -235,14 +216,14 @@
             </template>
           </b-table>
         </div>
-        
+
         <!-- Chart View -->
         <div v-else class="chart-container">
           <div class="chart-wrapper">
             <canvas ref="resultsChart"></canvas>
           </div>
         </div>
-        
+
         <!-- Chart Legend -->
         <div class="chart-legend mt-4">
           <b-row>
@@ -280,11 +261,7 @@
               <canvas ref="distributionChart"></canvas>
             </div>
             <div class="distribution-list mt-3">
-              <div
-                v-for="candidate in topCandidates"
-                :key="candidate.id"
-                class="distribution-item"
-              >
+              <div v-for="candidate in topCandidates" :key="candidate.id" class="distribution-item">
                 <span class="distribution-color" :style="{ backgroundColor: candidate.color }"></span>
                 <span class="distribution-name">{{ candidate.name.split(' ')[1] }}</span>
                 <span class="distribution-percentage">{{ candidate.percentage }}%</span>
@@ -293,7 +270,7 @@
             </div>
           </b-card>
         </b-col>
-        
+
         <b-col lg="6" class="mb-4">
           <b-card class="h-100">
             <h5 class="mb-3">
@@ -301,40 +278,25 @@
               نتایج بر اساس استان
             </h5>
             <div class="region-results">
-              <b-table
-                :items="regionResults"
-                :fields="regionFields"
-                small
-                striped
-                class="text-right"
-              >
+              <b-table :items="regionResults" :fields="regionFields" small striped class="text-right">
                 <template #cell(winner)="data">
                   <div class="region-winner">
-                    <img
-                      v-if="getCandidatePhoto(data.value)"
-                      :src="getCandidatePhoto(data.value)"
-                      class="region-winner-photo"
-                      :alt="data.value"
-                    />
+                    <img v-if="getCandidatePhoto(data.value)" :src="getCandidatePhoto(data.value)"
+                      class="region-winner-photo" :alt="data.value" />
                     <span class="region-winner-name">{{ data.value }}</span>
                   </div>
                 </template>
-                
+
                 <template #cell(participation)="data">
                   <div class="region-participation">
-                    <b-progress
-                      :value="data.value"
-                      :max="100"
-                      height="4px"
-                      class="mb-1"
-                      :variant="getRegionVariant(data.value)"
-                    ></b-progress>
+                    <b-progress :value="data.value" :max="100" height="4px" class="mb-1"
+                      :variant="getRegionVariant(data.value)"></b-progress>
                     <small>{{ data.value }}%</small>
                   </div>
                 </template>
               </b-table>
             </div>
-            
+
             <div class="text-center mt-3">
               <b-button variant="outline-primary" size="sm" @click="downloadRegionalResults">
                 <b-icon icon="download" class="ml-1"></b-icon>
@@ -351,14 +313,10 @@
           <b-icon icon="clock-history" class="ml-2"></b-icon>
           گاهشمار انتخابات
         </h5>
-        
+
         <div class="timeline">
-          <div
-            v-for="(event, index) in timelineEvents"
-            :key="index"
-            class="timeline-item"
-            :class="{ 'timeline-item-reverse': index % 2 === 0 }"
-          >
+          <div v-for="(event, index) in timelineEvents" :key="index" class="timeline-item"
+            :class="{ 'timeline-item-reverse': index % 2 === 0 }">
             <div class="timeline-marker" :class="`marker-${event.type}`">
               <b-icon :icon="getTimelineIcon(event.type)"></b-icon>
             </div>
@@ -379,7 +337,7 @@
           </div>
           <h4 class="mt-3 mb-3">گواهی رسمی نتایج</h4>
           <p class="text-muted mb-4">این نتایج توسط کمیته نظارت انتخابات تأیید و مهر شده است.</p>
-          
+
           <div class="certification-details">
             <b-row>
               <b-col md="4">
@@ -402,7 +360,7 @@
               </b-col>
             </b-row>
           </div>
-          
+
           <div class="mt-4">
             <b-button variant="outline-success" class="mr-3" @click="downloadCertificate">
               <b-icon icon="download" class="ml-1"></b-icon>
@@ -421,7 +379,7 @@
         <div class="text-center">
           <h5 class="mb-3">اشتراک‌گذاری نتایج</h5>
           <p class="text-muted mb-4">نتایج انتخابات را با دیگران به اشتراک بگذارید</p>
-          
+
           <div class="share-buttons">
             <b-button variant="outline-primary" class="share-btn" @click="shareTelegram">
               <b-icon icon="telegram"></b-icon>
@@ -440,7 +398,7 @@
               توییتر
             </b-button>
           </div>
-          
+
           <div class="mt-4">
             <b-alert variant="info" show class="text-right">
               <b-icon icon="info-circle" class="ml-1"></b-icon>
@@ -453,7 +411,7 @@
     </b-container>
 
     <!-- Statistics Footer -->
-    <b-container fluid class="stats-footer py-4">
+    <b-container fluid class="stats-footer py-4" v-if="electionStatusAll === 'ended'">
       <b-row>
         <b-col md="3" class="text-center">
           <div class="stat-number">{{ finalResults.duration }}</div>
@@ -478,19 +436,19 @@
 
 <script>
 import Chart from 'chart.js';
-
+import { mapGetters, mapActions, mapMutations } from "vuex";
 export default {
   name: "ElectionFinalResults",
   data() {
     return {
       electionDate: '۱۴۰۲/۱۱/۱۵',
       viewMode: 'table',
-      
+
       // Chart Instances
       participationChart: null,
       resultsChart: null,
       distributionChart: null,
-      
+
       // Final Results Data
       finalResults: {
         totalVotes: 125480,
@@ -504,7 +462,7 @@ export default {
         observers: 250,
         transparency: 98.7
       },
-      
+
       // Winner Data
       winner: {
         id: 1,
@@ -516,7 +474,7 @@ export default {
         margin: 8.2,
         quote: 'سپاسگزار اعتماد فرهنگیان عزیز هستم. این انتخاب، مسئولیتی بزرگ در قبال آینده صندوق ذخیره فرهنگیان است.'
       },
-      
+
       // Candidates Data
       candidates: [
         {
@@ -616,7 +574,7 @@ export default {
           previousMember: false
         }
       ],
-      
+
       // Region Results
       regionResults: [
         { id: 1, name: 'تهران', votes: 35480, participation: 72.5, winner: 'دکتر محمدرضا احمدی' },
@@ -626,7 +584,7 @@ export default {
         { id: 5, name: 'تبریز', votes: 9540, participation: 59.4, winner: 'مهندس سید علی حسینی' },
         { id: 6, name: 'کرج', votes: 8760, participation: 63.1, winner: 'دکتر محمدرضا احمدی' }
       ],
-      
+
       // Timeline Events
       timelineEvents: [
         {
@@ -666,14 +624,14 @@ export default {
           type: 'results'
         }
       ],
-      
+
       // Certification Data
       certification: {
         protocolNumber: 'PR-۱۴۰۲-۱۱-۱۶-۰۰۱',
         approvalDate: '۱۴۰۲/۱۱/۱۶',
         committeeHead: 'دکتر سید حسن موسوی'
       },
-      
+
       // Table Fields
       rankingFields: [
         { key: 'rank', label: 'رتبه', sortable: false },
@@ -682,27 +640,28 @@ export default {
         { key: 'comparison', label: 'تغییر نسبت به پیش‌بینی', sortable: true },
         { key: 'status', label: 'وضعیت', sortable: true }
       ],
-      
+
       regionFields: [
         { key: 'name', label: 'استان', sortable: true },
         { key: 'votes', label: 'آرای معتبر', sortable: true },
         { key: 'participation', label: 'مشارکت', sortable: true },
         { key: 'winner', label: 'کاندیدای برتر', sortable: false }
       ],
-      
+
       // Share Link
       shareLink: ''
     };
   },
   computed: {
+    ...mapGetters(["electionStatusAll"]),
     sortedCandidates() {
       return [...this.candidates].sort((a, b) => b.votes - a.votes);
     },
-    
+
     maxVotes() {
       return Math.max(...this.candidates.map(c => c.votes));
     },
-    
+
     topCandidates() {
       return this.sortedCandidates.slice(0, 5);
     }
@@ -728,22 +687,22 @@ export default {
     formatNumber(num) {
       return new Intl.NumberFormat('fa-IR').format(num);
     },
-    
+
     // Chart Initialization
     initializeCharts() {
       this.createParticipationChart();
       this.createResultsChart();
       this.createDistributionChart();
     },
-    
+
     createParticipationChart() {
       const ctx = this.$refs.participationChart?.getContext('2d');
       if (!ctx) return;
-      
+
       if (this.participationChart) {
         this.participationChart.destroy();
       }
-      
+
       this.participationChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
@@ -779,19 +738,19 @@ export default {
         }
       });
     },
-    
+
     createResultsChart() {
       const ctx = this.$refs.resultsChart?.getContext('2d');
       if (!ctx) return;
-      
+
       if (this.resultsChart) {
         this.resultsChart.destroy();
       }
-      
+
       const labels = this.sortedCandidates.map(c => c.name.split(' ').pop());
       const data = this.sortedCandidates.map(c => c.votes);
       const colors = this.sortedCandidates.map(c => c.color);
-      
+
       this.resultsChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -853,19 +812,19 @@ export default {
         }
       });
     },
-    
+
     createDistributionChart() {
       const ctx = this.$refs.distributionChart?.getContext('2d');
       if (!ctx) return;
-      
+
       if (this.distributionChart) {
         this.distributionChart.destroy();
       }
-      
+
       const top5 = this.sortedCandidates.slice(0, 5);
       const othersVotes = this.sortedCandidates.slice(5).reduce((sum, c) => sum + c.votes, 0);
       const othersPercentage = ((othersVotes / this.finalResults.totalVotes) * 100).toFixed(1);
-      
+
       this.distributionChart = new Chart(ctx, {
         type: 'pie',
         data: {
@@ -905,7 +864,7 @@ export default {
         }
       });
     },
-    
+
     // UI Helpers
     getProgressVariant(index) {
       if (index === 0) return 'warning';
@@ -913,19 +872,19 @@ export default {
       if (index === 2) return 'success';
       return 'primary';
     },
-    
+
     getComparisonClass(value) {
       if (value > 0) return 'comparison-up';
       if (value < 0) return 'comparison-down';
       return 'comparison-neutral';
     },
-    
+
     getComparisonIcon(value) {
       if (value > 0) return 'arrow-up';
       if (value < 0) return 'arrow-down';
       return 'dash';
     },
-    
+
     getStatusVariant(status) {
       const variants = {
         winner: 'warning',
@@ -935,7 +894,7 @@ export default {
       };
       return variants[status] || 'secondary';
     },
-    
+
     getStatusText(status) {
       const texts = {
         winner: 'برنده',
@@ -945,19 +904,19 @@ export default {
       };
       return texts[status] || status;
     },
-    
+
     getCandidatePhoto(name) {
       const candidate = this.candidates.find(c => c.name === name);
       return candidate ? candidate.photo : null;
     },
-    
+
     getRegionVariant(percentage) {
       if (percentage >= 70) return 'success';
       if (percentage >= 60) return 'info';
       if (percentage >= 50) return 'warning';
       return 'danger';
     },
-    
+
     getTimelineIcon(type) {
       const icons = {
         start: 'flag-fill',
@@ -969,7 +928,7 @@ export default {
       };
       return icons[type] || 'circle';
     },
-    
+
     // Actions
     downloadRegionalResults() {
       // In real app, this would download a CSV/PDF file
@@ -983,7 +942,7 @@ export default {
         });
       }, 1000);
     },
-    
+
     downloadCertificate() {
       // In real app, this would download the official certificate
       alert('گواهی رسمی نتایج در حال دانلود...');
@@ -996,16 +955,16 @@ export default {
         });
       }, 1000);
     },
-    
+
     printResults() {
       window.print();
     },
-    
+
     // Share Functions
     generateShareLink() {
       this.shareLink = window.location.href;
     },
-    
+
     async copyLink() {
       try {
         await navigator.clipboard.writeText(this.shareLink);
@@ -1023,25 +982,25 @@ export default {
         });
       }
     },
-    
+
     shareTelegram() {
       const text = `نتایج نهایی انتخابات صندوق ذخیره فرهنگیان\nبرنده: ${this.winner.name}\nمشارکت: ${this.finalResults.participationRate}%\n\n`;
       const url = `https://t.me/share/url?url=${encodeURIComponent(this.shareLink)}&text=${encodeURIComponent(text)}`;
       window.open(url, '_blank');
     },
-    
+
     shareWhatsApp() {
       const text = `نتایج نهایی انتخابات صندوق ذخیره فرهنگیان\nبرنده: ${this.winner.name}\nمشارکت: ${this.finalResults.participationRate}%\n${this.shareLink}`;
       const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
       window.open(url, '_blank');
     },
-    
+
     shareTwitter() {
       const text = `نتایج انتخابات صندوق ذخیره فرهنگیان\nبرنده: ${this.winner.name.split(' ')[1]} با ${this.winner.percentage}% آرا\nمشارکت: ${this.finalResults.participationRate}%\n#انتخابات_فرهنگیان`;
       const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(this.shareLink)}`;
       window.open(url, '_blank');
     },
-    
+
     // Chart View Change
     changeViewMode() {
       if (this.viewMode === 'chart') {
@@ -1098,8 +1057,15 @@ export default {
 }
 
 @keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .completion-badge {
@@ -1273,7 +1239,11 @@ export default {
   color: white;
 }
 
-.rank-4, .rank-5, .rank-6, .rank-7, .rank-8 {
+.rank-4,
+.rank-5,
+.rank-6,
+.rank-7,
+.rank-8 {
   background: #f5f5f5;
   color: #666;
 }
@@ -1620,33 +1590,33 @@ export default {
     width: 150px;
     height: 150px;
   }
-  
+
   .winner-name {
     font-size: 1.8rem;
   }
-  
+
   .timeline::before {
     right: 30px;
   }
-  
+
   .timeline-item,
   .timeline-item-reverse {
     flex-direction: column;
   }
-  
+
   .timeline-marker {
     margin-bottom: 15px;
   }
-  
+
   .timeline-content {
     margin: 0;
   }
-  
+
   .share-buttons {
     flex-direction: column;
     align-items: center;
   }
-  
+
   .share-btn {
     width: 100%;
     max-width: 250px;
@@ -1658,7 +1628,7 @@ export default {
   .election-results-page {
     background: white;
   }
-  
+
   .celebration-header,
   .stats-footer,
   .share-card,

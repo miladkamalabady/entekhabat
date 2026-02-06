@@ -102,7 +102,6 @@ export default {
           "link": "ViewAdvertise",
           "img": "assets/img/ltms.svg",
           "type": "3",
-          roles: ['CANDIDATE', 'VOTER'],
         }, {
           "title": "انتخابات",
           "link": "votingPage",
@@ -145,6 +144,8 @@ export default {
   mounted() {
     if(!this.stateCandidInfo && this.currentUser?.roles=='CANDIDATE')
     this.getstateCandid()
+  if(!this.ConfigInfo)
+    this.getConfig()
 
     this.setpanelactiveparvande(this.$route?.name)
     if (this.profilecontent1.filter(x => x.link == this.$route?.name).length > 0)
@@ -157,7 +158,7 @@ export default {
 
   },
   computed: {
-    ...mapGetters(["currentUser", "panelactiveparvande", "sidebarVisible","electionActive","stateCandidInfo"]),
+    ...mapGetters(["currentUser", "panelactiveparvande", "sidebarVisible","ConfigInfo","stateCandidInfo"]),
     filteredMenu() {
       return this.profilecontent.filter(item => {
         let roleAllowed=true
@@ -165,14 +166,14 @@ export default {
         if(item?.roles)
         roleAllowed = item?.roles?.includes(this.currentUser?.roles[0])
  
-        const disabled= item.requiresActive && !this.electionActive
+        const disabled= item.requiresActive && !this.ConfigInfo?.active
         return roleAllowed && !disabled
       })
     }
   },
   methods: {
     ...mapMutations(["setpanelactiveparvande", "setsidebarVisible", "setProcessing","setRequestStatus"]),
-    ...mapActions(["getstateCandid"]),
+    ...mapActions(["getstateCandid","getConfig"]),
     toggleMenu(title) {
       this.openMenu = this.openMenu === title ? null : title;
     },

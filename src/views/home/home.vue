@@ -12,18 +12,15 @@
               <b-col cols="12" md="10" lg="8" class="text-center">
 
                 <!-- Header -->
-                <div class="mb-4">
+                <div class="mb-4" v-if="ConfigInfo">
                   <h5 class="mb-2 text-primary-org">
                     سامانه انتخابات صندوق ذخیره فرهنگیان
                   </h5>
-
-                  <b-badge :variant="electionActive ? 'success' : 'secondary'" pill>
-                    {{ electionActive ? 'در حال برگزاری' : 'غیرفعال' }}
-                  </b-badge>
+                    
+                  <ElectionStatusTimer :config-info="ConfigInfo" />
                 </div>
-                <CustomStepper
-                  v-if="(currentUser?.roles.includes('CANDIDATE')) && requestStatus"
-                  :steps="stepperSteps" :current-step="currentStep" :disabled="processing" />
+                <CustomStepper v-if="(currentUser?.roles.includes('CANDIDATE')) && requestStatus && electionStatusAll!='active' && electionStatusAll!='ended'" :steps="stepperSteps"
+                  :current-step="currentStep" :disabled="processing" />
                 <!-- درخواست ثبت شده -->
                 <b-alert v-if="requestStatus === 'SUBMITTED'" variant="warning" show>
                   ⏳ درخواست شما ثبت شده و در حال بررسی توسط واحد اجرایی است
@@ -45,8 +42,8 @@
                 <!-- Menu -->
                 <b-row>
                   <b-col v-for="(item, index) in filteredMenu" :key="index" cols="12" sm="4" class="mb-3">
-                    <b-card class="dashboard-card h-100" :class="{ disabled: item.requiresActive && !electionActive }"
-                      @click="handleClick(item)">
+                    <b-card class="dashboard-card h-100"
+                      :class="{ disabled: (item.electionStatusAll && item.electionStatusAll!=electionStatusAll) }" @click="handleClick(item)">
                       <div class="icon mb-2">
                         <i :class="item.icon"></i>
                       </div>
@@ -55,7 +52,7 @@
                         {{ item.title }}
                       </div>
 
-                      <b-badge v-if="item.badge && electionActive" variant="warning" class="mt-2">
+                      <b-badge v-if="item.badge && electionStatusAll=='active'" variant="warning" class="mt-2">
                         {{ item.badge }}
                       </b-badge>
                     </b-card>
@@ -75,14 +72,15 @@
 import { isMobile } from "../../utils";
 import { mapGetters, mapActions, mapMutations } from "vuex";
 import Sidebar from "../../navs/Sidebar.vue";
+import ElectionStatusTimer from "@/components/Common/ElectionStatusTimer";
 import CustomStepper from "@/components/Common/CustomStepper";
 export default {
   name: 'Dashboard',
   components: {
-    Sidebar, CustomStepper
+    Sidebar, CustomStepper, ElectionStatusTimer
   },
   computed: {
-    ...mapGetters(["sidebarVisible", "processing", "loginError", "currentUser", "requestStatus", "electionActive"]),
+    ...mapGetters(["ConfigInfo", "sidebarVisible", "processing", "loginError", "currentUser","electionStatusAll", "requestStatus"]),
     filteredMenu() {
       return this.menu.filter(item => {
         const roleAllowed = item.roles.includes(this.currentUser?.roles[0])
@@ -143,6 +141,7 @@ export default {
           route: '/candidate/advertise',
           icon: 'bi bi-megaphone',
           roles: ['CANDIDATE'],
+          electionStatusAll:'pending',
           visibleWhen: status => status === 'SUPERVISION_APPROVED'
         },
         {
@@ -156,16 +155,25 @@ export default {
           title: 'شرکت در انتخابات',
           route: '/User/votingPage',
           icon: 'bi bi-check2-square',
-          roles: ['CANDIDATE', 'VOTER'],
-          requiresActive:true,
+          roles: ['CANDIDATE', 'VOTER','EXECUTIVE','SUPERVISOR'],
+          electionStatusAll:'active',
           badge: 'در حال رأی‌گیری'
         },
-         { title: 'مشاهده نتایج مرحله اول',
+        {
+          title: 'مشاهده نتایج مرحله اول',
           route: '/results/live-election',
           icon: 'bi bi-bar-chart',
-          roles: ['VOTER', 'CANDIDATE'],
-          requiresActive:true,
-          badge: 'نمایش زنده' 
+          roles: ['VOTER', 'CANDIDATE','EXECUTIVE','SUPERVISOR'],
+          electionStatusAll:'active',
+          badge: 'نمایش زنده'
+        },
+        {
+          title: 'مشاهده نتایج',
+          route: '/results/final-election',
+          icon: 'bi bi-bar-chart',
+          roles: ['VOTER', 'CANDIDATE','EXECUTIVE','SUPERVISOR'],
+          electionStatusAll:'ended',
+          badge: 'نمایش نهایی'
         }
       ]
     }
@@ -173,13 +181,10 @@ export default {
   methods: {
     ...mapMutations(["setRequestStatus"]),
     ...mapActions([]),
-
-
     go(route) {
       this.$router.push(route)
     },
     handleClick(item) {
-      if (item.requiresActive && !this.electionActive) return
       if (item.route == '/candidate/request')
         this.setRequestStatus("DRAFT")
       this.$router.push(item.route)

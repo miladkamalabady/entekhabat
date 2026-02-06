@@ -30,28 +30,16 @@
                 @change="loadAdvertisements"></b-form-select>
             </b-form-group>
           </b-col>
-          <b-col md="3">
-            <b-form-group label="تاریخ شروع">
-              <b-form-datepicker v-model="filters.startDate" :locale="'fa'"
-                @input="loadAdvertisements"></b-form-datepicker>
-            </b-form-group>
-          </b-col>
-          <b-col md="3">
-            <b-form-group label="تاریخ پایان">
-              <b-form-datepicker v-model="filters.endDate" :locale="'fa'"
-                @input="loadAdvertisements"></b-form-datepicker>
-            </b-form-group>
-          </b-col>
         </b-row>
       </b-card>
 
       <!-- Advertisements List -->
       <b-card>
         <div class="table-responsive">
-          <b-table :items="advertisements" :fields="fields" :busy="loading" striped hover class="text-right">
+          <b-table :items="advertisements?.filter(x=>x.deleter!='CANDIDATE')" :fields="fields" :busy="loading" striped hover class="text-right">
             <!-- Image Column -->
             <template #cell(image)="data">
-              <img v-if="data.value" :src="data.value" class="ad-thumbnail" alt="تصویر تبلیغ" />
+              <img v-if="data.value" :src="`${apiUrlrtb}/${data.value}`" class="ad-thumbnail" alt="تصویر تبلیغ" />
               <span v-else class="text-muted">بدون تصویر</span>
             </template>
 
@@ -64,8 +52,8 @@
 
             <!-- Status Column -->
             <template #cell(status)="data">
-              <b-badge :variant="getStatusBadge(data.value)">
-                {{ getStatusText(data.value) }}
+              <b-badge :variant="getStatusBadge(data.item)">
+                {{ getStatusText(data.item) }}
               </b-badge>
             </template>
 
@@ -75,10 +63,11 @@
                 <b-button variant="outline-info" @click="viewAd(data.item)" title="مشاهده">
                   <b-icon icon="eye"></b-icon>
                 </b-button>
-                <b-button variant="outline-warning" @click="editAd(data.item)" title="ویرایش">
+                <b-button v-if="!data.item.deleter" variant="outline-warning" @click="editAd(data.item)" title="ویرایش">
                   <b-icon icon="pencil"></b-icon>
                 </b-button>
-                <b-button variant="outline-danger" @click="deleteAd(data.item.id)" title="حذف">
+                <b-button v-if="!data.item.deleter" variant="outline-danger" @click="deleteAd(data.item.id)"
+                  title="حذف">
                   <b-icon icon="trash"></b-icon>
                 </b-button>
               </b-button-group>
@@ -123,19 +112,6 @@
             required></b-form-textarea>
         </b-form-group>
 
-        <b-row>
-          <b-col md="6">
-            <b-form-group label="تاریخ شروع" label-for="ad-start">
-              <b-form-datepicker id="ad-start" v-model="form.startDate" :locale="'fa'" required></b-form-datepicker>
-            </b-form-group>
-          </b-col>
-          <b-col md="6">
-            <b-form-group label="تاریخ پایان" label-for="ad-end">
-              <b-form-datepicker id="ad-end" v-model="form.endDate" :locale="'fa'" required></b-form-datepicker>
-            </b-form-group>
-          </b-col>
-        </b-row>
-
         <b-form-group label="تصویر تبلیغ" label-for="ad-image">
           <b-form-file id="ad-image" v-model="form.imageFile" accept="image/*" @change="handleImageUpload"
             placeholder="تصویر را انتخاب کنید یا اینجا بکشید" drop-placeholder="تصویر را اینجا رها کنید"></b-form-file>
@@ -143,7 +119,7 @@
 
           <!-- Image Preview -->
           <div v-if="form.imagePreview" class="mt-3">
-            <img :src="form.imagePreview" class="img-preview" alt="پیش‌نمایش تصویر" />
+            <img :src="`${form.imagePreview}`" class="img-preview" alt="پیش‌نمایش تصویر" />
           </div>
         </b-form-group>
 
@@ -155,8 +131,7 @@
         <b-form-group label="وضعیت">
           <b-form-radio-group v-model="form.status" :options="[
             { text: 'فعال', value: 'active' },
-            { text: 'غیرفعال', value: 'inactive' },
-            { text: 'در انتظار تایید', value: 'pending' }
+            { text: 'غیرفعال', value: 'inactive' }
           ]"></b-form-radio-group>
         </b-form-group>
 
@@ -181,18 +156,14 @@
             <p class="text-muted">{{ selectedAd.description }}</p>
           </b-col>
           <b-col md="4">
-            <img v-if="selectedAd.image" :src="selectedAd.image" class="img-fluid rounded" alt="تصویر تبلیغ" />
+            <img v-if="selectedAd.image" :src="`${apiUrlrtb}/${selectedAd.image}`" style="height:200px"
+              class="img-fluid rounded" alt="تصویر تبلیغ" />
           </b-col>
         </b-row>
 
         <b-row class="mb-2">
           <b-col><strong>نوع:</strong> {{ getTypeText(selectedAd.type) }}</b-col>
-          <b-col><strong>وضعیت:</strong> {{ getStatusText(selectedAd.status) }}</b-col>
-        </b-row>
-
-        <b-row class="mb-2">
-          <b-col><strong>تاریخ شروع:</strong> {{ selectedAd.startDate }}</b-col>
-          <b-col><strong>تاریخ پایان:</strong> {{ selectedAd.endDate }}</b-col>
+          <b-col><strong>وضعیت:</strong> {{ getStatusText(selectedAd) }}</b-col>
         </b-row>
 
         <div v-if="selectedAd.targetLink" class="mb-2">
@@ -210,21 +181,20 @@
 
 <script>
 import { isMobile } from "../../utils";
-import { mapGetters, mapMutations,mapActions } from "vuex";
+import { mapGetters, mapMutations, mapActions } from "vuex";
 import Sidebar from "../../navs/Sidebar.vue";
-
+import { apiUrlrtb } from '../../constants/config'
 export default {
   name: "AdvertisementManagement",
   components: { Sidebar },
   data() {
     return {
+      apiUrlrtb,
       isMobile,
       // Filters
       filters: {
         type: "",
         status: "",
-        startDate: null,
-        endDate: null
       },
       // Ad Types
       adTypes: [
@@ -238,7 +208,6 @@ export default {
         { value: "", text: "همه" },
         { value: "active", text: "فعال" },
         { value: "inactive", text: "غیرفعال" },
-        { value: "pending", text: "در انتظار تایید" }
       ],
       // Table Fields
       fields: [
@@ -246,8 +215,6 @@ export default {
         { key: "image", label: "تصویر" },
         { key: "title", label: "عنوان", sortable: true },
         { key: "type", label: "نوع", sortable: true },
-        { key: "startDate", label: "تاریخ شروع", sortable: true },
-        { key: "endDate", label: "تاریخ پایان", sortable: true },
         { key: "status", label: "وضعیت", sortable: true },
         { key: "actions", label: "عملیات" }
       ],
@@ -270,8 +237,6 @@ export default {
         title: "",
         description: "",
         type: "banner",
-        startDate: null,
-        endDate: null,
         imageFile: null,
         imagePreview: null,
         targetLink: "",
@@ -280,54 +245,19 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(["sidebarVisible","advertisementsSaveInfo"])
+    ...mapGetters(["sidebarVisible"])
   },
   created() {
     this.loadAdvertisements();
-    // Set default dates
-    const today = new Date().toISOString().split("T")[0];
-    const nextMonth = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-    this.form.startDate = today;
-    this.form.endDate = nextMonth;
   },
   methods: {
     ...mapMutations(["setsidebarVisible"]),
-    ...mapActions(["advertisementsSave"]),
+    ...mapActions(["advertisementsSave", "getAdvertisements","deleteAdv"]),
     // Load Advertisements
     async loadAdvertisements() {
       this.loading = true;
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // Mock data
-        this.advertisements = [
-          {
-            id: 1,
-            title: "تبلیغ انتخابات فرهنگیان",
-            description: "شرکت در انتخابات صندوق ذخیره فرهنگیان",
-            type: "banner",
-            image: "assets/img/adver/ent1.jpg",
-            startDate: "1402/10/15",
-            endDate: "1402/11/15",
-            status: "active",
-            targetLink: "https://example.com",
-            views: 1245
-          },
-          {
-            id: 2,
-            title: "اعلام کاندیداتوری",
-            description: "فراخوان کاندیداتوری برای انتخابات",
-            type: "text",
-            image: null,
-            startDate: "1402/10/10",
-            endDate: "1402/10/20",
-            status: "pending",
-            targetLink: "",
-            views: 876
-          }
-        ];
-
+        this.advertisements = await this.getAdvertisements()
         this.totalRows = this.advertisements.length;
       } catch (error) {
         console.error("Error loading advertisements:", error);
@@ -380,6 +310,7 @@ export default {
         inactive: "danger",
         pending: "warning"
       };
+      return !status.deleter ? (variants[status.status] || variants['inactive']) : variants['inactive'];
       return variants[status] || "secondary";
     },
 
@@ -396,10 +327,11 @@ export default {
     getStatusText(status) {
       const statusMap = {
         active: "فعال",
+        delete: "حذف مدیر",
         inactive: "غیرفعال",
         pending: "در انتظار تایید"
       };
-      return statusMap[status] || status;
+      return !status.deleter ? (statusMap[status.status] || statusMap['delete']) : statusMap['delete'];
     },
 
     // CRUD Operations
@@ -416,10 +348,8 @@ export default {
         title: ad.title,
         description: ad.description,
         type: ad.type,
-        startDate: ad.startDate,
-        endDate: ad.endDate,
         imageFile: null,
-        imagePreview: ad.image,
+        imagePreview: apiUrlrtb + '/' + ad.image,
         targetLink: ad.targetLink || "",
         status: ad.status
       };
@@ -431,9 +361,9 @@ export default {
 
       try {
         // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 300));
-
+        // await new Promise(resolve => setTimeout(resolve, 300));
         this.advertisements = this.advertisements.filter(ad => ad.id !== id);
+        await this.deleteAdv({ code: id })
         this.$bvToast.toast("تبلیغ با موفقیت حذف شد", {
           title: "موفقیت",
           variant: "success",
@@ -453,7 +383,36 @@ export default {
       this.saving = true;
       try {
         // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        const formData = new FormData();
+        formData.append("id", this.form.id || "");
+        formData.append("title", this.form.title);
+        formData.append("description", this.form.description);
+        formData.append("type", this.form.type);
+        formData.append("status", this.form.status);
+        formData.append("targetLink", this.form.targetLink || "");
+
+        if (this.form.imageFile) {
+          formData.append("image", this.form.imageFile);
+        } else if (this.form.imagePreview && !this.form.imagePreview.startsWith("data:")) {
+          formData.append("imagePath", this.form.imagePreview);
+        }
+
+        const response = await this.advertisementsSave(formData);
+
+        if (!response?.status) {
+          throw new Error(response?.message || "خطا در ذخیره تبلیغ");
+        }
+
+        const savedAd = {
+          id: response.data?.id || this.form.id || this.advertisements.length + 1,
+          title: this.form.title,
+          description: this.form.description,
+          type: this.form.type,
+          image: response.data?.image || this.form.imagePreview,
+          status: this.form.status,
+          targetLink: this.form.targetLink,
+          views: this.form.views || 0
+        };
 
         if (this.isEditing) {
           // Update existing ad
@@ -461,8 +420,7 @@ export default {
           if (index !== -1) {
             this.advertisements[index] = {
               ...this.advertisements[index],
-              ...this.form,
-              image: this.form.imagePreview
+              ...savedAd
             };
           }
 
@@ -473,20 +431,7 @@ export default {
           });
         } else {
           // Create new ad
-          const newAd = {
-            id: this.advertisements.length + 1,
-            title: this.form.title,
-            description: this.form.description,
-            type: this.form.type,
-            image: this.form.imagePreview,
-            startDate: this.form.startDate,
-            endDate: this.form.endDate,
-            status: this.form.status,
-            targetLink: this.form.targetLink,
-            views: 0
-          };
-          this.advertisementsSave(newAd)
-          this.advertisements.unshift(newAd);
+          this.advertisements.unshift(savedAd);
 
           this.$bvToast.toast("تبلیغ جدید با موفقیت ایجاد شد", {
             title: "موفقیت",
@@ -517,8 +462,6 @@ export default {
         title: "",
         description: "",
         type: "banner",
-        startDate: new Date().toISOString().split("T")[0],
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
         imageFile: null,
         imagePreview: null,
         targetLink: "",

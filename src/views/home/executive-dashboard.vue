@@ -190,7 +190,7 @@
             </div>
           </b-tab>
 
-          <b-tab title="تبلیغات" v-if="false">
+          <b-tab title="تبلیغات">
             <div class="p-3">
               <!-- Filters -->
               <b-card class="mb-4">
@@ -229,8 +229,8 @@
                   <!-- Preview Column -->
                   <template #cell(preview)="data">
                     <div class="ad-preview">
-                      <img v-if="data.item.image" :src="data.item.image" class="ad-thumbnail" :alt="data.item.title"
-                        @click="viewAd(data.item)" />
+                      <img v-if="data.item.image" :src="`${apiUrlrtb}/${data.item.image}`" class="ad-thumbnail"
+                        :alt="data.item.title" @click="viewAd(data.item)" />
                       <div v-else class="ad-thumbnail placeholder">
                         <b-icon icon="image"></b-icon>
                       </div>
@@ -239,27 +239,20 @@
 
                   <!-- Status Column -->
                   <template #cell(status)="data">
-                    <b-badge :variant="getAdStatusVariant(data.item.status)">
-                      {{ getAdStatusText(data.item.status) }}
+                    <b-badge :variant="getAdStatusVariant(data.item)">
+                      {{ getAdStatusText(data.item) }}
                     </b-badge>
                   </template>
 
+                  <!-- Status Column -->
+                  <template #cell(createdBy)="data">
+                    {{ data.item.first_name }} {{ data.item.last_name }} ({{ data.item.code }})
+                  </template>
                   <!-- Actions Column -->
                   <template #cell(actions)="data">
                     <b-button-group size="sm">
                       <b-button variant="outline-info" @click="viewAd(data.item)" title="مشاهده">
                         <b-icon icon="eye"></b-icon>
-                      </b-button>
-                      <b-button v-if="data.item.status === 'SUBMITTED'" variant="outline-success"
-                        @click="approveAd(data.item)" title="تایید">
-                        <b-icon icon="check"></b-icon>
-                      </b-button>
-                      <b-button v-if="data.item.status === 'SUBMITTED'" variant="outline-danger"
-                        @click="rejectAd(data.item)" title="رد">
-                        <b-icon icon="x"></b-icon>
-                      </b-button>
-                      <b-button variant="outline-warning" @click="editAd(data.item)" title="ویرایش">
-                        <b-icon icon="pencil"></b-icon>
                       </b-button>
                     </b-button-group>
                   </template>
@@ -466,9 +459,9 @@
     <b-modal v-model="showAdModal" :title="`تبلیغ - ${selectedAd?.title}`" size="lg" hide-footer centered scrollable>
       <div v-if="selectedAd" class="ad-details">
         <!-- Ad Content -->
-        <div class="ad-content mb-4">
+        <div class="ad-content mb-4 text-center">
           <div v-if="selectedAd.image" class="ad-image mb-3">
-            <img :src="selectedAd.image" class="img-fluid" alt="تصویر تبلیغ" />
+            <img :src="`${apiUrlrtb}/${selectedAd.image}`" style="width:200px;height:auto" class="img-fluid" alt="تصویر تبلیغ" />
           </div>
           <h5>{{ selectedAd.title }}</h5>
           <p class="ad-description">{{ selectedAd.description }}</p>
@@ -481,47 +474,40 @@
               <strong>نوع تبلیغ:</strong>
               <span>{{ getAdTypeText(selectedAd.type) }}</span>
             </div>
-            <div class="info-item">
-              <strong>تاریخ شروع:</strong>
-              <span>{{ selectedAd.startDate }}</span>
-            </div>
-            <div class="info-item">
-              <strong>تاریخ پایان:</strong>
-              <span>{{ selectedAd.endDate }}</span>
-            </div>
           </b-col>
           <b-col md="6">
             <div class="info-item">
               <strong>وضعیت:</strong>
-              <b-badge :variant="getAdStatusVariant(selectedAd.status)">
-                {{ getAdStatusText(selectedAd.status) }}
+              <b-badge :variant="getAdStatusVariant(selectedAd)">
+                {{ getAdStatusText(selectedAd) }}
               </b-badge>
             </div>
             <div class="info-item">
               <strong>ایجاد کننده:</strong>
-              <span>{{ selectedAd.createdBy }}</span>
+              <span>{{ selectedAd.first_name }} {{ selectedAd.last_name }}</span>
             </div>
             <div class="info-item">
               <strong>تاریخ ایجاد:</strong>
-              <span>{{ selectedAd.createdAt }}</span>
+              <span>{{ selectedAd.create_atsh }}</span>
             </div>
           </b-col>
         </b-row>
 
         <!-- Ad Review -->
-        <div v-if="selectedAd.status === 'SUBMITTED'" class="ad-review">
+        <div class="ad-review" v-if="!selectedAd.deleter || (selectedAd.deleter!='SUPERVISOR' && selectedAd.deleter!='CANDIDATE')">
           <h6 class="mb-3">بررسی تبلیغ</h6>
           <b-form @submit.prevent="reviewAd">
             <b-form-group label="نظر بررسی" label-for="ad-review-comment">
               <b-form-textarea id="ad-review-comment" v-model="adReviewComment" rows="3"
                 placeholder="نظر خود را در مورد این تبلیغ وارد کنید..."></b-form-textarea>
             </b-form-group>
-
-            <div class="text-center">
-              <b-button type="submit" variant="success" class="mr-3" @click="approveSelectedAd">
+            <div class="text-center" v-if="selectedAd.deleter && selectedAd.deleter!='CANDIDATE'">
+              <b-button variant="success" @click="approveSelectedAd" :disabled="!adReviewComment">
                 <b-icon icon="check" class="ml-1"></b-icon>
                 تایید تبلیغ
               </b-button>
+            </div>
+            <div class="text-center" v-if="!selectedAd.deleter">
               <b-button variant="danger" @click="rejectSelectedAd" :disabled="!adReviewComment">
                 <b-icon icon="x" class="ml-1"></b-icon>
                 رد تبلیغ
@@ -593,61 +579,7 @@ export default {
       },
 
       // Ads Data
-      advertisements: [
-        {
-          id: 1,
-          title: 'دوره انتخابات صندوق ذخیره فرهنگیان',
-          description: 'انتخابات دوره جدید صندوق ذخیره فرهنگیان آغاز شد',
-          image: 'assets/img/avatars/imagen1.png?text=Election',
-          type: 'banner',
-          status: 'pending',
-          startDate: '۱۴۰۲/۱۱/۱۵',
-          endDate: '۱۴۰۲/۱۱/۲۰',
-          createdBy: 'اداره انتخابات',
-          createdAt: '۱۴۰۲/۱۱/۱۰'
-        },
-        {
-          id: 2,
-          title: 'مهلت ثبت‌نام کاندیداتوری',
-          description: 'آخرین مهلت ثبت‌نام کاندیداتوری',
-          type: 'announcement',
-          status: 'approved',
-          startDate: '۱۴۰۲/۱۱/۱۲',
-          endDate: '۱۴۰۲/۱۱/۱۵',
-          createdBy: 'کمیسیون انتخابات',
-          createdAt: '۱۴۰۲/۱۱/۰۸',
-          reviews: [
-            {
-              id: 1,
-              reviewer: 'دکتر موسوی',
-              date: '۱۴۰۲/۱۱/۰۹',
-              status: 'approved',
-              comment: 'تبلیغ مناسب و مفید است'
-            }
-          ]
-        },
-        {
-          id: 3,
-          title: 'شرایط احراز صلاحیت',
-          description: 'شرایط و ضوابط احراز صلاحیت کاندیداها',
-          image: 'assets/img/avatars/imagen1.png?text=Conditions',
-          type: 'info',
-          status: 'rejected',
-          startDate: '۱۴۰۲/۱۱/۱۰',
-          endDate: '۱۴۰۲/۱۱/۱۵',
-          createdBy: 'کمیته نظارت',
-          createdAt: '۱۴۰۲/۱۱/۰۷',
-          reviews: [
-            {
-              id: 2,
-              reviewer: 'دکتر موسوی',
-              date: '۱۴۰۲/۱۱/۰۸',
-              status: 'rejected',
-              comment: 'نیاز به اصلاح متن دارد'
-            }
-          ]
-        }
-      ],
+      advertisements: [],
 
       // Filters
       docFilters: {
@@ -695,8 +627,6 @@ export default {
         { key: 'title', label: 'عنوان', sortable: true },
         { key: 'type', label: 'نوع', sortable: true },
         { key: 'status', label: 'وضعیت', sortable: true },
-        { key: 'startDate', label: 'تاریخ شروع', sortable: true },
-        { key: 'endDate', label: 'تاریخ پایان', sortable: true },
         { key: 'createdBy', label: 'ایجاد کننده', sortable: true },
         { key: 'actions', label: 'عملیات', sortable: false }
       ],
@@ -801,7 +731,6 @@ export default {
     },
 
     filteredAds() {
-      return null
       let filtered = [...this.advertisements];
 
       // Filter by status
@@ -844,7 +773,7 @@ export default {
   },
   methods: {
     ...mapMutations(["setChangeStateInfo"]),
-    ...mapActions(["getEXECUTIVEList", "ChangeState"]),
+    ...mapActions(["getEXECUTIVEList", "ChangeState", "getAdvertisements", "deleteAdv"]),
     // Helper Methods
     getStatusVariant(status) {
       const variants = {
@@ -875,26 +804,31 @@ export default {
         active: 'info',
         expired: 'secondary'
       };
-      return variants[status] || 'secondary';
+      return !status.deleter ? (variants[status.status] || 'secondary') : variants['EXECUTIVE_REJECTED'];
     },
 
     getAdStatusText(status) {
       const texts = {
         SUBMITTED: 'در انتظار',
         EXECUTIVE_APPROVED: 'تایید اجرایی',
+        CANDIDATE: 'حذف کاربر',
         EXECUTIVE_REJECTED: 'رد اجرایی',
+        SUPERVISION_APPROVED: 'تایید نظارت',
+        SUPERVISION_REJECTED: 'رد نظارت',
+        OBJECTION_SUBMITTED: 'اعتراض',
         active: 'فعال',
         expired: 'منقضی'
       };
-      return texts[status] || status;
+      return !status.deleter ? (texts[status.status] || status.status) : status.deleter=='SUPERVISOR' ? texts['SUPERVISION_REJECTED'] :status.deleter=='CANDIDATE' ? texts['CANDIDATE']: texts['EXECUTIVE_REJECTED'];
     },
 
     getAdTypeText(type) {
       const texts = {
-        banner: 'بنر',
-        announcement: 'اطلاعیه',
-        info: 'اطلاع رسانی',
-        promotional: 'تبلیغاتی'
+         banner: "بنر",
+        video: "ویدیو",
+        text: "متنی",
+        popup: "پاپ‌آپ",
+        announcement: "اطلاعیه"
       };
       return texts[type] || type;
     },
@@ -996,24 +930,10 @@ export default {
       this.showAdModal = true;
     },
 
-    approveAd(ad) {
-      this.selectedAd = ad;
-      this.approveSelectedAd();
-    },
-
-    rejectAd(ad) {
-      this.selectedAd = ad;
-      this.rejectSelectedAd();
-    },
-
-    editAd(ad) {
-      // In real app, navigate to edit page
-      this.$router.push(`/ads/edit/${ad.id}`);
-    },
-
-    approveSelectedAd() {
+    async approveSelectedAd() {
       if (this.selectedAd) {
         this.selectedAd.status = 'EXECUTIVE_APPROVED';
+        await this.deleteAdv({ code: this.selectedAd.id, reson: this.adReviewComment })
 
         if (!this.selectedAd.reviews) {
           this.selectedAd.reviews = [];
@@ -1047,10 +967,11 @@ export default {
       }
     },
 
-    rejectSelectedAd() {
+    async rejectSelectedAd() {
       if (this.selectedAd && this.adReviewComment) {
         this.selectedAd.status = 'EXECUTIVE_REJECTED';
 
+        await this.deleteAdv({ code: this.selectedAd.id, reson: this.adReviewComment })
         if (!this.selectedAd.reviews) {
           this.selectedAd.reviews = [];
         }
@@ -1271,6 +1192,15 @@ export default {
     }
   },
   watch: {
+    async activeTab(val) {
+      if (val == 1) {
+        try {
+          this.advertisements = await this.getAdvertisements()
+        } catch (error) {
+          console.error("Error loading ads:", error);
+        }
+      }
+    },
     ChangeStateInfo(val) {
       if (val) {
         // Add to activities
@@ -1417,7 +1347,7 @@ export default {
 .ad-thumbnail {
   width: 60px;
   height: 40px;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 4px;
   cursor: pointer;
   border: 1px solid #e0e0e0;

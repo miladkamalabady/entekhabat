@@ -96,8 +96,9 @@ $data['madrak'] = 1;
 /* =========================
    3. Check user existence
 ========================= */
-$nationalId = $db->escape('0534921972');
-//$data['nationalID']
+// $nationalId = $db->escape('0534921972');
+$nationalId = $data['nationalID'];
+
 
 $check = $db->query("SELECT id,roles FROM users WHERE national_id = '{$nationalId}'");
 $user  = $check->fetch_assoc();

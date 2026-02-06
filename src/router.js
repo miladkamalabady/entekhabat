@@ -92,7 +92,7 @@ const routes = [
         component: () => import(/* webpackChunkName: "User" */ "./views/home/votingPage"),
         meta: {
           loginRequired: true,
-          roles: [UserRole.VOTER,UserRole.CANDIDATE],
+          roles: [UserRole.VOTER,UserRole.CANDIDATE,UserRole.EXECUTIVE,UserRole.SUPERVISOR],
         }
       },
     ]

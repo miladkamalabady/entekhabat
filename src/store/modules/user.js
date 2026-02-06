@@ -11,10 +11,10 @@ export default {
     ChangeStateInfo: null,
     stateCandidInfo: null,
     EXECUTIVEListInfo: null,
-    advertisementsSaveInfo: null,
+    ConfigInfo:null,
     requestStatus: null,
     hasActiveRequest: false,
-    electionActive: false,
+    electionStatusAll: 'inactive',
     loginError: null,
     processing: false,
     sidebarVisible: true,
@@ -27,7 +27,7 @@ export default {
   },
   getters: {
     sidebarVisible: state => state.sidebarVisible,
-    electionActive: state => state.electionActive,
+    electionStatusAll: state => state.electionStatusAll,
     requestStatus: state => state.requestStatus,
     panelactiveparvande: state => state.panelactiveparvande,
     currentUser: state => state.currentUser,
@@ -37,7 +37,7 @@ export default {
     ChangeStateInfo: state => state.ChangeStateInfo,
     stateCandidInfo: state => state.stateCandidInfo,
     EXECUTIVEListInfo: state => state.EXECUTIVEListInfo,
-    advertisementsSaveInfo: state => state.advertisementsSaveInfo,
+    ConfigInfo: state => state.ConfigInfo,
     processing: state => state.processing,
     loginError: state => state.loginError,
     candidateFiles: state => state.candidateFiles,
@@ -57,6 +57,8 @@ export default {
       state.loginError = null
     }, setRequestStatus(state, payload) {
       state.requestStatus = payload
+    }, SetelectionStatusAll(state, payload) {
+      state.electionStatusAll = payload
     }, setHasActiveRequest(state, payload) {
       state.hasActiveRequest = payload
     },
@@ -105,8 +107,8 @@ export default {
     }, setEXECUTIVEListInfo(state, payload) {
       state.EXECUTIVEListInfo = payload
       state.loginError = null
-    },setadvertisementsSaveInfo(state, payload) {
-      state.advertisementsSaveInfo = payload
+    },setConfigInfo(state, payload) {
+      state.ConfigInfo = payload
       state.loginError = null
     },
     clearError(state) {
@@ -189,13 +191,54 @@ export default {
           }
         })
     },advertisementsSave({ commit }, payload) {
-      apiservice({ name: "advertisementsSave", params: payload }, { commit })
+      return apiservice({ name: "advertisementsSave", params: payload }, { commit })
         .then(response => {
-          if (response.status) {
-            commit('setadvertisementsSaveInfo', response.data)
+          if (response?.status) {
             commit('clearError')
           }
+          return response
         })
+    },async getAdvertisements({ commit }, payload) {
+      const response = await apiservice({ name: "getAdvertisements", params: payload }, { commit });
+      if (response?.status) {
+        commit('clearError');
+      }
+      return response.data;
+    },async increaseViewAdd({ commit }, payload) {
+      const response = await apiservice({ name: "increaseViewAdd", params: payload }, { commit });
+      if (response?.status) {
+        commit('clearError');
+      }
+      return response.data;
+    },async deleteAdv({ commit }, payload) {
+      const response = await apiservice({ name: "deleteAdv", params: payload }, { commit });
+      if (response?.status) {
+        commit('clearError');
+      }
+      return response.data;
+    },async getConfig({ commit }, payload) {
+      const response = await apiservice({ name: "getConfig" }, { commit });
+      if (response?.status) {
+         commit('setConfigInfo', response.data)
+        commit('clearError');
+      }
+      return response.data;
+    },async getCandidsList({ commit }, payload) {
+      const response = await apiservice({ name: "getCandidsList" }, { commit });
+      if (response?.status) {
+        commit('clearError');
+      }
+      return response.data;
+    },async insertVote({ commit }, payload) {
+      const response = await apiservice({ name: "insertVote", params: payload }, { commit });
+      if (response?.status) 
+        commit('clearError');
+      return response.data;
+    },async getVote({ commit }, payload) {
+      const response = await apiservice({ name: "getVote"}, { commit });
+      if (response?.status) 
+        commit('clearError');
+      return response.data;
     },
 
   }

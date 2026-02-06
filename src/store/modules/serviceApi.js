@@ -23,6 +23,27 @@ const global = {
     },advertisementsSave: {
         url: "/advertisementsSave",
         method: 'POST'
+    },getAdvertisements: {
+        url: "/getAdvertisements",
+        method: 'GET'
+    },increaseViewAdd: {
+        url: "/increaseViewAdd",
+        method: 'POST'
+    },deleteAdv: {
+        url: "/deleteAdv",
+        method: 'POST'
+    },getConfig: {
+        url: "/getConfig",
+        method: 'GET'
+    },getCandidsList: {
+        url: "/getCandidsList",
+        method: 'GET'
+    },insertVote: {
+        url: "/insertVote",
+        method: 'POST'
+    },getVote: {
+        url: "/getVote",
+        method: 'GET'
     }
     
 };

@@ -28,8 +28,8 @@ $list = [];
 
 while ($row = $res->fetch_assoc()) {
 
-    $row['create_datesh']=jdate('H:m Y-n-j ', strtotime($row['create_date']), '', '', 'en');
-    $row['datepic']=jdate('H:m Y-n-j', strtotime($row['datepic']), '', '', 'en');
+    $row['create_datesh']=jdate('H:i Y-n-j ', strtotime($row['create_date']), '', '', 'en');
+    $row['datepic']=jdate('H:i Y-n-j', strtotime($row['datepic']), '', '', 'en');
     $list[] = $row;
 }
 
