@@ -74,7 +74,7 @@
 
 <script>
 import { isMobile } from "../../utils";
-import { mapGetters, mapMutations } from "vuex";
+import { mapGetters, mapMutations, mapActions } from "vuex";
 import { v4 as uuidv4 } from "uuid"; // برای تولید کد رهگیری تصادفی
 
 export default {
@@ -93,7 +93,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(["sidebarVisible", "candidateFiles", "currentUser"]),
+    ...mapGetters(["confirmRegisterInfo", "candidateFiles", "currentUser"]),
     canConfirm() {
       return this.files.photo && this.files.degree && this.files.noAddiction;
     },
@@ -118,8 +118,23 @@ export default {
       });
     }
   },
+  watch: {
+    confirmRegisterInfo(val) {
+      if (val) {
+        this.showSuccess = true;
+        this.setRequestStatus("SUBMITTED")
+
+        const cu = {
+          ...this.currentUser,
+          roles: ['CANDIDATE']
+        }
+        this.setUser(cu)
+      }
+    }
+  },
   methods: {
-    ...mapMutations(["setsidebarVisible", "setRequestStatus", "setUser"]),
+    ...mapMutations(["setRequestStatus", "setUser"]),
+    ...mapActions(["confirmRegister"]),
     goBack() {
       this.setRequestStatus("CONDITIONS_ACCEPTED")
       this.$router.push("/candidate/UploadDocuments");
@@ -132,16 +147,8 @@ export default {
     confirm() {
       // تولید کد رهگیری تصادفی (می‌توانید از API واقعی هم استفاده کنید)
       this.trackingCode = uuidv4().split("-")[0].toUpperCase();
-      this.showSuccess = true;
-      this.setRequestStatus("SUBMITTED")
+      this.confirmRegister({ tracking_code: this.trackingCode })
 
-      const cu = {
-        ...this.currentUser,
-        roles: ['CANDIDATE']
-      }
-      this.setUser(cu)
-      // ارسال نهایی به API را اینجا اضافه کنید
-      // apiservice(...).then(...);
     },
     closeModal() {
       this.showSuccess = false;

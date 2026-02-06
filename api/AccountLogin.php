@@ -127,7 +127,6 @@ if ($user) {
             region_id = {$data['regionId']},
             is_foreigner = " . ($data['isForeigner'] ? 1 : 0) . ",
             ip_address = '{$data['ip']}',
-            roles  = '{$data['roles']}',
             updated_at = NOW()
         WHERE id = {$userId}
     ";

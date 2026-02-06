@@ -31,7 +31,9 @@
             <b-button variant="outline-secondary" @click="goBack">بازگشت</b-button>
             <div>
               <b-button variant="outline-danger" class="mr-2" @click="cancel">انصراف</b-button>
-              <b-button variant="primary" :disabled="!canSubmit" @click="submit">ثبت نهایی</b-button>
+              <b-button variant="primary" :disabled="!canSubmit || submitting" @click="submit">
+                {{ submitting ? "در حال ارسال..." : "ثبت و ادامه" }}
+              </b-button>
             </div>
           </div>
         </b-card>
@@ -42,16 +44,16 @@
 
 <script>
 import { isMobile } from "../../utils";
-import { mapGetters, mapMutations,mapActions } from "vuex";
+import { mapGetters, mapMutations, mapActions } from "vuex";
 import DocumentUpload from "../../components/Common/DocumentUpload";
 
 export default {
   name: "UploadDocuments",
   components: { DocumentUpload },
   computed: {
-    ...mapGetters(["UploadUserDocumentsInfo"]),
+    ...mapGetters(["UploadUserDocumentsInfo", "currentUser"]),
     canSubmit() {
-      return Object.values(this.files).every(f => f !== null);
+      return Object.values(this.files).every(f => f !== null && f.raw);
     },
     progress() {
       return this.canSubmit ? 90 : 80;
@@ -60,6 +62,7 @@ export default {
   data() {
     return {
       isMobile,
+      submitting: false,
       files: {
         photo: null,
         degree: null,
@@ -69,10 +72,10 @@ export default {
   },
   methods: {
     ...mapMutations(["setCandidateFiles", "setRequestStatus"]),
-     ...mapActions(["UploadUserDocuments"]),
+    ...mapActions(["UploadUserDocuments"]),
 
     goBack() {
-      this.setRequestStatus("CANDIDATE")
+      this.setRequestStatus("CANDIDATE");
       this.$router.push("/candidate/AcceptConditions");
     },
 
@@ -82,28 +85,61 @@ export default {
       }
     },
 
-    submit() {
-      Object.keys(this.files).forEach(key => {
-        const f = this.files[key];
-        if (f && !f.preview && f.raw && f.raw.type.startsWith("image/")) {
-          const reader = new FileReader();
-          reader.onload = e => {
-            f.preview = e.target.result;
-            this.$set(this.files, key, f);
-          };
-          reader.readAsDataURL(f.raw);
-        }
-      });
+    // submit() {
+    //   Object.keys(this.files).forEach(key => {
+    //     const f = this.files[key];
+    //     if (f && !f.preview && f.raw && f.raw.type.startsWith("image/")) {
+    //       const reader = new FileReader();
+    //       reader.onload = e => {
+    //         f.preview = e.target.result;
+    //         this.$set(this.files, key, f);
+    //       };
+    //       reader.readAsDataURL(f.raw);
+    //     }
+    //   });
 
-      this.setCandidateFiles(this.files);
-      this.setRequestStatus("DOCUMENTS_UPLOADED")
-      this.$router.push("/candidate/Confirmation");
+    //   this.setCandidateFiles(this.files);
+    //   this.setRequestStatus("DOCUMENTS_UPLOADED")
+    //   this.$router.push("/candidate/Confirmation");
+    // }
+    async submit() {
+      if (!this.canSubmit || this.submitting) return;
+
+      this.submitting = true;
+      try {
+              const formData = new FormData();
+      formData.append("user_photo", this.files.photo.raw);
+      formData.append("education_doc", this.files.degree.raw);
+      formData.append("employment_cert", this.files.noAddiction.raw);
+        this.UploadUserDocuments(formData);
+
+
+      } catch (error) {
+        const message = error?.message || "ارسال مدارک با خطا مواجه شد.";
+        alert(message);
+      } finally {
+        this.submitting = false;
+      }
+    }
+  },
+  watch: {
+    UploadUserDocumentsInfo(val) {
+      if (val) {
+        this.setCandidateFiles({ ...this.files, noAddiction: this.files.noAddiction });
+        this.setRequestStatus("DOCUMENTS_UPLOADED");
+        this.$router.push("/candidate/Confirmation");
+      }
     }
   },
   created() {
     // بارگذاری فایل‌ها از Vuex در صورت برگشت
     if (this.$store.state.candidateFiles) {
-      this.files = { ...this.$store.state.candidateFiles };
+      // this.files = { ...this.$store.state.candidateFiles };
+      this.files = {
+        photo: this.$store.state.candidateFiles.photo || null,
+        degree: this.$store.state.candidateFiles.degree || null,
+        noAddiction: this.$store.state.candidateFiles.noAddiction || null
+      };
     }
   }
 };

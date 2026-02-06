@@ -6,11 +6,6 @@ header('Content-Type: application/json; charset=utf-8');
 $db->connect();
 
 /* =========================
-   2. Read identity from JWT
-========================= */
-$nationalId =  $jwtData['national_id'];
-
-/* =========================
    3. Query status
 ========================= */
 $sql = "
@@ -18,7 +13,6 @@ $sql = "
         ozvsandogh,
         sabegheO,
         madrak,
-        region,
         create_date
     FROM userstatus
     WHERE nationalId = '{$nationalId}'

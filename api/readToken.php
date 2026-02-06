@@ -61,3 +61,15 @@ if (!$jwtData) {
     echo json_encode(['status' => false, 'message' => 'Invalid or expired token']);
     exit;
 }
+/* =========================
+   2. Read identity from JWT
+========================= */
+$nationalId =  $jwtData['national_id'];
+if ($nationalId === '') {
+    http_response_code(400);
+    echo json_encode([
+        'status' => false,
+        'message' => 'کدملی در توکن یافت نشد.'
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}

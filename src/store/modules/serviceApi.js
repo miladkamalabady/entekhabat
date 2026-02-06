@@ -8,6 +8,9 @@ const global = {
     },UploadUserDocuments: {
         url: "/UploadUserDocuments",
         method: 'POST'
+    },confirmRegister: {
+        url: "/FinalSubmit",
+        method: 'POST'
     }
     
 };

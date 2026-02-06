@@ -7,6 +7,7 @@ export default {
     currentUser: isAuthGuardActive ? getCurrentUser() : null,
     userstatusInfo: null,
     UploadUserDocumentsInfo:null,
+    confirmRegisterInfo:null,
     requestStatus: null,
     hasActiveRequest: false,
     electionActive: true,
@@ -28,6 +29,7 @@ export default {
     currentUser: state => state.currentUser,
     userstatusInfo: state => state.userstatusInfo,
     UploadUserDocumentsInfo: state => state.UploadUserDocumentsInfo,
+    confirmRegisterInfo: state => state.confirmRegisterInfo,
     processing: state => state.processing,
     loginError: state => state.loginError,
     candidateFiles: state => state.candidateFiles,
@@ -84,6 +86,9 @@ export default {
     },setUploadUserDocumentsInfo(state, payload) {
       state.UploadUserDocumentsInfo = payload
       state.loginError = null
+    },setconfirmRegisterInfo(state, payload) {
+      state.confirmRegisterInfo = payload
+      state.loginError = null
     },
     clearError(state) {
       state.loginError = null
@@ -135,6 +140,20 @@ export default {
           .then(response => {
             if (response.status) {
               commit('setUploadUserDocumentsInfo', response.data)
+              commit('clearError')
+            }
+          })
+      } catch (e) {
+        commit('setError', 'خطا در ورود. لطفاً مجدد تلاش نمایید')
+      } finally {
+        commit('setProcessing', false)
+      }
+    },confirmRegister({ commit }, payload) {
+      try {
+        apiservice({ name: "confirmRegister", params: payload }, { commit })
+          .then(response => {
+            if (response.status) {
+              commit('setconfirmRegisterInfo', response.data)
               commit('clearError')
             }
           })

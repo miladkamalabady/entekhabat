@@ -15,7 +15,6 @@ $db->connect();
 /* =========================
    2. Read identity from JWT
 ========================= */
-$nationalId =  $jwtData['national_id'];
 
 if ($nationalId === '') {
     $userInfo = $db->query("SELECT national_id FROM users WHERE national_id = {$nationalId} LIMIT 1");
@@ -44,7 +43,7 @@ $requiredFiles = [
         'allowed' => ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf']
     ],
     'employment_cert' => [
-        'label' => 'گواهی اشتغال',
+        'label' => 'گواهی عدم اعتیاد',
         'allowed' => ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf']
     ]
 ];
@@ -90,7 +89,7 @@ foreach ($requiredFiles as $field => $meta) {
         http_response_code(400);
         echo json_encode([
             'status' => false,
-            'message' => $meta['label'] . ' نباید بیشتر از 5 مگابایت باشد.'
+            'message' => $meta['label'] . ' نباید بیشتر از 1 مگابایت باشد.'
         ], JSON_UNESCAPED_UNICODE);
         exit;
     }
@@ -113,7 +112,7 @@ foreach ($requiredFiles as $field => $meta) {
         $extension = $mimeType === 'application/pdf' ? 'pdf' : 'jpg';
     }
 
-    $fileName = $field . '_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.' . $extension;
+    $fileName = $field . '_' . date('Ymd_Hi') . '_' . bin2hex(random_bytes(4)) . '.' . $extension;
     $serverPath = $userUploadDir . '/' . $fileName;
     $relativePath = 'uploads/user_documents/' . $targetUserKey . '/' . $fileName;
 
@@ -128,7 +127,6 @@ foreach ($requiredFiles as $field => $meta) {
 
     $storedPaths[$field] = $relativePath;
 }
-
 
 $nationalIdSql = $db->escape($nationalId);
 $userPhotoSql = $db->escape($storedPaths['user_photo']);
