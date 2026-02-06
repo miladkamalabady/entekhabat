@@ -2,13 +2,13 @@
 require_once 'database.php';
 require_once 'readToken.php';
 header('Content-Type: application/json; charset=utf-8');
-
+$input = json_decode(file_get_contents('php://input'), true);
 $db->connect();
 
 /* =========================
    3. Query status
 ========================= */
-$trackingCode = isset($_POST['tracking_code']) ? trim($_POST['tracking_code']) : '';
+$trackingCode = isset($input['tracking_code']) ? trim($input['tracking_code']) : '';
 if ($trackingCode === '') {
     http_response_code(400);
     echo json_encode([
@@ -33,11 +33,13 @@ if ($res->num_rows) {
 $trackingCodeSql = $db->escape($trackingCode);
 
 
-$db->query("INSERT INTO final_submissions (nationalId, tracking_code)
-VALUES ('{$nationalId}', '{$trackingCodeSql}')
+$db->query("INSERT INTO final_submissions (nationalId, tracking_code,requestStatus)
+VALUES ('{$nationalId}', '{$trackingCodeSql}','SUBMITTED')
 ON DUPLICATE KEY UPDATE
 tracking_code = VALUES(tracking_code),
 create_date = NOW()");
+
+$db->query("update users set roles='CANDIDATE' where national_id='{$nationalId}'");
 
 echo json_encode([
     'status' => true,

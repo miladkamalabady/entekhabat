@@ -4,11 +4,13 @@ require_once 'jdf.php';
 require_once 'config.php';
 
 header('Content-Type: application/json; charset=utf-8');
-function base64UrlEncode($data) {
+function base64UrlEncode($data)
+{
     return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
 }
 
-function generateJWT($payload) {
+function generateJWT($payload)
+{
 
     $header = [
         'alg' => 'HS256',
@@ -86,10 +88,10 @@ if (!$result || $result['resultCode'] != 200) {
 $data = $result['data'];
 
 ////////////
-$data['roles']="VOTER";
-$data['ozvsandogh']=1;
-$data['sabegheO']=1;
-$data['madrak']=1;
+$data['roles'] = "VOTER";
+$data['ozvsandogh'] = 1;
+$data['sabegheO'] = 1;
+$data['madrak'] = 1;
 
 /* =========================
    3. Check user existence
@@ -106,7 +108,7 @@ if ($user) {
 
     // UPDATE
     $userId = $user['id'];
-    $data['roles']=$user['roles'];
+    $data['roles'] = $user['roles'];
     $sql = "
         UPDATE users SET
             first_name = '{$db->escape($data['firstName'])}',
@@ -132,7 +134,6 @@ if ($user) {
     ";
     $db->query($sql);
     $action = 'updated';
-
 } else {
 
     // INSERT
@@ -167,7 +168,7 @@ if ($user) {
         )
     ";
 
-    $res=$db->query($sql);
+    $res = $db->query($sql);
     $userId = $db->insert_id($res);
     $action = 'inserted';
 }
@@ -198,9 +199,9 @@ if (!empty($data['homeAddress'])) {
 /* =========================
    6. userstatus 
 ========================= */
-$data['ozvsandogh']=1;
-$data['sabegheO']=1;
-$data['madrak']=1;
+$data['ozvsandogh'] = 1;
+$data['sabegheO'] = 1;
+$data['madrak'] = 1;
 if (!empty($data['ozvsandogh'])) {
 
     $chkAddr = $db->query("SELECT user_id FROM userstatus WHERE user_id = {$userId}");
@@ -214,17 +215,14 @@ if (!empty($data['ozvsandogh'])) {
     } else {
         $db->query("
             INSERT INTO userstatus (user_Id,nationalId ,ozvsandogh, sabegheO, madrak)
-            VALUES ({$userId },'{$nationalId}',{$data['ozvsandogh']}, '{$data['sabegheO']}', '{$data['madrak']}')
+            VALUES ({$userId},'{$nationalId}',{$data['ozvsandogh']}, '{$data['sabegheO']}', '{$data['madrak']}')
         ");
     }
 }
 /////jwt////////
 $jwtPayload = [
     'national_id'   => $data['nationalID'],
-    'personnel_code'=> $data['personnelCode'],
-    'full_name'     => trim($data['firstName'] . ' ' . $data['lastName']),
-    'roles' => [$data['roles']],
-    'user_id'       => $userId
+    'roles'  => $data['roles'],
 ];
 
 $token = generateJWT($jwtPayload);
@@ -242,7 +240,7 @@ echo json_encode([
         'national_id' => $data['nationalID'],
         'personnel_code' => $data['personnelCode'],
         'orgPositionDesc' => $data['orgPositionDesc'],
-        'full_name' => trim($data['firstName'].' '.$data['lastName']),
+        'full_name' => trim($data['firstName'] . ' ' . $data['lastName']),
         'roles' => [$data['roles']],
         'regionId' => $data['regionId']
     ],
