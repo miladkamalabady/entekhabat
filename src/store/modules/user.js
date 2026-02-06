@@ -11,6 +11,7 @@ export default {
     ChangeStateInfo: null,
     stateCandidInfo: null,
     EXECUTIVEListInfo: null,
+    advertisementsSaveInfo: null,
     requestStatus: null,
     hasActiveRequest: false,
     electionActive: false,
@@ -36,12 +37,11 @@ export default {
     ChangeStateInfo: state => state.ChangeStateInfo,
     stateCandidInfo: state => state.stateCandidInfo,
     EXECUTIVEListInfo: state => state.EXECUTIVEListInfo,
+    advertisementsSaveInfo: state => state.advertisementsSaveInfo,
     processing: state => state.processing,
     loginError: state => state.loginError,
     candidateFiles: state => state.candidateFiles,
     LoginSSOInfo: state => state.LoginSSOInfo,
-
-
   },
   mutations: {
     setCandidateFiles(state, payload) {
@@ -96,7 +96,7 @@ export default {
       state.confirmRegisterInfo = payload
       state.loginError = null
     }, setChangeStateInfo(state, payload) {
-      
+
       state.ChangeStateInfo = payload
       state.loginError = null
     }, setstateCandidInfo(state, payload) {
@@ -104,6 +104,9 @@ export default {
       state.loginError = null
     }, setEXECUTIVEListInfo(state, payload) {
       state.EXECUTIVEListInfo = payload
+      state.loginError = null
+    },setadvertisementsSaveInfo(state, payload) {
+      state.advertisementsSaveInfo = payload
       state.loginError = null
     },
     clearError(state) {
@@ -123,7 +126,6 @@ export default {
             .then(response => {
               if (response.status) {
                 commit('setUser', { ...response.user, token: response.token })
-                commit('setRequestStatus', response.requestStatus)
                 commit('setHasActiveRequest', response.hasActiveRequest)
                 commit('clearError')
               }
@@ -142,35 +144,32 @@ export default {
           if (response.status) {
             commit('setuserstatusInfo', response.data)
             commit('clearError')
-          } 
+          }
         })
 
     }, UploadUserDocuments({ commit }, payload) {
-
       apiservice({ name: "UploadUserDocuments", params: payload }, { commit })
         .then(response => {
           if (response.status) {
             commit('setUploadUserDocumentsInfo', response.data)
             commit('clearError')
-          } 
+          }
         })
-
     }, confirmRegister({ commit }, payload) {
       apiservice({ name: "confirmRegister", params: payload }, { commit })
         .then(response => {
           if (response.status) {
             commit('setconfirmRegisterInfo', response.data)
             commit('clearError')
-          } 
+          }
         })
-
-    },ChangeState({ commit }, payload) {
+    }, ChangeState({ commit }, payload) {
       apiservice({ name: "ChangeState", params: payload }, { commit })
         .then(response => {
           if (response.status) {
             commit('setChangeStateInfo', response.data)
             commit('clearError')
-          } 
+          }
         })
     }, getstateCandid({ commit }, payload) {
       apiservice({ name: "getstateCandid", params: payload }, { commit })
@@ -178,17 +177,24 @@ export default {
           if (response.status) {
             commit('setstateCandidInfo', response.data)
             commit('clearError')
-          } 
+          }
         })
 
     }, getEXECUTIVEList({ commit }, payload) {
       apiservice({ name: "getEXECUTIVEList", params: payload }, { commit })
         .then(response => {
-
           if (response.status) {
             commit('setEXECUTIVEListInfo', response.data)
             commit('clearError')
-          } 
+          }
+        })
+    },advertisementsSave({ commit }, payload) {
+      apiservice({ name: "advertisementsSave", params: payload }, { commit })
+        .then(response => {
+          if (response.status) {
+            commit('setadvertisementsSaveInfo', response.data)
+            commit('clearError')
+          }
         })
     },
 

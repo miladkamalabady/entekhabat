@@ -13,7 +13,7 @@ $requestStatus = isset($input['requestStatus']) ? trim($input['requestStatus']) 
 $reson = isset($input['reason']) ? trim($input['reason']) : '';
 
 $roles =  $jwtData['roles'];
-if ($roles !== 'EXECUTIVE') {
+if ($roles !== 'EXECUTIVE' && $roles !== 'SUPERVISOR') {
     http_response_code(403);
     echo json_encode([
         'status' => false,
@@ -31,9 +31,10 @@ if ($national_Id === '' || $requestStatus==='') {
 }
 
 $sql = "update final_submissions set requestStatus='{$requestStatus}',reson='{$reson}'  WHERE nationalId = '{$national_Id}'";
-
 $res = $db->query($sql);
 
+$sql = "INSERT INTO `logs`(`nationalId`, `action`, `description`) VALUES ('{$nationalId}','تغییر وضعیت','تغییر کدملی {$national_Id} به {$requestStatus}')";
+$res = $db->query($sql);
 
 echo json_encode([
     'status' => true,

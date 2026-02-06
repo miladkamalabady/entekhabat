@@ -210,7 +210,7 @@
 
 <script>
 import { isMobile } from "../../utils";
-import { mapGetters, mapMutations } from "vuex";
+import { mapGetters, mapMutations,mapActions } from "vuex";
 import Sidebar from "../../navs/Sidebar.vue";
 
 export default {
@@ -280,7 +280,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(["sidebarVisible"])
+    ...mapGetters(["sidebarVisible","advertisementsSaveInfo"])
   },
   created() {
     this.loadAdvertisements();
@@ -292,7 +292,7 @@ export default {
   },
   methods: {
     ...mapMutations(["setsidebarVisible"]),
-
+    ...mapActions(["advertisementsSave"]),
     // Load Advertisements
     async loadAdvertisements() {
       this.loading = true;
@@ -485,7 +485,7 @@ export default {
             targetLink: this.form.targetLink,
             views: 0
           };
-
+          this.advertisementsSave(newAd)
           this.advertisements.unshift(newAd);
 
           this.$bvToast.toast("تبلیغ جدید با موفقیت ایجاد شد", {

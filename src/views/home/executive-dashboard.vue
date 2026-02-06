@@ -42,11 +42,8 @@
                 <b-row>
                   <b-col md="4">
                     <b-form-group label="فیلتر بر اساس وضعیت">
-                      <b-form-select
-                        v-model="docFilters.status"
-                        :options="docStatusOptions"
-                        @change="filterDocuments"
-                      ></b-form-select>
+                      <b-form-select v-model="docFilters.status" :options="docStatusOptions"
+                        @change="filterDocuments"></b-form-select>
                     </b-form-group>
                   </b-col>
                   <b-col md="4">
@@ -57,21 +54,15 @@
                             <b-icon icon="search"></b-icon>
                           </b-input-group-text>
                         </template>
-                        <b-form-input
-                          v-model="docFilters.search"
-                          placeholder="نام کاندیدا را وارد کنید..."
-                          @input="filterDocuments"
-                        ></b-form-input>
+                        <b-form-input v-model="docFilters.search" placeholder="نام کاندیدا را وارد کنید..."
+                          @input="filterDocuments"></b-form-input>
                       </b-input-group>
                     </b-form-group>
                   </b-col>
                   <b-col md="4">
                     <b-form-group label="مرتب‌سازی">
-                      <b-form-select
-                        v-model="docFilters.sortBy"
-                        :options="docSortOptions"
-                        @change="filterDocuments"
-                      ></b-form-select>
+                      <b-form-select v-model="docFilters.sortBy" :options="docSortOptions"
+                        @change="filterDocuments"></b-form-select>
                     </b-form-group>
                   </b-col>
                 </b-row>
@@ -80,22 +71,13 @@
               <!-- Documents List -->
               <div v-if="filteredDocuments?.length > 0">
                 <b-row>
-                  <b-col
-                    v-for="candidate in filteredDocuments"
-                    :key="candidate.id"
-                    cols="12"
-                    lg="6"
-                    class="mb-4"
-                  >
+                  <b-col v-for="candidate in filteredDocuments" :key="candidate.id" cols="12" lg="6" class="mb-4">
                     <b-card class="candidate-card">
                       <!-- Candidate Header -->
                       <div class="candidate-header mb-3">
                         <div class="d-flex align-items-center">
-                          <img
-                            :src="`${apiUrlrtb}/${candidate.user_photo}` || '/default-avatar.png'"
-                            class="candidate-avatar mr-3"
-                            alt="عکس کاندیدا"
-                          />
+                          <img :src="`${apiUrlrtb}/${candidate.user_photo}` || '/default-avatar.png'"
+                            class="candidate-avatar mr-3" alt="عکس کاندیدا" />
                           <div>
                             <h5 class="mb-1">{{ candidate.first_name }} {{ candidate.last_name }}</h5>
                             <p class="text-muted mb-1">{{ candidate.org_position_desc }}</p>
@@ -115,29 +97,20 @@
                       <!-- Documents List -->
                       <div class="documents-list mb-3">
                         <h6 class="mb-3">مدارک ارسال شده:</h6>
-                        <div
-                          class="document-item"
-                        >
+                        <div class="document-item">
                           <div class="d-flex justify-content-between align-items-center">
                             <div class="document-info">
                               <b-icon :icon="getDocumentIcon('photo')" class="ml-2"></b-icon>
                               <span>تصویر کاربر</span>
                             </div>
                             <div class="document-actions">
-                              <b-button
-                                size="sm"
-                                variant="outline-primary"
-                                @click="viewDocument(candidate.user_photo,'تصویر کاربر',candidate.datepic)"
-                                class="mr-2"
-                              >
+                              <b-button size="sm" variant="outline-primary"
+                                @click="viewDocument(candidate.user_photo, 'تصویر کاربر', candidate.datepic)"
+                                class="mr-2">
                                 <b-icon icon="eye"></b-icon>
                               </b-button>
-                              <b-button
-                                size="sm"
-                                variant="outline-success"
-                                :href="`${apiUrlrtb}/${candidate.user_photo}`"
-                                target="_blank"
-                              >
+                              <b-button size="sm" variant="outline-success"
+                                :href="`${apiUrlrtb}/${candidate.user_photo}`" target="_blank">
                                 <b-icon icon="download"></b-icon>
                               </b-button>
                             </div>
@@ -149,20 +122,13 @@
                               <span>تصویر مدرک</span>
                             </div>
                             <div class="document-actions">
-                              <b-button
-                                size="sm"
-                                variant="outline-primary"
-                                @click="viewDocument(candidate.education_doc,'تصویر مدرک',candidate.datepic)"
-                                class="mr-2"
-                              >
+                              <b-button size="sm" variant="outline-primary"
+                                @click="viewDocument(candidate.education_doc, 'تصویر مدرک', candidate.datepic)"
+                                class="mr-2">
                                 <b-icon icon="eye"></b-icon>
                               </b-button>
-                              <b-button
-                                size="sm"
-                                variant="outline-success"
-                                :href="`${apiUrlrtb}/${candidate.education_doc}`"
-                                target="_blank"
-                              >
+                              <b-button size="sm" variant="outline-success"
+                                :href="`${apiUrlrtb}/${candidate.education_doc}`" target="_blank">
                                 <b-icon icon="download"></b-icon>
                               </b-button>
                             </div>
@@ -174,20 +140,13 @@
                               <span>گواهی عدم اعتیاد</span>
                             </div>
                             <div class="document-actions">
-                              <b-button
-                                size="sm"
-                                variant="outline-primary"
-                                @click="viewDocument(candidate.employment_cert,'گواهی عدم اعتیاد',candidate.datepic)"
-                                class="mr-2"
-                              >
+                              <b-button size="sm" variant="outline-primary"
+                                @click="viewDocument(candidate.employment_cert, 'گواهی عدم اعتیاد', candidate.datepic)"
+                                class="mr-2">
                                 <b-icon icon="eye"></b-icon>
                               </b-button>
-                              <b-button
-                                size="sm"
-                                variant="outline-success"
-                                :href="`${apiUrlrtb}/${candidate.employment_cert}`"
-                                target="_blank"
-                              >
+                              <b-button size="sm" variant="outline-success"
+                                :href="`${apiUrlrtb}/${candidate.employment_cert}`" target="_blank">
                                 <b-icon icon="download"></b-icon>
                               </b-button>
                             </div>
@@ -198,17 +157,12 @@
 
                       <!-- Actions -->
                       <div class="candidate-actions">
-                        <b-button
-                          v-if="candidate.requestStatus === 'SUBMITTED'"
-                          variant="success"
-                          size="sm"
-                          class="mr-2"
-                          @click="approveCandidate(candidate)"
-                        >
+                        <b-button v-if="candidate.requestStatus === 'SUBMITTED'" variant="success" size="sm"
+                          class="mr-2" @click="approveCandidate(candidate)">
                           <b-icon icon="check-circle" class="ml-1"></b-icon>
                           تایید
                         </b-button>
-                        <b-button
+                        <!-- <b-button
                           v-if="candidate.requestStatus === 'SUBMITTED'"
                           variant="danger"
                           size="sm"
@@ -217,12 +171,8 @@
                         >
                           <b-icon icon="x-circle" class="ml-1"></b-icon>
                           رد صلاحیت
-                        </b-button>
-                        <b-button
-                          variant="info"
-                          size="sm"
-                          @click="viewCandidateDetails(candidate)"
-                        >
+                        </b-button> -->
+                        <b-button variant="info" size="sm" @click="viewCandidateDetails(candidate)">
                           <b-icon icon="info-circle" class="ml-1"></b-icon>
                           جزئیات کامل
                         </b-button>
@@ -247,20 +197,14 @@
                 <b-row>
                   <b-col md="4">
                     <b-form-group label="فیلتر بر اساس وضعیت">
-                      <b-form-select
-                        v-model="adFilters.status"
-                        :options="adStatusOptions"
-                        @change="filterAds"
-                      ></b-form-select>
+                      <b-form-select v-model="adFilters.status" :options="adStatusOptions"
+                        @change="filterAds"></b-form-select>
                     </b-form-group>
                   </b-col>
                   <b-col md="4">
                     <b-form-group label="نوع تبلیغ">
-                      <b-form-select
-                        v-model="adFilters.type"
-                        :options="adTypeOptions"
-                        @change="filterAds"
-                      ></b-form-select>
+                      <b-form-select v-model="adFilters.type" :options="adTypeOptions"
+                        @change="filterAds"></b-form-select>
                     </b-form-group>
                   </b-col>
                   <b-col md="4">
@@ -271,11 +215,8 @@
                             <b-icon icon="search"></b-icon>
                           </b-input-group-text>
                         </template>
-                        <b-form-input
-                          v-model="adFilters.search"
-                          placeholder="جستجو در تبلیغات..."
-                          @input="filterAds"
-                        ></b-form-input>
+                        <b-form-input v-model="adFilters.search" placeholder="جستجو در تبلیغات..."
+                          @input="filterAds"></b-form-input>
                       </b-input-group>
                     </b-form-group>
                   </b-col>
@@ -284,23 +225,12 @@
 
               <!-- Ads List -->
               <div class="table-responsive">
-                <b-table
-                  :items="filteredAds"
-                  :fields="adFields"
-                  striped
-                  hover
-                  class="text-right"
-                >
+                <b-table :items="filteredAds" :fields="adFields" striped hover class="text-right">
                   <!-- Preview Column -->
                   <template #cell(preview)="data">
                     <div class="ad-preview">
-                      <img
-                        v-if="data.item.image"
-                        :src="data.item.image"
-                        class="ad-thumbnail"
-                        :alt="data.item.title"
-                        @click="viewAd(data.item)"
-                      />
+                      <img v-if="data.item.image" :src="data.item.image" class="ad-thumbnail" :alt="data.item.title"
+                        @click="viewAd(data.item)" />
                       <div v-else class="ad-thumbnail placeholder">
                         <b-icon icon="image"></b-icon>
                       </div>
@@ -317,34 +247,18 @@
                   <!-- Actions Column -->
                   <template #cell(actions)="data">
                     <b-button-group size="sm">
-                      <b-button
-                        variant="outline-info"
-                        @click="viewAd(data.item)"
-                        title="مشاهده"
-                      >
+                      <b-button variant="outline-info" @click="viewAd(data.item)" title="مشاهده">
                         <b-icon icon="eye"></b-icon>
                       </b-button>
-                      <b-button
-                        v-if="data.item.status === 'SUBMITTED'"
-                        variant="outline-success"
-                        @click="approveAd(data.item)"
-                        title="تایید"
-                      >
+                      <b-button v-if="data.item.status === 'SUBMITTED'" variant="outline-success"
+                        @click="approveAd(data.item)" title="تایید">
                         <b-icon icon="check"></b-icon>
                       </b-button>
-                      <b-button
-                        v-if="data.item.status === 'SUBMITTED'"
-                        variant="outline-danger"
-                        @click="rejectAd(data.item)"
-                        title="رد"
-                      >
+                      <b-button v-if="data.item.status === 'SUBMITTED'" variant="outline-danger"
+                        @click="rejectAd(data.item)" title="رد">
                         <b-icon icon="x"></b-icon>
                       </b-button>
-                      <b-button
-                        variant="outline-warning"
-                        @click="editAd(data.item)"
-                        title="ویرایش"
-                      >
+                      <b-button variant="outline-warning" @click="editAd(data.item)" title="ویرایش">
                         <b-icon icon="pencil"></b-icon>
                       </b-button>
                     </b-button-group>
@@ -420,11 +334,7 @@
               <b-card>
                 <h5 class="mb-3">فعالیت‌های اخیر</h5>
                 <div class="activities-list">
-                  <div
-                    v-for="activity in recentActivities"
-                    :key="activity.id"
-                    class="activity-item"
-                  >
+                  <div v-for="activity in recentActivities" :key="activity.id" class="activity-item">
                     <div class="activity-icon">
                       <b-icon :icon="getActivityIcon(activity.type)"></b-icon>
                     </div>
@@ -445,14 +355,8 @@
     </b-container>
 
     <!-- Document Viewer Modal -->
-    <b-modal
-      v-model="showDocumentModal"
-      :title="`مشاهده مدرک - ${selectedDocument?.name}`"
-      size="xl"
-      hide-footer
-      centered
-      scrollable
-    >
+    <b-modal v-model="showDocumentModal" :title="`مشاهده مدرک - ${selectedDocument?.name}`" size="xl" hide-footer
+      centered scrollable>
       <div v-if="selectedDocument" class="document-viewer">
         <!-- Image Viewer -->
         <div v-if="isImageFile(selectedDocument.url)" class="image-viewer text-center">
@@ -461,11 +365,7 @@
 
         <!-- PDF Viewer -->
         <div v-else-if="isPdfFile(selectedDocument.url)" class="pdf-viewer">
-          <iframe
-            :src="selectedDocument.url"
-            class="pdf-frame"
-            :title="selectedDocument.name"
-          ></iframe>
+          <iframe :src="selectedDocument.url" class="pdf-frame" :title="selectedDocument.name"></iframe>
         </div>
 
         <!-- Other Files -->
@@ -474,12 +374,7 @@
             <b-icon icon="file-earmark" font-scale="4" variant="secondary"></b-icon>
             <h5 class="mt-3">{{ selectedDocument.name }}</h5>
             <p class="text-muted">برای مشاهده این فایل، آن را دانلود کنید</p>
-            <b-button
-              variant="primary"
-              :href="selectedDocument.url"
-              target="_blank"
-              download
-            >
+            <b-button variant="primary" :href="selectedDocument.url" target="_blank" download>
               <b-icon icon="download" class="ml-1"></b-icon>
               دانلود فایل
             </b-button>
@@ -508,24 +403,16 @@
     </b-modal>
 
     <!-- Candidate Details Modal -->
-    <b-modal
-      v-model="showCandidateModal"
-      :title="`جزئیات کاندیدا - ${selectedCandidate?.first_name} ${selectedCandidate?.last_name}`"
-      size="lg"
-      hide-footer
-      centered
-      scrollable
-    >
+    <b-modal v-model="showCandidateModal"
+      :title="`جزئیات کاندیدا - ${selectedCandidate?.first_name} ${selectedCandidate?.last_name}`" size="lg" hide-footer
+      centered scrollable>
       <div v-if="selectedCandidate" class="candidate-details">
         <!-- Basic Info -->
         <div class="basic-info mb-4">
           <b-row class="align-items-center">
             <b-col md="4" class="text-center">
-              <img
-                :src="`${apiUrlrtb}/${selectedCandidate.user_photo}` || '/default-avatar.png'"
-                class="candidate-photo"
-                alt="عکس کاندیدا"
-              />
+              <img :src="`${apiUrlrtb}/${selectedCandidate.user_photo}` || '/default-avatar.png'"
+                class="candidate-photo" alt="عکس کاندیدا" />
             </b-col>
             <b-col md="8">
               <h4>{{ selectedCandidate.first_name }} {{ selectedCandidate.last_name }}</h4>
@@ -541,7 +428,7 @@
                 </div>
                 <div class="meta-item">
                   <b-icon icon="briefcase" class="ml-1"></b-icon>
-                 کدپرسنلی {{ selectedCandidate.personnel_code }} 
+                  کدپرسنلی {{ selectedCandidate.personnel_code }}
                 </div>
               </div>
             </b-col>
@@ -553,31 +440,19 @@
           <b-alert variant="warning" show>
             <h6 class="alert-heading">تصمیم نهایی</h6>
             <p>پس از بررسی تمام مدارک، تصمیم نهایی را در مورد صلاحیت این کاندیدا بگیرید.</p>
-            
+
             <b-form-group label="نظر نهایی" label-for="final-comment">
-              <b-form-textarea
-                id="final-comment"
-                v-model="finalComment"
-                rows="2"
-                placeholder="نظر نهایی را وارد کنید..."
-              ></b-form-textarea>
+              <b-form-textarea id="final-comment" v-model="finalComment" rows="2"
+                placeholder="نظر نهایی را وارد کنید..."></b-form-textarea>
             </b-form-group>
 
             <div class="text-center mt-3">
-              <b-button
-                variant="success"
-                class="mr-3"
-                @click="approveCandidate(selectedCandidate)"
-                :disabled="!finalComment"
-              >
+              <b-button variant="success" class="mr-3" @click="approveCandidate(selectedCandidate)"
+                :disabled="!finalComment">
                 <b-icon icon="check-circle" class="ml-1"></b-icon>
                 تایید صلاحیت
               </b-button>
-              <b-button
-                variant="danger"
-                @click="rejectCandidate(selectedCandidate)"
-                :disabled="!finalComment"
-              >
+              <b-button variant="danger" @click="rejectCandidate(selectedCandidate)" :disabled="!finalComment">
                 <b-icon icon="x-circle" class="ml-1"></b-icon>
                 رد صلاحیت
               </b-button>
@@ -588,14 +463,7 @@
     </b-modal>
 
     <!-- Ad Details Modal -->
-    <b-modal
-      v-model="showAdModal"
-      :title="`تبلیغ - ${selectedAd?.title}`"
-      size="lg"
-      hide-footer
-      centered
-      scrollable
-    >
+    <b-modal v-model="showAdModal" :title="`تبلیغ - ${selectedAd?.title}`" size="lg" hide-footer centered scrollable>
       <div v-if="selectedAd" class="ad-details">
         <!-- Ad Content -->
         <div class="ad-content mb-4">
@@ -645,29 +513,16 @@
           <h6 class="mb-3">بررسی تبلیغ</h6>
           <b-form @submit.prevent="reviewAd">
             <b-form-group label="نظر بررسی" label-for="ad-review-comment">
-              <b-form-textarea
-                id="ad-review-comment"
-                v-model="adReviewComment"
-                rows="3"
-                placeholder="نظر خود را در مورد این تبلیغ وارد کنید..."
-              ></b-form-textarea>
+              <b-form-textarea id="ad-review-comment" v-model="adReviewComment" rows="3"
+                placeholder="نظر خود را در مورد این تبلیغ وارد کنید..."></b-form-textarea>
             </b-form-group>
 
             <div class="text-center">
-              <b-button
-                type="submit"
-                variant="success"
-                class="mr-3"
-                @click="approveSelectedAd"
-              >
+              <b-button type="submit" variant="success" class="mr-3" @click="approveSelectedAd">
                 <b-icon icon="check" class="ml-1"></b-icon>
                 تایید تبلیغ
               </b-button>
-              <b-button
-                variant="danger"
-                @click="rejectSelectedAd"
-                :disabled="!adReviewComment"
-              >
+              <b-button variant="danger" @click="rejectSelectedAd" :disabled="!adReviewComment">
                 <b-icon icon="x" class="ml-1"></b-icon>
                 رد تبلیغ
               </b-button>
@@ -700,29 +555,15 @@
             <strong>{{ selectedDocuments.length }} مدرک انتخاب شده</strong>
           </div>
           <div>
-            <b-button
-              variant="success"
-              size="sm"
-              class="mr-2"
-              @click="bulkApprove"
-            >
+            <b-button variant="success" size="sm" class="mr-2" @click="bulkApprove">
               <b-icon icon="check-circle" class="ml-1"></b-icon>
               تایید انتخابی
             </b-button>
-            <b-button
-              variant="danger"
-              size="sm"
-              class="mr-2"
-              @click="bulkReject"
-            >
+            <b-button variant="danger" size="sm" class="mr-2" @click="bulkReject">
               <b-icon icon="x-circle" class="ml-1"></b-icon>
               رد انتخابی
             </b-button>
-            <b-button
-              variant="secondary"
-              size="sm"
-              @click="clearSelection"
-            >
+            <b-button variant="secondary" size="sm" @click="clearSelection">
               <b-icon icon="x" class="ml-1"></b-icon>
               لغو انتخاب
             </b-button>
@@ -734,7 +575,7 @@
 </template>
 
 <script>
-import {apiUrlrtb} from '../../constants/config'
+import { apiUrlrtb } from '../../constants/config'
 
 import Chart from 'chart.js';
 import { isMobile } from "../../utils";
@@ -807,7 +648,7 @@ export default {
           ]
         }
       ],
-      
+
       // Filters
       docFilters: {
         status: 'all',
@@ -819,13 +660,13 @@ export default {
         type: 'all',
         search: ''
       },
-      
+
       // Options
       docStatusOptions: [
         { value: 'all', text: 'همه وضعیت‌ها' },
         { value: 'SUBMITTED', text: 'در انتظار' },
-        { value: 'EXECUTIVE_APPROVED', text: 'تایید شده' },
-        { value: 'EXECUTIVE_REJECTED', text: 'رد شده' }
+        { value: 'EXECUTIVE_APPROVED', text: 'تایید شده اجرایی' },
+        { value: 'EXECUTIVE_REJECTED', text: 'رد شده اجرایی' }
       ],
       docSortOptions: [
         { value: 'newest', text: 'جدیدترین' },
@@ -835,8 +676,8 @@ export default {
       adStatusOptions: [
         { value: 'all', text: 'همه وضعیت‌ها' },
         { value: 'SUBMITTED', text: 'در انتظار' },
-        { value: 'EXECUTIVE_APPROVED', text: 'تایید شده' },
-        { value: 'EXECUTIVE_REJECTED', text: 'رد شده' },
+        { value: 'EXECUTIVE_APPROVED', text: 'تایید شده اجرایی' },
+        { value: 'EXECUTIVE_REJECTED', text: 'رد شده اجرایی' },
         { value: 'active', text: 'فعال' },
         { value: 'expired', text: 'منقضی' }
       ],
@@ -847,7 +688,7 @@ export default {
         { value: 'info', text: 'اطلاع رسانی' },
         { value: 'promotional', text: 'تبلیغاتی' }
       ],
-      
+
       // Table Fields
       adFields: [
         { key: 'preview', label: 'پیش‌نمایش', sortable: false },
@@ -859,7 +700,7 @@ export default {
         { key: 'createdBy', label: 'ایجاد کننده', sortable: true },
         { key: 'actions', label: 'عملیات', sortable: false }
       ],
-      
+
       // Statistics
       stats: {
         totalCandidates: 0,
@@ -870,7 +711,7 @@ export default {
         approvedAds: 0,
         rejectedAds: 0
       },
-      
+
       // Recent Activities
       recentActivities: [
         {
@@ -902,33 +743,33 @@ export default {
           user: 'دکتر موسوی'
         }
       ],
-      
+
       // Modals
       showDocumentModal: false,
       showCandidateModal: false,
       showAdModal: false,
-      
+
       // Selected Items
       selectedDocument: null,
       selectedCandidate: null,
       selectedAd: null,
       selectedDocuments: [],
-      
+
       // Review Data
       reviewComment: '',
       finalComment: '',
       adReviewComment: '',
-      
+
       // Charts
       documentsChart: null,
       adsChart: null
     };
   },
   computed: {
-    ...mapGetters(["currentUser","EXECUTIVEListInfo","ChangeStateInfo"]),
+    ...mapGetters(["currentUser", "EXECUTIVEListInfo", "ChangeStateInfo"]),
     filteredDocuments() {
-      
-      let filtered =this.EXECUTIVEListInfo;
+
+      let filtered = this.EXECUTIVEListInfo;
       // Filter by status
       if (this.docFilters.status !== 'all') {
         filtered = filtered.filter(candidate => candidate.requestStatus === this.docFilters.status);
@@ -936,13 +777,13 @@ export default {
       // Filter by search
       if (this.docFilters.search) {
         const search = this.docFilters.search.toLowerCase();
-        filtered = filtered.filter(candidate => 
+        filtered = filtered.filter(candidate =>
           candidate.first_name.includes(search) || candidate.last_name.includes(search) ||
           candidate.org_position_desc.includes(search)
         );
       }
-      
-      
+
+
       // Sort
       switch (this.docFilters.sortBy) {
         case 'newest':
@@ -955,55 +796,55 @@ export default {
           filtered?.sort((a, b) => a.first_name.localeCompare(b.first_name));
           break;
       }
-      
+
       return filtered;
     },
-    
+
     filteredAds() {
       return null
       let filtered = [...this.advertisements];
-      
+
       // Filter by status
       if (this.adFilters.status !== 'all') {
         filtered = filtered.filter(ad => ad.status === this.adFilters.status);
       }
-      
+
       // Filter by type
       if (this.adFilters.type !== 'all') {
         filtered = filtered.filter(ad => ad.type === this.adFilters.type);
       }
-      
+
       // Filter by search
       if (this.adFilters.search) {
         const search = this.adFilters.search.toLowerCase();
-        filtered = filtered.filter(ad => 
+        filtered = filtered.filter(ad =>
           ad.title.toLowerCase().includes(search) ||
           ad.description.toLowerCase().includes(search)
         );
       }
-      
+
       return filtered;
     },
-    
+
     pendingCount() {
-      return this.EXECUTIVEListInfo?.filter(c => c.requestStatus === 'SUBMITTED').length ;
-            //  this.advertisements.filter(a => a.status === 'SUBMITTED').length;
+      return this.EXECUTIVEListInfo?.filter(c => c.requestStatus === 'SUBMITTED').length;
+      //  this.advertisements.filter(a => a.status === 'SUBMITTED').length;
     },
-    
+
     approvedCount() {
-      return this.EXECUTIVEListInfo?.filter(c => c.requestStatus === 'EXECUTIVE_APPROVED').length ;
+      return this.EXECUTIVEListInfo?.filter(c => c.requestStatus === 'EXECUTIVE_APPROVED').length;
       //        this.advertisements.filter(a => a.status === 'EXECUTIVE_APPROVED').length;
     }
   },
   mounted() {
     // this.calculateStats();
     // this.initializeCharts();
-    if(!this.EXECUTIVEListInf)
-    this.getEXECUTIVEList()
+    if (!this.EXECUTIVEListInf)
+      this.getEXECUTIVEList()
   },
   methods: {
     ...mapMutations(["setChangeStateInfo"]),
-    ...mapActions(["getEXECUTIVEList","ChangeState"]),
+    ...mapActions(["getEXECUTIVEList", "ChangeState"]),
     // Helper Methods
     getStatusVariant(status) {
       const variants = {
@@ -1013,16 +854,19 @@ export default {
       };
       return variants[status] || 'secondary';
     },
-    
+
     getStatusText(status) {
       const texts = {
         SUBMITTED: 'در انتظار',
-        EXECUTIVE_APPROVED: 'تایید شده',
-        EXECUTIVE_REJECTED: 'رد شده'
+        EXECUTIVE_APPROVED: 'تایید اجرایی',
+        SUPERVISION_APPROVED: 'تایید نظارت',
+        SUPERVISION_REJECTED: 'رد نظارت',
+        OBJECTION_SUBMITTED: 'اعتراض',
+        EXECUTIVE_REJECTED: 'رد اجرایی'
       };
       return texts[status] || status;
     },
-    
+
     getAdStatusVariant(status) {
       const variants = {
         SUBMITTED: 'warning',
@@ -1033,18 +877,18 @@ export default {
       };
       return variants[status] || 'secondary';
     },
-    
+
     getAdStatusText(status) {
       const texts = {
         SUBMITTED: 'در انتظار',
-        EXECUTIVE_APPROVED: 'تایید شده',
-        EXECUTIVE_REJECTED: 'رد شده',
+        EXECUTIVE_APPROVED: 'تایید اجرایی',
+        EXECUTIVE_REJECTED: 'رد اجرایی',
         active: 'فعال',
         expired: 'منقضی'
       };
       return texts[status] || status;
     },
-    
+
     getAdTypeText(type) {
       const texts = {
         banner: 'بنر',
@@ -1054,7 +898,7 @@ export default {
       };
       return texts[type] || type;
     },
-    
+
     getDocumentIcon(type) {
       const icons = {
         degree: 'file-earmark-text',
@@ -1065,7 +909,7 @@ export default {
       };
       return icons[type] || 'file-earmark';
     },
-    
+
     getActivityIcon(type) {
       const icons = {
         approve: 'check-circle',
@@ -1076,42 +920,42 @@ export default {
       };
       return icons[type] || 'info-circle';
     },
-    
-    
+
+
     isImageFile(url) {
       return /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(url);
     },
-    
+
     isPdfFile(url) {
       return /\.pdf$/i.test(url);
     },
-    
+
     // Document Methods
-    viewDocument(doc,name,datepic) {
-      this.selectedDocument = {url:apiUrlrtb+'/'+doc,name:name,datepic:datepic};
+    viewDocument(doc, name, datepic) {
+      this.selectedDocument = { url: apiUrlrtb + '/' + doc, name: name, datepic: datepic };
       this.reviewComment = '';
       this.showDocumentModal = true;
     },
-    
-     
-    
+
+
+
     // Candidate Methods
     viewCandidateDetails(candidate) {
       this.selectedCandidate = candidate;
       this.finalComment = '';
       this.showCandidateModal = true;
     },
-    
-   
+
+
     approveCandidate(val) {
-      if(val)
-      this.selectedCandidate=val
+      if (val)
+        this.selectedCandidate = val
       if (this.selectedCandidate) {
         this.selectedCandidate.requestStatus = 'EXECUTIVE_APPROVED';
-        this.ChangeState({national_Id:this.selectedCandidate.national_Id,requestStatus:'EXECUTIVE_APPROVED',reason:this.finalComment})
+        this.ChangeState({ national_Id: this.selectedCandidate.national_Id, requestStatus: 'EXECUTIVE_APPROVED', reason: this.finalComment })
       }
     },
-    
+
     rejectCandidate(candidate) {
       this.$bvModal.msgBoxConfirm('آیا از رد صلاحیت این کاندیدا اطمینان دارید؟', {
         title: 'تایید رد صلاحیت',
@@ -1124,19 +968,19 @@ export default {
         centered: true
       }).then(value => {
         if (value) {
-          this.selectedCandidate=candidate
+          this.selectedCandidate = candidate
           candidate.requestStatus = 'EXECUTIVE_REJECTED';
-           this.ChangeState({national_Id:candidate.national_Id,requestStatus:'EXECUTIVE_REJECTED',reason:this.finalComment})
+          this.ChangeState({ national_Id: candidate.national_Id, requestStatus: 'EXECUTIVE_REJECTED', reason: this.finalComment })
           // Add to activities
           this.recentActivities.unshift({
             id: Date.now(),
             type: 'reject',
             text: `صلاحیت ${candidate.first_name} ${candidate.last_name} رد شد`,
             time: 'همین حالا',
-            user: this.currentUser.first_name+this.currentUser.last_name
+            user: this.currentUser.first_name + this.currentUser.last_name
           });
-          
-          
+
+
           this.calculateStats();
           if (this.showCandidateModal) {
             this.showCandidateModal = false;
@@ -1144,37 +988,37 @@ export default {
         }
       });
     },
-    
+
     // Ad Methods
     viewAd(ad) {
       this.selectedAd = ad;
       this.adReviewComment = '';
       this.showAdModal = true;
     },
-    
+
     approveAd(ad) {
       this.selectedAd = ad;
       this.approveSelectedAd();
     },
-    
+
     rejectAd(ad) {
       this.selectedAd = ad;
       this.rejectSelectedAd();
     },
-    
+
     editAd(ad) {
       // In real app, navigate to edit page
       this.$router.push(`/ads/edit/${ad.id}`);
     },
-    
+
     approveSelectedAd() {
       if (this.selectedAd) {
         this.selectedAd.status = 'EXECUTIVE_APPROVED';
-        
+
         if (!this.selectedAd.reviews) {
           this.selectedAd.reviews = [];
         }
-        
+
         this.selectedAd.reviews.push({
           id: Date.now(),
           reviewer: this.supervisor.name,
@@ -1182,7 +1026,7 @@ export default {
           status: 'EXECUTIVE_APPROVED',
           comment: this.adReviewComment || 'تبلیغ مناسب تشخیص داده شد'
         });
-        
+
         // Add to activities
         this.recentActivities.unshift({
           id: Date.now(),
@@ -1191,26 +1035,26 @@ export default {
           time: 'همین حالا',
           user: this.supervisor.name
         });
-        
+
         this.$bvToast.toast('تبلیغ تایید شد', {
           title: 'تایید موفق',
           variant: 'success',
           solid: true
         });
-        
+
         this.calculateStats();
         this.showAdModal = false;
       }
     },
-    
+
     rejectSelectedAd() {
       if (this.selectedAd && this.adReviewComment) {
         this.selectedAd.status = 'EXECUTIVE_REJECTED';
-        
+
         if (!this.selectedAd.reviews) {
           this.selectedAd.reviews = [];
         }
-        
+
         this.selectedAd.reviews.push({
           id: Date.now(),
           reviewer: this.supervisor.name,
@@ -1218,7 +1062,7 @@ export default {
           status: 'EXECUTIVE_REJECTED',
           comment: this.adReviewComment
         });
-        
+
         // Add to activities
         this.recentActivities.unshift({
           id: Date.now(),
@@ -1227,18 +1071,18 @@ export default {
           time: 'همین حالا',
           user: this.supervisor.name
         });
-        
+
         this.$bvToast.toast('تبلیغ رد شد', {
           title: 'رد تبلیغ',
           variant: 'warning',
           solid: true
         });
-        
+
         this.calculateStats();
         this.showAdModal = false;
       }
     },
-    
+
     // Bulk Actions
     bulkApprove() {
       this.$bvModal.msgBoxConfirm(`آیا می‌خواهید ${this.selectedDocuments.length} مدرک انتخاب شده را تایید کنید؟`, {
@@ -1251,19 +1095,19 @@ export default {
         centered: true
       }).then(value => {
         if (value) {
-         
+
           this.$bvToast.toast(`${this.selectedDocuments.length} مدرک تایید شد`, {
             title: 'تایید گروهی موفق',
             variant: 'success',
             solid: true
           });
-          
+
           this.selectedDocuments = [];
           this.calculateStats();
         }
       });
     },
-    
+
     bulkReject() {
       this.$bvModal.msgBoxConfirm(`آیا می‌خواهید ${this.selectedDocuments.length} مدرک انتخاب شده را رد کنید؟`, {
         title: 'رد گروهی',
@@ -1275,51 +1119,51 @@ export default {
         centered: true
       }).then(value => {
         if (value) {
-          
+
           this.$bvToast.toast(`${this.selectedDocuments.length} مدرک رد شد`, {
             title: 'رد گروهی',
             variant: 'warning',
             solid: true
           });
-          
+
           this.selectedDocuments = [];
           this.calculateStats();
         }
       });
     },
-    
+
     clearSelection() {
       this.selectedDocuments = [];
     },
-    
+
     // Statistics
     calculateStats() {
       this.stats.totalCandidates = this.EXECUTIVEListInf?.length;
       this.stats.pendingDocuments = this.EXECUTIVEListInf?.filter(c => c.requestStatus === 'SUBMITTED').length;
       this.stats.approvedCandidates = this.EXECUTIVEListInf?.filter(c => c.requestStatus === 'EXECUTIVE_APPROVED').length;
       this.stats.rejectedCandidates = this.EXECUTIVEListInf?.filter(c => c.requestStatus === 'EXECUTIVE_REJECTED').length;
-      
+
       this.stats.pendingAds = this.advertisements.filter(a => a.status === 'SUBMITTED').length;
       this.stats.approvedAds = this.advertisements.filter(a => a.status === 'EXECUTIVE_APPROVED').length;
       this.stats.rejectedAds = this.advertisements.filter(a => a.status === 'EXECUTIVE_REJECTED').length;
-      
+
       this.updateCharts();
     },
-    
+
     // Charts
     initializeCharts() {
       this.createDocumentsChart();
       this.createAdsChart();
     },
-    
+
     createDocumentsChart() {
       const ctx = this.$refs.documentsChart?.getContext('2d');
       if (!ctx) return;
-      
+
       if (this.documentsChart) {
         this.documentsChart.destroy();
       }
-      
+
       this.documentsChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
@@ -1350,15 +1194,15 @@ export default {
         }
       });
     },
-    
+
     createAdsChart() {
       const ctx = this.$refs.adsChart?.getContext('2d');
       if (!ctx) return;
-      
+
       if (this.adsChart) {
         this.adsChart.destroy();
       }
-      
+
       this.adsChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -1392,7 +1236,7 @@ export default {
         }
       });
     },
-    
+
     updateCharts() {
       if (this.documentsChart) {
         this.documentsChart.data.datasets[0].data = [
@@ -1402,7 +1246,7 @@ export default {
         ];
         this.documentsChart.update();
       }
-      
+
       if (this.adsChart) {
         this.adsChart.data.datasets[0].data = [
           this.stats.approvedAds,
@@ -1412,37 +1256,37 @@ export default {
         this.adsChart.update();
       }
     },
-    
+
     // Utility
     getCurrentDate() {
       return new Date().toLocaleDateString('fa-IR');
     },
-    
+
     filterDocuments() {
       // Just trigger computed property
     },
-    
+
     filterAds() {
       // Just trigger computed property
     }
   },
-  watch:{
-    ChangeStateInfo(val){
-      if(val){
+  watch: {
+    ChangeStateInfo(val) {
+      if (val) {
         // Add to activities
         this.recentActivities.unshift({
           id: Date.now(),
           type: 'approve',
           text: `صلاحیت ${this.selectedCandidate.first_name} ${this.selectedCandidate.last_name} تایید شد`,
           time: 'همین حالا',
-          user: this.currentUser.first_name+this.currentUser.last_name
+          user: this.currentUser.first_name + this.currentUser.last_name
         });
-        
-        this.$notify("info", "موفق",'با موفقیت تغییر کرد', {
-            duration: 6000,
-            permanent: false,
-          });
-        
+
+        this.$notify("info", "موفق", 'با موفقیت تغییر کرد', {
+          duration: 6000,
+          permanent: false,
+        });
+
         this.calculateStats();
         this.showCandidateModal = false;
         this.setChangeStateInfo(null)
@@ -1864,28 +1708,28 @@ export default {
     margin-top: 15px;
     text-align: center;
   }
-  
+
   .candidate-header {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .candidate-avatar {
     margin: 0 auto 15px;
   }
-  
+
   .candidate-status {
     justify-content: center;
   }
-  
+
   .candidate-actions {
     justify-content: center;
   }
-  
+
   .stat-card {
     margin-bottom: 15px;
   }
-  
+
   .bulk-actions {
     left: 10px;
     right: 10px;

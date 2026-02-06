@@ -20,6 +20,9 @@ const global = {
     },ChangeState: {
         url: "/ChangeState",
         method: 'POST'
+    },advertisementsSave: {
+        url: "/advertisementsSave",
+        method: 'POST'
     }
     
 };

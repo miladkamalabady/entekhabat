@@ -96,7 +96,8 @@ $data['madrak'] = 1;
 /* =========================
    3. Check user existence
 ========================= */
-$nationalId = $db->escape($data['nationalID']);
+$nationalId = $db->escape('0534921972');
+//$data['nationalID']
 
 $check = $db->query("SELECT id,roles FROM users WHERE national_id = '{$nationalId}'");
 $user  = $check->fetch_assoc();
@@ -221,7 +222,7 @@ if (!empty($data['ozvsandogh'])) {
 }
 /////jwt////////
 $jwtPayload = [
-    'national_id'   => $data['nationalID'],
+    'national_id'   => $nationalId,
     'roles'  => $data['roles'],
 ];
 
@@ -236,8 +237,8 @@ echo json_encode([
     'status' => true,
     'action' => $action, // inserted | updated
     'user' => [
-        'id' => $data['nationalID'],
-        'national_id' => $data['nationalID'],
+        'id' => $nationalId,
+        'national_id' => $nationalId,
         'personnel_code' => $data['personnelCode'],
         'orgPositionDesc' => $data['orgPositionDesc'],
         'full_name' => trim($data['firstName'] . ' ' . $data['lastName']),

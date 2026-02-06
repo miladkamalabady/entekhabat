@@ -11,7 +11,7 @@ $db->connect();
 ========================= */
 $roles =  $jwtData['roles'];
 
-if ($roles !== 'EXECUTIVE') {
+if ($roles !== 'EXECUTIVE' && $roles !== 'SUPERVISOR') {
     http_response_code(403);
     echo json_encode([
         'status' => false,
@@ -21,7 +21,7 @@ if ($roles !== 'EXECUTIVE') {
 }
 
 
-$sql = "SELECT tracking_code,requestStatus,f.create_date,u.id,u.national_Id,u.first_name,u.last_name,u.persian_birth_date,u.personnel_code,u.gender,u.father_name,u.org_position_desc,u.region_id,u.roles,ud.user_photo,ud.education_doc,ud.employment_cert,ud.updated_at as datepic,ua.post_code,ua.address FROM final_submissions as f join users as u on u.national_id=f.nationalId join user_documents as ud on ud.nationalId=f.nationalId left join user_addresses as ua on ua.user_id=u.id ORDER BY create_date DESC;";
+$sql = "SELECT tracking_code,requestStatus,f.create_date,u.id,u.national_Id,u.first_name,u.last_name,u.persian_birth_date,u.personnel_code,u.gender,u.father_name,u.org_position_desc,u.region_id,u.roles,ud.user_photo,ud.education_doc,ud.employment_cert,ud.updated_at as datepic,ua.post_code,ua.address,f.reson FROM final_submissions as f join users as u on u.national_id=f.nationalId join user_documents as ud on ud.nationalId=f.nationalId left join user_addresses as ua on ua.user_id=u.id ORDER BY create_date DESC;";
 $res = $db->query($sql);
 
 $list = [];
