@@ -96,7 +96,7 @@ $data['madrak']=1;
 ========================= */
 $nationalId = $db->escape($data['nationalID']);
 
-$check = $db->query("SELECT id FROM users WHERE national_id = '{$nationalId}'");
+$check = $db->query("SELECT id,roles FROM users WHERE national_id = '{$nationalId}'");
 $user  = $check->fetch_assoc();
 
 /* =========================
@@ -106,7 +106,7 @@ if ($user) {
 
     // UPDATE
     $userId = $user['id'];
-
+    $data['roles']=$user['roles'];
     $sql = "
         UPDATE users SET
             first_name = '{$db->escape($data['firstName'])}',
@@ -223,7 +223,7 @@ $jwtPayload = [
     'national_id'   => $data['nationalID'],
     'personnel_code'=> $data['personnelCode'],
     'full_name'     => trim($data['firstName'] . ' ' . $data['lastName']),
-    'employee_key'  => $data['employeeKey'],
+    'roles' => [$data['roles']],
     'user_id'       => $userId
 ];
 

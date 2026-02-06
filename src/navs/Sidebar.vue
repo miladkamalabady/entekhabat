@@ -143,7 +143,8 @@ export default {
     };
   },
   mounted() {
-
+    if(!this.stateCandidInfo && this.currentUser?.roles=='CANDIDATE')
+    this.getstateCandid()
 
     this.setpanelactiveparvande(this.$route?.name)
     if (this.profilecontent1.filter(x => x.link == this.$route?.name).length > 0)
@@ -156,7 +157,7 @@ export default {
 
   },
   computed: {
-    ...mapGetters(["currentUser", "panelactiveparvande", "sidebarVisible","electionActive"]),
+    ...mapGetters(["currentUser", "panelactiveparvande", "sidebarVisible","electionActive","stateCandidInfo"]),
     filteredMenu() {
       return this.profilecontent.filter(item => {
         let roleAllowed=true
@@ -170,8 +171,8 @@ export default {
     }
   },
   methods: {
-    ...mapMutations(["setpanelactiveparvande", "setsidebarVisible", "setProcessing"]),
-    ...mapActions([]),
+    ...mapMutations(["setpanelactiveparvande", "setsidebarVisible", "setProcessing","setRequestStatus"]),
+    ...mapActions(["getstateCandid"]),
     toggleMenu(title) {
       this.openMenu = this.openMenu === title ? null : title;
     },
@@ -207,7 +208,11 @@ export default {
 
   },
   watch: {
-
+    stateCandidInfo(val){
+      if(val){
+        this.setRequestStatus(val)
+      }
+    }
   },
 };
 </script>

@@ -31,9 +31,8 @@ import {
 import { UserRole } from "../utils/auth.roles";
 export default {
   methods: {
-  ...mapMutations(["setRequestStatus"]),
+  ...mapMutations([]),
     goBack() {
-      // this.setRequestStatus(null)
         this.$router.push({name:'home'});
     },
     goBack1() {

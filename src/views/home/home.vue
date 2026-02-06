@@ -98,9 +98,8 @@ export default {
 
   }, mounted() {
 
-    if (this.requestStatus == 'DRAFT' || this.requestStatus == 'CANDIDATE' || this.requestStatus == 'CONDITIONS_ACCEPTED' || this.requestStatus == 'DOCUMENTS_UPLOADED')
-      this.setRequestStatus(null)
-    // this.setRequestStatus('SUPERVISION_APPROVED')
+    // if (this.requestStatus == 'DRAFT' || this.requestStatus == 'CANDIDATE' || this.requestStatus == 'CONDITIONS_ACCEPTED' || this.requestStatus == 'DOCUMENTS_UPLOADED')
+    //   this.setRequestStatus(null)
   },
   data() {
     return {

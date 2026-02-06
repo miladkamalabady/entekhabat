@@ -84,24 +84,6 @@ export default {
         this.$router.push("/home");
       }
     },
-
-    // submit() {
-    //   Object.keys(this.files).forEach(key => {
-    //     const f = this.files[key];
-    //     if (f && !f.preview && f.raw && f.raw.type.startsWith("image/")) {
-    //       const reader = new FileReader();
-    //       reader.onload = e => {
-    //         f.preview = e.target.result;
-    //         this.$set(this.files, key, f);
-    //       };
-    //       reader.readAsDataURL(f.raw);
-    //     }
-    //   });
-
-    //   this.setCandidateFiles(this.files);
-    //   this.setRequestStatus("DOCUMENTS_UPLOADED")
-    //   this.$router.push("/candidate/Confirmation");
-    // }
     async submit() {
       if (!this.canSubmit || this.submitting) return;
 

@@ -6,11 +6,14 @@ export default {
   state: {
     currentUser: isAuthGuardActive ? getCurrentUser() : null,
     userstatusInfo: null,
-    UploadUserDocumentsInfo:null,
-    confirmRegisterInfo:null,
+    UploadUserDocumentsInfo: null,
+    confirmRegisterInfo: null,
+    ChangeStateInfo: null,
+    stateCandidInfo: null,
+    EXECUTIVEListInfo: null,
     requestStatus: null,
     hasActiveRequest: false,
-    electionActive: true,
+    electionActive: false,
     loginError: null,
     processing: false,
     sidebarVisible: true,
@@ -30,6 +33,9 @@ export default {
     userstatusInfo: state => state.userstatusInfo,
     UploadUserDocumentsInfo: state => state.UploadUserDocumentsInfo,
     confirmRegisterInfo: state => state.confirmRegisterInfo,
+    ChangeStateInfo: state => state.ChangeStateInfo,
+    stateCandidInfo: state => state.stateCandidInfo,
+    EXECUTIVEListInfo: state => state.EXECUTIVEListInfo,
     processing: state => state.processing,
     loginError: state => state.loginError,
     candidateFiles: state => state.candidateFiles,
@@ -83,11 +89,21 @@ export default {
     setuserstatusInfo(state, payload) {
       state.userstatusInfo = payload
       state.loginError = null
-    },setUploadUserDocumentsInfo(state, payload) {
+    }, setUploadUserDocumentsInfo(state, payload) {
       state.UploadUserDocumentsInfo = payload
       state.loginError = null
-    },setconfirmRegisterInfo(state, payload) {
+    }, setconfirmRegisterInfo(state, payload) {
       state.confirmRegisterInfo = payload
+      state.loginError = null
+    }, setChangeStateInfo(state, payload) {
+      
+      state.ChangeStateInfo = payload
+      state.loginError = null
+    }, setstateCandidInfo(state, payload) {
+      state.stateCandidInfo = payload
+      state.loginError = null
+    }, setEXECUTIVEListInfo(state, payload) {
+      state.EXECUTIVEListInfo = payload
       state.loginError = null
     },
     clearError(state) {
@@ -121,47 +137,59 @@ export default {
       }, 2000);
     },
     userstatus({ commit }, payload) {
-      try {
-        apiservice({ name: "userstatus", params: payload }, { commit })
-          .then(response => {
-            if (response.status) {
-              commit('setuserstatusInfo', response.data)
-              commit('clearError')
-            }
-          })
-      } catch (e) {
-        commit('setError', 'خطا در ورود. لطفاً مجدد تلاش نمایید')
-      } finally {
-        commit('setProcessing', false)
-      }
-    },UploadUserDocuments({ commit }, payload) {
-      try {
-        apiservice({ name: "UploadUserDocuments", params: payload }, { commit })
-          .then(response => {
-            if (response.status) {
-              commit('setUploadUserDocumentsInfo', response.data)
-              commit('clearError')
-            }
-          })
-      } catch (e) {
-        commit('setError', 'خطا در ورود. لطفاً مجدد تلاش نمایید')
-      } finally {
-        commit('setProcessing', false)
-      }
-    },confirmRegister({ commit }, payload) {
-      try {
-        apiservice({ name: "confirmRegister", params: payload }, { commit })
-          .then(response => {
-            if (response.status) {
-              commit('setconfirmRegisterInfo', response.data)
-              commit('clearError')
-            }
-          })
-      } catch (e) {
-        commit('setError', 'خطا در ورود. لطفاً مجدد تلاش نمایید')
-      } finally {
-        commit('setProcessing', false)
-      }
+      apiservice({ name: "userstatus", params: payload }, { commit })
+        .then(response => {
+          if (response.status) {
+            commit('setuserstatusInfo', response.data)
+            commit('clearError')
+          } 
+        })
+
+    }, UploadUserDocuments({ commit }, payload) {
+
+      apiservice({ name: "UploadUserDocuments", params: payload }, { commit })
+        .then(response => {
+          if (response.status) {
+            commit('setUploadUserDocumentsInfo', response.data)
+            commit('clearError')
+          } 
+        })
+
+    }, confirmRegister({ commit }, payload) {
+      apiservice({ name: "confirmRegister", params: payload }, { commit })
+        .then(response => {
+          if (response.status) {
+            commit('setconfirmRegisterInfo', response.data)
+            commit('clearError')
+          } 
+        })
+
+    },ChangeState({ commit }, payload) {
+      apiservice({ name: "ChangeState", params: payload }, { commit })
+        .then(response => {
+          if (response.status) {
+            commit('setChangeStateInfo', response.data)
+            commit('clearError')
+          } 
+        })
+    }, getstateCandid({ commit }, payload) {
+      apiservice({ name: "getstateCandid", params: payload }, { commit })
+        .then(response => {
+          if (response.status) {
+            commit('setstateCandidInfo', response.data)
+            commit('clearError')
+          } 
+        })
+
+    }, getEXECUTIVEList({ commit }, payload) {
+      apiservice({ name: "getEXECUTIVEList", params: payload }, { commit })
+        .then(response => {
+
+          if (response.status) {
+            commit('setEXECUTIVEListInfo', response.data)
+            commit('clearError')
+          } 
+        })
     },
 
   }

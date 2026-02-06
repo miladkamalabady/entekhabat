@@ -145,9 +145,8 @@ export default {
       }
     },
     confirm() {
-      // تولید کد رهگیری تصادفی (می‌توانید از API واقعی هم استفاده کنید)
       this.trackingCode = uuidv4().split("-")[0].toUpperCase();
-      this.confirmRegister({ tracking_code: this.trackingCode })
+      this.confirmRegister({ 'tracking_code': this.trackingCode })
 
     },
     closeModal() {
