@@ -20,7 +20,7 @@
             <div class="voter-id">کد ملی: {{ currentUser.national_id }}</div>
             <div class="voter-status">
               <b-badge :variant="voteStatus === 'voted' ? 'success' : 'warning'">
-                {{ getVoteStatusText() }}
+                {{ electionStatusAll === 'active' ? getVoteStatusText() : 'پایان یافته'}}
               </b-badge>
             </div>
           </div>
@@ -32,7 +32,7 @@
         :variant="electionStatusAll === 'active' ? 'success' : electionStatusAll === 'upcoming' ? 'warning' : 'secondary'"
         pill>
         {{ electionStatusAll === 'active' ? 'در حال برگزاری' : electionStatusAll === 'upcoming' ? 'آغاز به زودی' :
-        'پایان یافته' }}
+          'پایان یافته' }}
       </b-badge>
     </b-alert>
     <!-- Voting Progress -->
@@ -68,7 +68,7 @@
     </b-container>
 
     <!-- Main Voting Content -->
-    <b-container class="voting-content" v-if="electionStatusAll === 'active'">
+    <b-container class="voting-content" v-if="electionStatusAll === 'active' || electionStatusAll === 'ended'">
       <!-- Step 1: Authentication -->
       <div v-if="currentStep === 0" class="step-container">
         <b-card class="auth-card">
@@ -141,7 +141,7 @@
       </div>
 
       <!-- Step 2: Candidates List -->
-      <div v-else-if="currentStep === 1" class="step-container">
+      <div v-else-if="currentStep === 1 && electionStatusAll === 'active'" class="step-container">
         <b-card>
           <div class="text-center mb-4">
             <h4>لیست کاندیداهای انتخابات</h4>
@@ -167,8 +167,9 @@
                 @click="previewCandidate(candidate)">
                 <!-- Candidate Image -->
                 <div class="candidate-image-container mb-3">
-                  <img :src="`${apiUrlrtb}/${candidate.user_photo}`" :alt="candidate.first_name" class="candidate-image" />
-                  
+                  <img :src="`${apiUrlrtb}/${candidate.user_photo}`" :alt="candidate.first_name"
+                    class="candidate-image" />
+
                 </div>
                 <!-- Candidate Info -->
                 <h5 class="candidate-name">{{ candidate.first_name }} {{ candidate.last_name }}</h5>
@@ -217,13 +218,16 @@
             <b-row class="align-items-center">
               <b-col md="5" class="text-center">
                 <div class="selected-candidate-image">
-                  <img :src="`${apiUrlrtb}/${selectedCandidate.user_photo}`" :alt="selectedCandidate.first_name" class="selected-image" />
+                  <img :src="`${apiUrlrtb}/${selectedCandidate.user_photo}`" :alt="selectedCandidate.first_name"
+                    class="selected-image" />
                 </div>
               </b-col>
 
               <b-col md="7">
                 <div class="selected-candidate-info">
-                  <h3 class="selected-name"> {{ selectedCandidate.gender ? 'آقای' : 'خانم' }} {{ selectedCandidate.first_name }} {{ selectedCandidate.last_name }}</h3>
+                  <h3 class="selected-name"> {{ selectedCandidate.gender ? 'آقای' : 'خانم' }} {{
+                    selectedCandidate.first_name
+                    }} {{ selectedCandidate.last_name }}</h3>
                   <p class="selected-position">{{ selectedCandidate.org_position_desc }}</p>
 
                   <div class="selected-details">
@@ -371,14 +375,15 @@
       <div v-if="previewCandidateData" class="candidate-preview">
         <b-row class="align-items-center mb-4">
           <b-col md="4" class="text-center">
-            <img :src="`${apiUrlrtb}/${previewCandidateData.user_photo}`" :alt="previewCandidateData.first_name" class="preview-image" />
+            <img :src="`${apiUrlrtb}/${previewCandidateData.user_photo}`" :alt="previewCandidateData.first_name"
+              class="preview-image" />
           </b-col>
           <b-col md="8">
             <h5>{{ previewCandidateData.org_position_desc }}</h5>
             <div class="preview-stats">
               <b-badge variant="info" class="mr-2">
                 <b-icon icon="briefcase" class="ml-1"></b-icon>
-                {{ previewCandidateData.persian_birth_date }} 
+                {{ previewCandidateData.persian_birth_date }}
               </b-badge>
               <b-badge variant="success" class="mr-2">
                 <b-icon icon="award" class="ml-1"></b-icon>
@@ -391,7 +396,7 @@
         <b-tabs content-class="mt-3">
           <b-tab title="منطقه" active>
             <p class="preview-text">{{ previewCandidateData.region_id }} -
-            {{ previewCandidateData.gender ? 'آقا' : 'خانم' }}</p>
+              {{ previewCandidateData.gender ? 'آقا' : 'خانم' }}</p>
           </b-tab>
 
           <!-- <b-tab title="سوابق کاری">
@@ -489,7 +494,7 @@ export default {
   name: "VotingPage",
   data() {
     return {
-      isMobile,apiUrlrtb,
+      isMobile, apiUrlrtb,
       // Voter Information
 
       // Voting Status
@@ -582,7 +587,7 @@ export default {
   },
   async mounted() {
     this.candidates = await this.getCandidsList()
-    
+
     this.checkVoteStatus();
     this.startTimer();
     this.startCooldownTimer();
@@ -593,7 +598,7 @@ export default {
     }
   },
   methods: {
-    ...mapActions(["getCandidsList","getVote","insertVote"]),
+    ...mapActions(["getCandidsList", "getVote", "insertVote"]),
     // Step Navigation
     nextStep() {
       if (this.currentStep < 4) {
@@ -765,8 +770,8 @@ export default {
           solid: true
         });
 
-        
-       await this.insertVote({usernationalid:this.selectedCandidate.id,trackingCode: this.voteTrackingCode})
+
+        await this.insertVote({ usernationalid: this.selectedCandidate.id, trackingCode: this.voteTrackingCode })
         //localStorage.setItem('lastVote', JSON.stringify(voteLog));
 
       } catch (error) {
@@ -784,7 +789,7 @@ export default {
     // Success Actions
     downloadReceipt() {
       // Generate receipt content
-      
+
       const receiptContent = `
         رسید رأی‌گیری الکترونیکی
         =========================
@@ -827,7 +832,10 @@ export default {
     },
 
     viewResults() {
-      this.$router.push('/results/live-election');
+      if (this.electionStatusAll == 'ended')
+        this.$router.push('/results/final-election');
+      else
+        this.$router.push('/results/live-election');
     },
 
     goToHome() {
@@ -849,8 +857,8 @@ export default {
         this.voteTime = new Date(voteData.createdate).toLocaleTimeString('fa-IR');
 
         // Find selected candidate
-        this.selectedCandidate = this.candidates.find(c => c.id == voteData.candidateId);
-        
+        this.selectedCandidate = this.candidates?.find(c => c.id == voteData.candidateId);
+
       }
     },
 

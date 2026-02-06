@@ -53,14 +53,14 @@ if ($now < $startTime) {
 }
 
 // اگر زمان انتخابات تمام شده
-if ($now > $endTime) {
-    http_response_code(400);
-    echo json_encode([
-        'status' => false,
-        'message' => 'زمان انتخابات به پایان رسیده است'
-    ], JSON_UNESCAPED_UNICODE);
-    exit;
-}
+// if ($now > $endTime) {
+//     http_response_code(400);
+//     echo json_encode([
+//         'status' => false,
+//         'message' => 'زمان انتخابات به پایان رسیده است'
+//     ], JSON_UNESCAPED_UNICODE);
+//     exit;
+// }
 
 $sql = "SELECT tracking_code,f.create_date,u.id,u.national_Id,u.first_name,u.last_name,u.persian_birth_date,u.personnel_code,u.gender,u.father_name,u.org_position_desc,u.region_id,ud.user_photo,ua.post_code,ua.address FROM final_submissions as f join users as u on u.national_id=f.nationalId join user_documents as ud on ud.nationalId=f.nationalId left join user_addresses as ua on ua.user_id=u.id where requestStatus='SUPERVISION_APPROVED' ORDER BY create_date DESC;";
 $res = $db->query($sql);

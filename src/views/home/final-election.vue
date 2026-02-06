@@ -2,7 +2,7 @@
   <div class="election-results-page">
     <b-container class="ads-container mt-4" v-if="electionStatusAll !== 'ended'">
 
-      <b-alert variant="danger" class="text-center" show>زمان تبلیغات به اتمام نرسیده است!</b-alert>
+      <b-alert variant="danger" class="text-center" show>زمان انتخابات به اتمام نرسیده است!</b-alert>
 
     </b-container>
     <!-- Celebration Header -->
@@ -41,7 +41,7 @@
                   <b-list-group-item class="d-flex justify-content-between align-items-center">
                     <span>میزان مشارکت</span>
                     <b-badge variant="success" pill>
-                      {{ finalResults.participationRate }}%
+                      {{ finalResults.participationRate.toFixed(2) }}%
                     </b-badge>
                   </b-list-group-item>
                   <b-list-group-item class="d-flex justify-content-between align-items-center">
@@ -81,7 +81,8 @@
         <b-row class="align-items-center">
           <b-col md="4" class="text-center">
             <div class="winner-photo-container">
-              <img :src="winner.photo" :alt="winner.name" class="winner-photo" />
+              <img v-if="winner.user_photo" :src="`${apiUrlrtb}/${winner.user_photo}`" :alt="winner.first_name"
+                class="winner-photo" />
               <div class="winner-crown">
                 <b-icon icon="crown-fill"></b-icon>
               </div>
@@ -90,8 +91,8 @@
 
           <b-col md="8">
             <div class="winner-info">
-              <h2 class="winner-name">{{ winner.name }}</h2>
-              <p class="winner-position">{{ winner.position }}</p>
+              <h2 class="winner-name">{{ winner.first_name }} {{ winner.last_name }}</h2>
+              <p class="winner-position">{{ winner.org_position_desc }}</p>
 
               <div class="winner-stats">
                 <b-row>
@@ -172,16 +173,13 @@
 
             <template #cell(candidate)="data">
               <div class="candidate-info">
-                <img :src="data.item.photo" class="candidate-photo" :alt="data.item.name" />
+                <img :src="`${data.item.photo}`" class="candidate-photo" :alt="data.item.name" />
                 <div class="candidate-details">
-                  <strong>{{ data.item.name }}</strong>
+                  <strong>{{ data.item.name }} </strong>
                   <small class="text-muted d-block">{{ data.item.position }}</small>
                   <div class="candidate-tags">
                     <b-badge v-if="data.index === 0" variant="warning" class="mr-1">
                       برنده
-                    </b-badge>
-                    <b-badge v-if="data.item.previousMember" variant="info" class="mr-1">
-                      عضو قبلی
                     </b-badge>
                   </div>
                 </div>
@@ -199,21 +197,12 @@
               </div>
             </template>
 
-            <template #cell(comparison)="data">
-              <div class="comparison" :class="getComparisonClass(data.item.comparison)">
-                <b-icon :icon="getComparisonIcon(data.item.comparison)" class="ml-1"></b-icon>
-                {{ Math.abs(data.item.comparison) }}%
-                <span v-if="data.item.comparison > 0">افزایش</span>
-                <span v-else-if="data.item.comparison < 0">کاهش</span>
-                <span v-else>ثابت</span>
-              </div>
-            </template>
-
             <template #cell(status)="data">
               <b-badge :variant="getStatusVariant(data.item.status)">
                 {{ getStatusText(data.item.status) }}
               </b-badge>
             </template>
+
           </b-table>
         </div>
 
@@ -283,6 +272,9 @@
                   <div class="region-winner">
                     <img v-if="getCandidatePhoto(data.value)" :src="getCandidatePhoto(data.value)"
                       class="region-winner-photo" :alt="data.value" />
+                    <div v-else class="region-winner-photo placeholder">
+                      <b-icon icon="person-circle"></b-icon>
+                    </div>
                     <span class="region-winner-name">{{ data.value }}</span>
                   </div>
                 </template>
@@ -307,73 +299,6 @@
         </b-col>
       </b-row>
 
-      <!-- Timeline and Milestones -->
-      <b-card class="mb-5">
-        <h5 class="mb-4">
-          <b-icon icon="clock-history" class="ml-2"></b-icon>
-          گاهشمار انتخابات
-        </h5>
-
-        <div class="timeline">
-          <div v-for="(event, index) in timelineEvents" :key="index" class="timeline-item"
-            :class="{ 'timeline-item-reverse': index % 2 === 0 }">
-            <div class="timeline-marker" :class="`marker-${event.type}`">
-              <b-icon :icon="getTimelineIcon(event.type)"></b-icon>
-            </div>
-            <div class="timeline-content">
-              <div class="timeline-date">{{ event.date }}</div>
-              <div class="timeline-title">{{ event.title }}</div>
-              <div class="timeline-description">{{ event.description }}</div>
-            </div>
-          </div>
-        </div>
-      </b-card>
-
-      <!-- Official Certification -->
-      <b-card class="certification-card mb-5">
-        <div class="text-center">
-          <div class="certification-icon">
-            <b-icon icon="file-earmark-check-fill"></b-icon>
-          </div>
-          <h4 class="mt-3 mb-3">گواهی رسمی نتایج</h4>
-          <p class="text-muted mb-4">این نتایج توسط کمیته نظارت انتخابات تأیید و مهر شده است.</p>
-
-          <div class="certification-details">
-            <b-row>
-              <b-col md="4">
-                <div class="detail-item">
-                  <strong>شماره پروتکل:</strong>
-                  <span>{{ certification.protocolNumber }}</span>
-                </div>
-              </b-col>
-              <b-col md="4">
-                <div class="detail-item">
-                  <strong>تاریخ تأیید:</strong>
-                  <span>{{ certification.approvalDate }}</span>
-                </div>
-              </b-col>
-              <b-col md="4">
-                <div class="detail-item">
-                  <strong>رئیس کمیته:</strong>
-                  <span>{{ certification.committeeHead }}</span>
-                </div>
-              </b-col>
-            </b-row>
-          </div>
-
-          <div class="mt-4">
-            <b-button variant="outline-success" class="mr-3" @click="downloadCertificate">
-              <b-icon icon="download" class="ml-1"></b-icon>
-              دریافت گواهی PDF
-            </b-button>
-            <b-button variant="outline-info" @click="printResults">
-              <b-icon icon="printer" class="ml-1"></b-icon>
-              چاپ نتایج
-            </b-button>
-          </div>
-        </div>
-      </b-card>
-
       <!-- Share Results -->
       <b-card class="share-card">
         <div class="text-center">
@@ -381,6 +306,10 @@
           <p class="text-muted mb-4">نتایج انتخابات را با دیگران به اشتراک بگذارید</p>
 
           <div class="share-buttons">
+            <b-button variant="outline-info" @click="printResults">
+              <b-icon icon="printer" class="ml-1"></b-icon>
+              چاپ نتایج
+            </b-button>
             <b-button variant="outline-primary" class="share-btn" @click="shareTelegram">
               <b-icon icon="telegram"></b-icon>
               تلگرام
@@ -399,48 +328,26 @@
             </b-button>
           </div>
 
-          <div class="mt-4">
-            <b-alert variant="info" show class="text-right">
-              <b-icon icon="info-circle" class="ml-1"></b-icon>
-              نتایج نهایی در تاریخ {{ finalResults.declarationDate }} به صورت رسمی اعلام گردید.
-              برای اعتراض به نتایج تا تاریخ {{ finalResults.objectionDeadline }} فرصت دارید.
-            </b-alert>
-          </div>
         </div>
       </b-card>
     </b-container>
 
     <!-- Statistics Footer -->
-    <b-container fluid class="stats-footer py-4" v-if="electionStatusAll === 'ended'">
-      <b-row>
-        <b-col md="3" class="text-center">
-          <div class="stat-number">{{ finalResults.duration }}</div>
-          <div class="stat-label">مدت انتخابات</div>
-        </b-col>
-        <b-col md="3" class="text-center">
-          <div class="stat-number">{{ finalResults.locations }}</div>
-          <div class="stat-label">شعبه رأی‌گیری</div>
-        </b-col>
-        <b-col md="3" class="text-center">
-          <div class="stat-number">{{ formatNumber(finalResults.observers) }}</div>
-          <div class="stat-label">ناظر انتخابات</div>
-        </b-col>
-        <b-col md="3" class="text-center">
-          <div class="stat-number">{{ finalResults.transparency }}%</div>
-          <div class="stat-label">شفافیت فرآیند</div>
-        </b-col>
-      </b-row>
+    <b-container fluid class="stats-footer text-center py-4" v-if="electionStatusAll === 'ended'">
+      صندوق ذخیره فرهنگیان
     </b-container>
   </div>
 </template>
 
 <script>
 import Chart from 'chart.js';
+import { apiUrlrtb } from '../../constants/config'
 import { mapGetters, mapActions, mapMutations } from "vuex";
 export default {
   name: "ElectionFinalResults",
   data() {
     return {
+      apiUrlrtb,
       electionDate: '۱۴۰۲/۱۱/۱۵',
       viewMode: 'table',
 
@@ -451,10 +358,10 @@ export default {
 
       // Final Results Data
       finalResults: {
-        totalVotes: 125480,
-        participationRate: 68.3,
-        totalCandidates: 8,
-        invalidVotes: 1245,
+        totalVotes: 0,
+        participationRate: 0,
+        totalCandidates: 0,
+        invalidVotes: 0,
         declarationDate: '۱۴۰۲/۱۱/۱۶',
         objectionDeadline: '۱۴۰۲/۱۱/۲۰',
         duration: '۲۴ ساعت',
@@ -476,104 +383,7 @@ export default {
       },
 
       // Candidates Data
-      candidates: [
-        {
-          id: 1,
-          name: 'دکتر محمدرضا احمدی',
-          position: 'استاد دانشگاه - علوم تربیتی',
-          photo: 'assets/img/avatars/image2.png?text=MA',
-          votes: 45680,
-          percentage: 36.4,
-          color: '#3F51B5',
-          comparison: 2.5,
-          status: 'winner',
-          previousMember: false
-        },
-        {
-          id: 2,
-          name: 'مهندس سید علی حسینی',
-          position: 'مدیر آموزش و پرورش منطقه ۵',
-          photo: 'assets/img/avatars/image3.png?text=SH',
-          votes: 39875,
-          percentage: 31.8,
-          color: '#4CAF50',
-          comparison: 1.8,
-          status: 'runner_up',
-          previousMember: true
-        },
-        {
-          id: 3,
-          name: 'دکتر فاطمه کریمی',
-          position: 'معاون پژوهشی - پژوهشگاه مطالعات',
-          photo: 'assets/img/avatars/image4.png?text=FK',
-          votes: 18680,
-          percentage: 14.9,
-          color: '#FF9800',
-          comparison: -0.5,
-          status: 'qualified',
-          previousMember: false
-        },
-        {
-          id: 4,
-          name: 'دکتر مهدی محمدی',
-          position: 'رئیس اسبق صندوق ذخیره',
-          photo: 'assets/img/avatars/image5.png?text=MM',
-          votes: 9875,
-          percentage: 7.9,
-          color: '#9C27B0',
-          comparison: 3.2,
-          status: 'qualified',
-          previousMember: true
-        },
-        {
-          id: 5,
-          name: 'مهندس رضا نوروزی',
-          position: 'مدیر فناوری اطلاعات آموزش و پرورش',
-          photo: 'assets/img/avatars/image6.png?text=RN',
-          votes: 5654,
-          percentage: 4.5,
-          color: '#2196F3',
-          comparison: 1.2,
-          status: 'qualified',
-          previousMember: false
-        },
-        {
-          id: 6,
-          name: 'دکتر مریم سلیمانی',
-          position: 'کارشناس ارشد مالی',
-          photo: 'assets/img/avatars/image7.png?text=MS',
-          votes: 2345,
-          percentage: 1.9,
-          color: '#E91E63',
-          comparison: 0.8,
-          status: 'not_qualified',
-          previousMember: false
-        },
-        {
-          id: 7,
-          name: 'مهندس حسین رضایی',
-          position: 'مدیرعامل اسبق شرکت سرمایه‌گذاری',
-          photo: 'assets/img/avatars/image8.png?text=HR',
-          votes: 1234,
-          percentage: 1.0,
-          color: '#795548',
-          comparison: -1.2,
-          status: 'not_qualified',
-          previousMember: false
-        },
-        {
-          id: 8,
-          name: 'دکتر ناصر جعفری',
-          position: 'حقوقدان و مشاور حقوقی',
-          photo: 'assets/img/avatars/imagen1.png?text=NJ',
-          votes: 987,
-          percentage: 0.8,
-          color: '#607D8B',
-          comparison: 0.5,
-          status: 'not_qualified',
-          previousMember: false
-        }
-      ],
+      candidates: [],
 
       // Region Results
       regionResults: [
@@ -583,46 +393,6 @@ export default {
         { id: 4, name: 'شیراز', votes: 10650, participation: 61.7, winner: 'دکتر محمدرضا احمدی' },
         { id: 5, name: 'تبریز', votes: 9540, participation: 59.4, winner: 'مهندس سید علی حسینی' },
         { id: 6, name: 'کرج', votes: 8760, participation: 63.1, winner: 'دکتر محمدرضا احمدی' }
-      ],
-
-      // Timeline Events
-      timelineEvents: [
-        {
-          date: '۱۴۰۲/۱۰/۰۱',
-          title: 'آغاز ثبت‌نام کاندیداتوری',
-          description: 'شروع ثبت‌نام داوطلبان عضویت در هیئت مدیره',
-          type: 'start'
-        },
-        {
-          date: '۱۴۰۲/۱۰/۱۵',
-          title: 'پایان ثبت‌نام',
-          description: '۸ نفر برای انتخابات ثبت‌نام کردند',
-          type: 'registration'
-        },
-        {
-          date: '۱۴۰۲/۱۰/۲۰',
-          title: 'اعلام لیست نهایی کاندیداها',
-          description: 'لیست نهایی کاندیداهای تأیید صلاحیت شده',
-          type: 'announcement'
-        },
-        {
-          date: '۱۴۰۲/۱۱/۱۴',
-          title: 'شروع انتخابات',
-          description: 'آغاز رأی‌گیری الکترونیکی',
-          type: 'vote_start'
-        },
-        {
-          date: '۱۴۰۲/۱۱/۱۵',
-          title: 'پایان انتخابات',
-          description: 'پایان رأی‌گیری و بسته شدن صندوق‌ها',
-          type: 'vote_end'
-        },
-        {
-          date: '۱۴۰۲/۱۱/۱۶',
-          title: 'اعلام نتایج نهایی',
-          description: 'اعلام رسمی نتایج توسط کمیته نظارت',
-          type: 'results'
-        }
       ],
 
       // Certification Data
@@ -637,7 +407,6 @@ export default {
         { key: 'rank', label: 'رتبه', sortable: false },
         { key: 'candidate', label: 'کاندیدا', sortable: false },
         { key: 'votes', label: 'آرا', sortable: true },
-        { key: 'comparison', label: 'تغییر نسبت به پیش‌بینی', sortable: true },
         { key: 'status', label: 'وضعیت', sortable: true }
       ],
 
@@ -653,12 +422,13 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(["electionStatusAll"]),
+    ...mapGetters(["electionStatusAll", "ConfigInfo"]),
     sortedCandidates() {
       return [...this.candidates].sort((a, b) => b.votes - a.votes);
     },
 
     maxVotes() {
+      if (!this.candidates.length) return 1;
       return Math.max(...this.candidates.map(c => c.votes));
     },
 
@@ -666,8 +436,11 @@ export default {
       return this.sortedCandidates.slice(0, 5);
     }
   },
-  mounted() {
-    this.initializeCharts();
+  async mounted() {
+    if (!this.ConfigInfo) {
+      await this.getConfig();
+    }
+    await this.loadFinalResults();
     this.generateShareLink();
   },
   beforeUnmount() {
@@ -683,11 +456,77 @@ export default {
     }
   },
   methods: {
+    ...mapActions(["getConfig", "getInfoVote"]),
     // Formatting
     formatNumber(num) {
       return new Intl.NumberFormat('fa-IR').format(num);
     },
+    async loadFinalResults() {
+      const data = await this.getInfoVote();
+      this.infoVote = data;
 
+      const totalVotes = Number(data?.totalVotes) || 0;
+      const listCandidates = data?.listCan || [];
+
+      const colors = ['#3F51B5', '#4CAF50', '#FF9800', '#9C27B0', '#2196F3', '#E91E63', '#795548', '#607D8B'];
+
+      this.candidates = listCandidates.map((candidate, index) => {
+        const votes = Number(candidate.vote_count) || 0;
+        const percentage = totalVotes ? Number(((votes / totalVotes) * 100).toFixed(1)) : 0;
+        return {
+          id: candidate.id ?? index,
+          name: `${candidate.first_name || ''} ${candidate.last_name || ''}`.trim(),
+          position: candidate.org_position_desc || '',
+          photo: candidate.user_photo ? `${this.apiUrlrtb}/${candidate.user_photo}` : null,
+          votes,
+          percentage,
+          color: colors[index % colors.length],
+          status: index === 0 ? 'winner' : 'qualified',
+          quote: 'به امید روزهای خوب برای صندوق',
+          previousMember: false
+        };
+      });
+
+      this.candidates = this.candidates.sort((a, b) => b.votes - a.votes);
+
+      const winner = this.candidates[0];
+      const runnerUp = this.candidates[1];
+      const margin = winner && runnerUp && totalVotes
+        ? Number((((winner.votes - runnerUp.votes) / totalVotes) * 100).toFixed(1))
+        : 0;
+
+      this.winner = winner
+        ? {
+          ...winner,
+          margin
+        }
+        : {
+          id: null,
+          name: '',
+          position: '',
+          photo: null,
+          votes: 0,
+          percentage: 0,
+          margin: 0,
+          quote: this.winner.quote
+        };
+
+      this.finalResults = {
+        ...this.finalResults,
+        totalVotes,
+        participationRate: Number(data?.voterParticipation) || 0,
+        totalCandidates: Number(data?.Candidates) || this.candidates.length,
+        invalidVotes: Number(data?.invalidVotes) || 0
+      };
+
+      if (this.ConfigInfo?.EndDate) {
+        this.electionDate = new Date(this.ConfigInfo.EndDate).toLocaleDateString('fa-IR');
+      }
+
+      this.$nextTick(() => {
+        this.initializeCharts();
+      });
+    },
     // Chart Initialization
     initializeCharts() {
       this.createParticipationChart();
@@ -743,6 +582,7 @@ export default {
       const ctx = this.$refs.resultsChart?.getContext('2d');
       if (!ctx) return;
 
+      if (!this.sortedCandidates.length) return;
       if (this.resultsChart) {
         this.resultsChart.destroy();
       }
@@ -817,6 +657,8 @@ export default {
       const ctx = this.$refs.distributionChart?.getContext('2d');
       if (!ctx) return;
 
+      if (!this.sortedCandidates.length || !this.finalResults.totalVotes) return;
+
       if (this.distributionChart) {
         this.distributionChart.destroy();
       }
@@ -873,17 +715,6 @@ export default {
       return 'primary';
     },
 
-    getComparisonClass(value) {
-      if (value > 0) return 'comparison-up';
-      if (value < 0) return 'comparison-down';
-      return 'comparison-neutral';
-    },
-
-    getComparisonIcon(value) {
-      if (value > 0) return 'arrow-up';
-      if (value < 0) return 'arrow-down';
-      return 'dash';
-    },
 
     getStatusVariant(status) {
       const variants = {
@@ -943,18 +774,6 @@ export default {
       }, 1000);
     },
 
-    downloadCertificate() {
-      // In real app, this would download the official certificate
-      alert('گواهی رسمی نتایج در حال دانلود...');
-      // Simulate download
-      setTimeout(() => {
-        this.$bvToast.toast('گواهی رسمی نتایج دانلود شد', {
-          title: 'موفقیت',
-          variant: 'success',
-          solid: true
-        });
-      }, 1000);
-    },
 
     printResults() {
       window.print();
@@ -1133,6 +952,18 @@ export default {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
+.winner-photo.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f0f0;
+  color: #9e9e9e;
+}
+
+.winner-photo.placeholder .b-icon {
+  font-size: 3rem;
+}
+
 .winner-crown {
   position: absolute;
   top: -10px;
@@ -1289,30 +1120,6 @@ export default {
   font-weight: bold;
   font-size: 1.1rem;
   margin-bottom: 5px;
-}
-
-.comparison {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 12px;
-  border-radius: 15px;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.comparison-up {
-  background: rgba(76, 175, 80, 0.1);
-  color: #2E7D32;
-}
-
-.comparison-down {
-  background: rgba(244, 67, 54, 0.1);
-  color: #C62828;
-}
-
-.comparison-neutral {
-  background: rgba(158, 158, 158, 0.1);
-  color: #616161;
 }
 
 .chart-container {

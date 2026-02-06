@@ -1,7 +1,7 @@
 <template>
   <div class="live-election-page">
     <!-- Header with Timer -->
-    <b-container fluid class="election-header py-4">
+    <b-container fluid class="election-header py-4" v-if="electionStatusAll == 'active'">
       <b-row class="align-items-center">
         <b-col cols="12" md="8">
           <div class="d-flex align-items-center">
@@ -45,7 +45,7 @@
     </b-container>
 
     <!-- Main Content -->
-    <b-container class="election-container">
+    <b-container class="election-container" v-if="electionStatusAll == 'active'">
       <!-- Quick Stats -->
       <b-row class="mb-4">
         <b-col cols="6" md="4">
@@ -190,7 +190,9 @@
       </b-row>
 
     </b-container>
-
+    <b-container fluid class=" py-4" v-else>
+      <b-alert show class="text-center" variant="danger">انتخابات فعال نمی‌باشد!</b-alert>
+    </b-container>
     <!-- Region Details Modal -->
     <b-modal v-model="showRegionModal" :title="selectedRegion ? selectedRegion.name : ''" size="lg" hide-footer centered
       scrollable>
@@ -298,7 +300,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(["ConfigInfo", "currentUser"]),
+    ...mapGetters(["ConfigInfo", "currentUser", "electionStatusAll"]),
     sortedCandidates() {
       return [...this.candidates].sort((a, b) => b.vote_count - a.vote_count);
     },
@@ -477,11 +479,6 @@ export default {
     showAllRegions() {
       // In real app, navigate to regions page
       alert('صفحه استان‌ها در حال توسعه است');
-    },
-
-    showLocationsMap() {
-      // In real app, show map with locations
-      alert('نقشه شعبه‌ها در حال توسعه است');
     },
 
     startAutoRefresh() {
