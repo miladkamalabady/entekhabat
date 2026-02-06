@@ -9,8 +9,7 @@ $db->connect();
 /* =========================
    3. Query status
 ========================= */
-$sql = "SELECT *  FROM config";
-
+$sql = "SELECT *  FROM config where id=1";
 $res = $db->query($sql);
 
 if (!$res || !$res->num_rows) {
@@ -22,13 +21,15 @@ if (!$res || !$res->num_rows) {
     exit;
 }
 $row = $res->fetch_assoc();
-$row['EndDates']=jdate('H:i Y-n-j ', strtotime($row['EndDate']), '', '', 'en');
-    $row['startDates']=jdate('H:i Y-n-j', strtotime($row['startDate']), '', '', 'en');
+$row['endDates'] = jdate('l j F Y', strtotime($row['EndDate']), '', '', 'en');
+$row['endTime'] = jdate('H:i', strtotime($row['EndDate']), '', '', 'en');
+$row['startDates'] = jdate('l j F Y', strtotime($row['startDate']), '', '', 'en');
+$row['startTime'] = jdate('H:i', strtotime($row['startDate']), '', '', 'en');
 /* =========================
    4. Response
 ========================= */
 echo json_encode([
     'status' => true,
     'data' => $row
-    
+
 ], JSON_UNESCAPED_UNICODE);

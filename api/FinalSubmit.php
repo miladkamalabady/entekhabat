@@ -41,6 +41,8 @@ create_date = NOW()");
 
 $db->query("update users set roles='CANDIDATE' where national_id='{$nationalId}'");
 
+$db->query("INSERT INTO `logs`(`nationalId`, `action`, `description`) VALUES ('{$nationalId}','ثبت کاندید','تغییر کد {$nationalId} ثبت نام کرد')");
+
 echo json_encode([
     'status' => true,
     'message' => 'ثبت نهایی با موفقیت انجام شد.',
