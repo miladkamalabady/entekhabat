@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 06, 2026 at 10:25 PM
+-- Generation Time: Feb 07, 2026 at 01:11 AM
 -- Server version: 10.4.24-MariaDB
 -- PHP Version: 7.4.29
 
@@ -74,7 +74,7 @@ CREATE TABLE `config` (
 --
 
 INSERT INTO `config` (`id`, `startDate`, `EndDate`, `create_date`, `active`) VALUES
-(1, '2026-02-06 04:30:00', '2026-02-08 18:30:00', '2026-02-06 18:07:17', 1);
+(1, '2026-02-06 04:30:00', '2026-02-07 18:30:00', '2026-02-06 18:07:17', 1);
 
 -- --------------------------------------------------------
 
@@ -139,7 +139,8 @@ INSERT INTO `logs` (`id`, `nationalId`, `action`, `create_date`, `description`) 
 (20, '0534921973', 'تغییر وضعیت تبلیغ', '2026-02-06 17:27:33', 'تغییر کد 6 به SUPERVISOR'),
 (21, '0534921973', 'تغییر وضعیت تبلیغ', '2026-02-06 17:27:53', 'تغییر کد 6 به '),
 (22, '0534921972', 'تغییر وضعیت تبلیغ', '2026-02-06 17:55:10', 'تغییر کد 5 به CANDIDATE'),
-(23, '0534921972', 'ثبت رای', '2026-02-06 21:08:46', ' کد 0534921972 به 5 رای داد');
+(23, '0534921972', 'ثبت رای', '2026-02-06 21:08:46', ' کد 0534921972 به 5 رای داد'),
+(24, '0534921972', 'ثبت رای', '2026-02-07 00:08:11', ' کد 0534921972 به 2 رای داد');
 
 -- --------------------------------------------------------
 
@@ -269,7 +270,31 @@ CREATE TABLE `voters` (
 --
 
 INSERT INTO `voters` (`id`, `candidateId`, `createdate`, `usernationalid`, `trackingCode`) VALUES
-(1, 5, '2026-02-06 21:08:46', '0534921972', 'VT12126127');
+(1, 5, '2026-02-06 21:08:46', '05349219721', 'VT12126127'),
+(4, 2, '2026-02-07 00:08:11', '0534921972', 'VT22891182');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `voting_tokens`
+--
+
+CREATE TABLE `voting_tokens` (
+  `id` bigint(20) NOT NULL,
+  `user_id` varchar(20) NOT NULL,
+  `token_hash` varchar(255) NOT NULL,
+  `expires_at` datetime NOT NULL,
+  `used` tinyint(4) DEFAULT 0,
+  `used_at` datetime DEFAULT NULL,
+  `created_at` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `voting_tokens`
+--
+
+INSERT INTO `voting_tokens` (`id`, `user_id`, `token_hash`, `expires_at`, `used`, `used_at`, `created_at`) VALUES
+(6, '0534921972', '3316377c35a02808ac40a1069b6e08861f48a9447282b9a6c5d675f11b654fcb', '2026-02-07 03:40:11', 1, '2026-02-07 03:38:11', '2026-02-07 03:38:11');
 
 --
 -- Indexes for dumped tables
@@ -334,6 +359,13 @@ ALTER TABLE `voters`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `voting_tokens`
+--
+ALTER TABLE `voting_tokens`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_token` (`token_hash`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -359,7 +391,7 @@ ALTER TABLE `final_submissions`
 -- AUTO_INCREMENT for table `logs`
 --
 ALTER TABLE `logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -383,7 +415,13 @@ ALTER TABLE `user_documents`
 -- AUTO_INCREMENT for table `voters`
 --
 ALTER TABLE `voters`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT for table `voting_tokens`
+--
+ALTER TABLE `voting_tokens`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- Constraints for dumped tables
