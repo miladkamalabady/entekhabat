@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 07, 2026 at 01:11 AM
+-- Generation Time: Feb 07, 2026 at 01:39 AM
 -- Server version: 10.4.24-MariaDB
 -- PHP Version: 7.4.29
 
@@ -54,6 +54,33 @@ INSERT INTO `advertisements` (`id`, `nationalId`, `title`, `create_date`, `descr
 (4, '0534921972', 'عنوان تبلیغ1', '2026-02-06 15:24:38', 'متن تبلیغ\r\n111', 'uploads/advertisements/ad_20260206_185438_2e30a3e2.png', 'video', 'active', NULL, NULL, 3, 'https://www.a.com', '2026-02-06 17:22:48', NULL, NULL),
 (5, '0534921972', 'عنوان تبلیغ12', '2026-02-06 15:25:07', 'متن تبلیغ2', 'uploads/advertisements/ad_20260206_185507_fb4262ed.png', 'text', 'active', NULL, NULL, 2, 'https://www.a.com', '2026-02-06 17:55:10', 'CANDIDATE', ''),
 (6, '0534921972', 'عنوان تبلیغ13', '2026-02-06 15:25:23', 'متن تبلیغ\r\n22', 'uploads/advertisements/ad_20260206_185523_00b35e17.png', 'popup', 'active', NULL, NULL, 7, 'https://www.a.com', '2026-02-06 17:29:33', 'SUPERVISOR', '123');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `api_rate_limits`
+--
+
+CREATE TABLE `api_rate_limits` (
+  `id` int(11) NOT NULL,
+  `ip` varchar(45) DEFAULT NULL,
+  `route` varchar(100) DEFAULT NULL,
+  `request_count` int(11) DEFAULT 1,
+  `last_request` datetime DEFAULT NULL,
+  `blocked_until` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Dumping data for table `api_rate_limits`
+--
+
+INSERT INTO `api_rate_limits` (`id`, `ip`, `route`, `request_count`, `last_request`, `blocked_until`) VALUES
+(3, '::1', 'getConfig', 1, '2026-02-07 04:07:26', NULL),
+(4, '::1', 'getstateCandid', 1, '2026-02-07 04:07:26', NULL),
+(5, '::1', 'getCandidsList', 2, '2026-02-07 04:07:39', NULL),
+(6, '::1', 'getVote', 2, '2026-02-07 04:07:39', NULL),
+(7, '::1', 'getAdvertisements', 1, '2026-02-07 04:07:36', NULL),
+(8, '::1', 'getInfoVote', 1, '2026-02-07 04:07:41', NULL);
 
 -- --------------------------------------------------------
 
@@ -307,6 +334,14 @@ ALTER TABLE `advertisements`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `api_rate_limits`
+--
+ALTER TABLE `api_rate_limits`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `ip` (`ip`),
+  ADD KEY `route` (`route`);
+
+--
 -- Indexes for table `config`
 --
 ALTER TABLE `config`
@@ -317,7 +352,8 @@ ALTER TABLE `config`
 --
 ALTER TABLE `final_submissions`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `uniq_final_submit_national_id` (`nationalId`);
+  ADD UNIQUE KEY `uniq_final_submit_national_id` (`nationalId`),
+  ADD UNIQUE KEY `nationalId` (`nationalId`);
 
 --
 -- Indexes for table `logs`
@@ -336,7 +372,8 @@ ALTER TABLE `users`
 -- Indexes for table `userstatus`
 --
 ALTER TABLE `userstatus`
-  ADD PRIMARY KEY (`user_id`);
+  ADD PRIMARY KEY (`user_id`),
+  ADD UNIQUE KEY `nationalId` (`nationalId`);
 
 --
 -- Indexes for table `user_addresses`
@@ -350,13 +387,15 @@ ALTER TABLE `user_addresses`
 --
 ALTER TABLE `user_documents`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `uniq_user_docs_national_id` (`nationalId`);
+  ADD UNIQUE KEY `uniq_user_docs_national_id` (`nationalId`),
+  ADD UNIQUE KEY `nationalId` (`nationalId`);
 
 --
 -- Indexes for table `voters`
 --
 ALTER TABLE `voters`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `usernationalid` (`usernationalid`);
 
 --
 -- Indexes for table `voting_tokens`
@@ -374,6 +413,12 @@ ALTER TABLE `voting_tokens`
 --
 ALTER TABLE `advertisements`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
+-- AUTO_INCREMENT for table `api_rate_limits`
+--
+ALTER TABLE `api_rate_limits`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `config`

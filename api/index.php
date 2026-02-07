@@ -17,8 +17,9 @@ if (empty($route) && !empty($path)) {
 $method = $_SERVER['REQUEST_METHOD'];
 define('API_CALL', true);
 
-// برای debug
-// error_log("Route requested: " . $route);
+require_once 'rateLimit.php';
+$route = $_GET['route'] ?? '';
+checkRateLimit($route, 12, 60, 30);
 
 // لیست routeهای مجاز
 $allowed_routes = [
