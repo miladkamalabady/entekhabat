@@ -20,7 +20,7 @@
             <div class="voter-id">کد ملی: {{ currentUser.national_id }}</div>
             <div class="voter-status">
               <b-badge :variant="voteStatus === 'voted' ? 'success' : 'warning'">
-                {{ electionStatusAll === 'active' ? getVoteStatusText() : 'پایان یافته'}}
+                {{ electionStatusAll === 'active' ? getVoteStatusText() : 'پایان یافته' }}
               </b-badge>
             </div>
           </div>
@@ -227,7 +227,7 @@
                 <div class="selected-candidate-info">
                   <h3 class="selected-name"> {{ selectedCandidate.gender ? 'آقای' : 'خانم' }} {{
                     selectedCandidate.first_name
-                    }} {{ selectedCandidate.last_name }}</h3>
+                  }} {{ selectedCandidate.last_name }}</h3>
                   <p class="selected-position">{{ selectedCandidate.org_position_desc }}</p>
 
                   <div class="selected-details">
@@ -495,8 +495,6 @@ export default {
   data() {
     return {
       isMobile, apiUrlrtb,
-      // Voter Information
-
       // Voting Status
       voteStatus: 'not_voted', // 'not_voted', 'voted'
       currentStep: 1,
@@ -586,11 +584,16 @@ export default {
     }
   },
   async mounted() {
-    this.candidates = await this.getCandidsList()
+    if (this.electionStatusAll == 'inactive')
+      this.$router.push('/home');
+    else {
 
-    this.checkVoteStatus();
-    this.startTimer();
-    this.startCooldownTimer();
+      this.candidates = await this.getCandidsList()
+
+      this.checkVoteStatus();
+      this.startTimer();
+      this.startCooldownTimer();
+    }
   },
   beforeUnmount() {
     if (this.cooldownInterval) {
@@ -598,7 +601,7 @@ export default {
     }
   },
   methods: {
-    ...mapActions(["getCandidsList", "getVote", "insertVote"]),
+    ...mapActions(["getCandidsList", "getVote", "insertVote", "createVoteToken"]),
     // Step Navigation
     nextStep() {
       if (this.currentStep < 4) {
@@ -750,10 +753,6 @@ export default {
       this.submitting = true;
 
       try {
-        // Simulate API call
-        // await new Promise(resolve => setTimeout(resolve, 3000));
-
-        // Generate tracking code
         this.voteTrackingCode = 'VT' + Date.now().toString().slice(-8);
         this.voteDate = this.getCurrentDate();
         this.voteTime = this.getCurrentTime();
@@ -764,15 +763,16 @@ export default {
         // Move to success step
         this.nextStep();
 
+
+        const token = await this.createVoteToken();
+        await this.insertVote({ vote_token: token.vote_token, usernationalid: this.selectedCandidate.id, trackingCode: this.voteTrackingCode })
+
         this.$bvToast.toast('رأی شما با موفقیت ثبت شد', {
           title: 'ثبت رأی موفق',
           variant: 'success',
           solid: true
         });
 
-
-        await this.insertVote({ usernationalid: this.selectedCandidate.id, trackingCode: this.voteTrackingCode })
-        //localStorage.setItem('lastVote', JSON.stringify(voteLog));
 
       } catch (error) {
         console.error('Vote submission error:', error);

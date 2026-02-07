@@ -23,7 +23,7 @@ commit.commit('setProcessing', true)
   let user = userinfo.state.currentUser;
 
   let config = {
-    url: apiUrlrtb + url+".php",
+    url: apiUrlrtb + url,
     method: method || 'POST',
     retry: 1,
     retryDelay: 32000,

@@ -244,6 +244,11 @@ export default {
       if (response?.status) 
         commit('clearError');
       return response.data;
+    },async createVoteToken({ commit }, payload) {
+      const response = await apiservice({ name: "createVoteToken"}, { commit });
+      if (response?.status) 
+        commit('clearError');
+      return response;
     },
 
   }

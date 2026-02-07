@@ -1,6 +1,6 @@
 <?php
 header("Access-Control-Allow-Origin: http://localhost:2000");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+header("Access-Control-Allow-Methods: GET, POST");
 header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
 header("Access-Control-Allow-Credentials: true");
 
@@ -14,7 +14,10 @@ define("DB_PASS", "");
 define("DB_NAME", "entekhabat");
 date_default_timezone_set('Asia/Tehran');
 
-
+// if (!defined('API_CALL')) {
+//     http_response_code(403);
+//     exit("Forbidden");
+// }
 class DB
 {
     private $connection;
@@ -34,7 +37,7 @@ class DB
     {
         $this->connection = mysqli_connect(DB_SERVR, DB_USER, DB_PASS);
         if (!$this->connection) {
-            die('Database Connection failed. <br>' . mysqli_error($this->connection));
+            die('Database Connection failed. <br>');
         } else {
             $db_select = mysqli_select_db($this->connection, DB_NAME);
             if (!$db_select) {
@@ -69,7 +72,7 @@ class DB
             if ($this->magic_quotes_active) {
                 $value = stripslashes($value);
             }
-            $value = mysqli_real_escape_string($value);
+            $value = mysqli_real_escape_string($this->connection,$value);
         } else {
             if (!$this->magic_quotes_active) {
                 $value = addslashes($value);
@@ -91,11 +94,7 @@ class DB
     {
         return mysqli_fetch_row($result);
     }
-    public function result($result, $row, $field)
-    {
-        return mysqli_result($result, $row, $field);
-    }
-    public function num_rows($result)
+     public function num_rows($result)
     {
         return mysqli_num_rows($result);
     }

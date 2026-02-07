@@ -1,0 +1,15 @@
+RewriteEngine On
+
+# جلوگیری از لیست شدن فایل‌ها
+Options -Indexes
+
+# اگر فایل واقعی بود مستقیم باز شود
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# اگر فولدر واقعی بود مستقیم باز شود
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# همه درخواست‌ها را بفرست به api/index.php
+RewriteRule ^(.*)$ index.php?route=$1 [QSA,L]

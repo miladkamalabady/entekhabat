@@ -47,6 +47,9 @@ const global = {
     },getInfoVote: {
         url: "/getInfoVote",
         method: 'GET'
+    },createVoteToken: {
+        url: "/createVoteToken",
+        method: 'POST'
     }
     
 };
