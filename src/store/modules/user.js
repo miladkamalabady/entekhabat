@@ -11,7 +11,7 @@ export default {
     ChangeStateInfo: null,
     stateCandidInfo: null,
     EXECUTIVEListInfo: null,
-    ConfigInfo:null,
+    ConfigInfo: null,
     requestStatus: null,
     hasActiveRequest: false,
     electionStatusAll: 'inactive',
@@ -22,7 +22,9 @@ export default {
     candidateFiles: {
       photo: null,
       degree: null,
-      noAddiction: null
+      noAddiction: null,
+      soPishine: null,
+      ravan: null
     }
   },
   getters: {
@@ -107,7 +109,7 @@ export default {
     }, setEXECUTIVEListInfo(state, payload) {
       state.EXECUTIVEListInfo = payload
       state.loginError = null
-    },setConfigInfo(state, payload) {
+    }, setConfigInfo(state, payload) {
       state.ConfigInfo = payload
       state.loginError = null
     },
@@ -190,7 +192,7 @@ export default {
             commit('clearError')
           }
         })
-    },advertisementsSave({ commit }, payload) {
+    }, advertisementsSave({ commit }, payload) {
       return apiservice({ name: "advertisementsSave", params: payload }, { commit })
         .then(response => {
           if (response?.status) {
@@ -198,57 +200,64 @@ export default {
           }
           return response
         })
-    },async getAdvertisements({ commit }, payload) {
+    }, async getAdvertisements({ commit }, payload) {
       const response = await apiservice({ name: "getAdvertisements", params: payload }, { commit });
       if (response?.status) {
         commit('clearError');
       }
       return response.data;
-    },async increaseViewAdd({ commit }, payload) {
+    }, async increaseViewAdd({ commit }, payload) {
       const response = await apiservice({ name: "increaseViewAdd", params: payload }, { commit });
       if (response?.status) {
         commit('clearError');
       }
       return response.data;
-    },async deleteAdv({ commit }, payload) {
+    }, async deleteAdv({ commit }, payload) {
       const response = await apiservice({ name: "deleteAdv", params: payload }, { commit });
       if (response?.status) {
         commit('clearError');
       }
       return response.data;
-    },async getConfig({ commit }, payload) {
+    }, async getConfig({ commit }, payload) {
       const response = await apiservice({ name: "getConfig" }, { commit });
       if (response?.status) {
-         commit('setConfigInfo', response.data)
+        commit('setConfigInfo', response.data)
         commit('clearError');
       }
       return response.data;
-    },async getCandidsList({ commit }, payload) {
+    }, async getCandidsList({ commit }, payload) {
       const response = await apiservice({ name: "getCandidsList" }, { commit });
       if (response?.status) {
         commit('clearError');
       }
       return response.data;
-    },async insertVote({ commit }, payload) {
+    }, async insertVote({ commit }, payload) {
       const response = await apiservice({ name: "insertVote", params: payload }, { commit });
-      if (response?.status) 
+      if (response?.status) {
+        commit('clearError');
+        return response;
+      }
+      else return false
+    }, async getVote({ commit }, payload) {
+      const response = await apiservice({ name: "getVote" }, { commit });
+      if (response?.status)
         commit('clearError');
       return response.data;
-    },async getVote({ commit }, payload) {
-      const response = await apiservice({ name: "getVote"}, { commit });
-      if (response?.status) 
+    }, async getInfoVote({ commit }, payload) {
+      const response = await apiservice({ name: "getInfoVote" }, { commit });
+      if (response?.status)
         commit('clearError');
       return response.data;
-    },async getInfoVote({ commit }, payload) {
-      const response = await apiservice({ name: "getInfoVote"}, { commit });
-      if (response?.status) 
-        commit('clearError');
-      return response.data;
-    },async createVoteToken({ commit }, payload) {
-      const response = await apiservice({ name: "createVoteToken"}, { commit });
-      if (response?.status) 
+    }, async createVoteToken({ commit }, payload) {
+      const response = await apiservice({ name: "createVoteToken" }, { commit });
+      if (response?.status)
         commit('clearError');
       return response;
+    },async submitFeedback({ commit }, payload) {
+      const response = await apiservice({ name: "submitFeedback" , params: payload}, { commit });
+      if (response?.status)
+        commit('clearError');
+      return response.data;
     },
 
   }

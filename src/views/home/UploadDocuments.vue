@@ -19,11 +19,17 @@
             <b-colxx xxs="12" xs="4">
               <document-upload title="عکس پرسنلی" :file.sync="files.photo" />
             </b-colxx>
-            <b-colxx xxs="12" xs="4">
+            <b-colxx xxs="12" xs="4" v-if="currentUser?.userType == 4">
               <document-upload title="مدرک تحصیلی" :file.sync="files.degree" />
             </b-colxx>
             <b-colxx xxs="12" xs="4">
               <document-upload title="گواهی عدم اعتیاد" :file.sync="files.noAddiction" />
+            </b-colxx>
+            <b-colxx xxs="12" xs="4">
+              <document-upload title="گواهی عدم سوپیشینه" :file.sync="files.soPishine" />
+            </b-colxx>
+            <b-colxx xxs="12" xs="4">
+              <document-upload title="گواهی سلامت روانی و جسمی " :file.sync="files.ravan" />
             </b-colxx>
           </b-row>
           <!-- Actions -->
@@ -53,7 +59,17 @@ export default {
   computed: {
     ...mapGetters(["UploadUserDocumentsInfo", "currentUser"]),
     canSubmit() {
-      return Object.values(this.files).every(f => f !== null && f.raw);
+      const requiredFields = Object.keys(this.files).filter(key => {
+        if (key === 'degree' && this.currentUser?.userType != 4) {
+          return false;
+        }
+        return true;
+      });
+
+      return requiredFields.every(key => {
+        const f = this.files[key];
+        return f && f.raw;
+      });
     },
     progress() {
       return this.canSubmit ? 90 : 80;
@@ -66,7 +82,9 @@ export default {
       files: {
         photo: null,
         degree: null,
-        noAddiction: null
+        noAddiction: null,
+        soPishine: null,
+        ravan: null
       }
     };
   },
@@ -89,10 +107,13 @@ export default {
 
       this.submitting = true;
       try {
-              const formData = new FormData();
-      formData.append("user_photo", this.files.photo.raw);
-      formData.append("education_doc", this.files.degree.raw);
-      formData.append("employment_cert", this.files.noAddiction.raw);
+        const formData = new FormData();
+        formData.append("user_photo", this.files.photo.raw);
+        if (this.currentUser?.userType == 4)
+          formData.append("education_doc", this.files.degree.raw);
+        formData.append("employment_cert", this.files.noAddiction.raw);
+        formData.append("soPishine_cert", this.files.soPishine.raw);
+        formData.append("ravan_cert", this.files.ravan.raw);
         this.UploadUserDocuments(formData);
 
 
@@ -120,7 +141,9 @@ export default {
       this.files = {
         photo: this.$store.state.candidateFiles.photo || null,
         degree: this.$store.state.candidateFiles.degree || null,
-        noAddiction: this.$store.state.candidateFiles.noAddiction || null
+        noAddiction: this.$store.state.candidateFiles.noAddiction || null,
+        soPishine: this.$store.state.candidateFiles.soPishine || null,
+        ravan: this.$store.state.candidateFiles.ravan || null
       };
     }
   }

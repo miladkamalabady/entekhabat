@@ -105,8 +105,8 @@
         style="width: 35px; cursor: pointer"
       />
 
-      <span class="small">
-        {{ currentUser?.full_name }} 
+      <span class="small text-center">
+        {{ currentUser?.full_name }}<br/> <span>{{ currentUser?.userType==3 ? 'شاغل' : 'بازنشسته' }} - {{ currentUser?.regionName }}</span>
       </span>
       
     </div>

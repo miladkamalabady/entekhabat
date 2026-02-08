@@ -16,34 +16,31 @@
                   <h5 class="mb-2 text-primary-org">
                     سامانه انتخابات صندوق ذخیره فرهنگیان
                   </h5>
-                    
+
                   <ElectionStatusTimer :config-info="ConfigInfo" />
                 </div>
-                <CustomStepper v-if="(currentUser?.roles.includes('CANDIDATE')) && requestStatus && electionStatusAll!='active' && electionStatusAll!='ended'" :steps="stepperSteps"
-                  :current-step="currentStep" :disabled="processing" />
-                <!-- درخواست ثبت شده -->
-                <b-alert v-if="requestStatus === 'SUBMITTED'" variant="warning" show>
-                  ⏳ درخواست شما ثبت شده و در حال بررسی توسط واحد اجرایی است
-                </b-alert>
-                <b-alert v-if="requestStatus === 'EXECUTIVE_APPROVED'" variant="success" show>
-                  ⏳ درخواست شما توسط واحد اجرایی تایید شده است و در حال بررسی توسط واحد نظارت است
-                </b-alert>
-                <b-alert v-if="requestStatus === 'EXECUTIVE_REJECTED'" variant="warning" show>
-                  ⏳ درخواست شما توسط واحد اجرایی رد شده است و در حال بررسی توسط واحد نظارت است
-                </b-alert>
-                <b-alert v-else-if="requestStatus === 'SUPERVISION_REJECTED'" variant="danger" show>
-                  ❌ درخواست شما رد شده است
-                  <br />
-                  <b-button variant="outline-danger" class="mt-2" @click="$router.push('/candidate/objection')">
-                    ثبت اعتراض
-                  </b-button>
-                </b-alert>
-
+                <div v-if="electionStatusAll == 'upcoming'">
+                  <CustomStepper
+                    v-if="(currentUser?.roles.includes('CANDIDATE')) && requestStatus "
+                    :steps="stepperSteps" :current-step="currentStep" :disabled="processing" />
+                  <!-- درخواست ثبت شده -->
+                  <b-alert v-if="requestStatus === 'SUBMITTED' || requestStatus === 'EXECUTIVE_APPROVED' || requestStatus === 'EXECUTIVE_REJECTED'" variant="warning" show>
+                    ⏳ درخواست شما ثبت شده و در حال بررسی توسط مراجع است
+                  </b-alert>
+                  <b-alert v-else-if="requestStatus === 'SUPERVISION_REJECTED'" variant="danger" show>
+                    ❌ درخواست شما رد شده است
+                    <br />
+                    <b-button variant="outline-danger" class="mt-2" @click="$router.push('/candidate/objection')">
+                      ثبت اعتراض
+                    </b-button>
+                  </b-alert>
+                </div>
                 <!-- Menu -->
                 <b-row>
                   <b-col v-for="(item, index) in filteredMenu" :key="index" cols="12" sm="4" class="mb-3">
                     <b-card class="dashboard-card h-100"
-                      :class="{ disabled: (item.electionStatusAll && item.electionStatusAll!=electionStatusAll) }" @click="handleClick(item)">
+                      :class="{ disabled: (item.electionStatusAll && item.electionStatusAll != electionStatusAll) }"
+                      @click="handleClick(item)">
                       <div class="icon mb-2">
                         <i :class="item.icon"></i>
                       </div>
@@ -52,7 +49,7 @@
                         {{ item.title }}
                       </div>
 
-                      <b-badge v-if="item.badge && electionStatusAll=='active'" variant="warning" class="mt-2">
+                      <b-badge v-if="item.badge && electionStatusAll == 'active'" variant="warning" class="mt-2">
                         {{ item.badge }}
                       </b-badge>
                     </b-card>
@@ -80,40 +77,39 @@ export default {
     Sidebar, CustomStepper, ElectionStatusTimer
   },
   computed: {
-    ...mapGetters(["ConfigInfo", "sidebarVisible", "processing", "loginError", "currentUser","electionStatusAll", "requestStatus"]),
+    ...mapGetters(["ConfigInfo", "sidebarVisible", "processing", "loginError", "currentUser","stateCandidInfo", "electionStatusAll", "requestStatus"]),
     filteredMenu() {
       return this.menu.filter(item => {
         const roleAllowed = item.roles.includes(this.currentUser?.roles[0])
+
         const statusAllowed = item.visibleWhen
           ? item.visibleWhen(this.requestStatus)
           : true
 
         return roleAllowed && statusAllowed
       })
-    }, currentStep() {
+    }, currentStep() {      
       return this.STATUS_STEP_MAP[this.requestStatus] ?? 0
     },
 
   }, mounted() {
-
-    // if (this.requestStatus == 'DRAFT' || this.requestStatus == 'CANDIDATE' || this.requestStatus == 'CONDITIONS_ACCEPTED' || this.requestStatus == 'DOCUMENTS_UPLOADED')
-    //   this.setRequestStatus(null)
+    if (!this.ConfigInfo && this.currentUser)
+      this.getConfig()
   },
   data() {
     return {
       STATUS_STEP_MAP: {
         DRAFT: 0,
         SUBMITTED: 1,
-        EXECUTIVE_APPROVED: 2,
-        EXECUTIVE_REJECTED: 2,
-        SUPERVISION_APPROVED: 4,
-        SUPERVISION_REJECTED: 3
+        EXECUTIVE_APPROVED: 1,
+        EXECUTIVE_REJECTED: 1,
+        SUPERVISION_APPROVED: 3,
+        SUPERVISION_REJECTED: 2
       },
       isMobile,
       stepperSteps: [
         { title: "ثبت درخواست", description: "ثبت درخواست", state: ["DRAFT"] },
-        { title: "بررسی واحد اجرایی", description: "بررسی واحد اجرایی", state: ["SUBMITTED"] },
-        { title: "بررسی واحد نظارت", description: "بررسی واحد نظارت", state: ["EXECUTIVE_APPROVED", "EXECUTIVE_REJECTED"] },
+        { title: "بررسی توسط مراجع", description: "بررسی توسط مراجع", state: ["SUBMITTED", "EXECUTIVE_APPROVED", "EXECUTIVE_REJECTED"] },
         { title: "ثبت اعتراض", description: "ثبت اعتراض", state: ["SUPERVISION_APPROVED", "SUPERVISION_REJECTED"] },
         { title: "ثبت تبلیغات", description: "ثبت تبلیغات", state: ["SUPERVISION_APPROVED"] },],
       menu: [
@@ -122,6 +118,7 @@ export default {
           route: '/candidate/request',
           icon: 'bi bi-person-plus',
           roles: ['VOTER'],
+          // electionStatusAll:'upcoming',
           visibleWhen: status => !status
         },
         {
@@ -141,7 +138,7 @@ export default {
           route: '/candidate/advertise',
           icon: 'bi bi-megaphone',
           roles: ['CANDIDATE'],
-          electionStatusAll:'pending',
+          electionStatusAll: 'upcoming',
           visibleWhen: status => status === 'SUPERVISION_APPROVED'
         },
         {
@@ -155,24 +152,24 @@ export default {
           title: 'شرکت در انتخابات',
           route: '/User/votingPage',
           icon: 'bi bi-check2-square',
-          roles: ['CANDIDATE', 'VOTER','EXECUTIVE','SUPERVISOR'],
-          electionStatusAll:'active',
+          roles: ['CANDIDATE', 'VOTER', 'EXECUTIVE', 'SUPERVISOR'],
+          electionStatusAll: 'active',
           badge: 'در حال رأی‌گیری'
         },
         {
           title: 'مشاهده نتایج مرحله اول',
           route: '/results/live-election',
           icon: 'bi bi-bar-chart',
-          roles: ['VOTER', 'CANDIDATE','EXECUTIVE','SUPERVISOR'],
-          electionStatusAll:'active',
+          roles: ['VOTER', 'CANDIDATE', 'EXECUTIVE', 'SUPERVISOR'],
+          electionStatusAll: 'active',
           badge: 'نمایش زنده'
         },
         {
           title: 'مشاهده نتایج',
           route: '/results/final-election',
           icon: 'bi bi-bar-chart',
-          roles: ['VOTER', 'CANDIDATE','EXECUTIVE','SUPERVISOR'],
-          electionStatusAll:'ended',
+          roles: ['VOTER', 'CANDIDATE', 'EXECUTIVE', 'SUPERVISOR'],
+          electionStatusAll: 'ended',
           badge: 'نمایش نهایی'
         }
       ]
@@ -180,7 +177,7 @@ export default {
   },
   methods: {
     ...mapMutations(["setRequestStatus"]),
-    ...mapActions([]),
+    ...mapActions(["getConfig"]),
     go(route) {
       this.$router.push(route)
     },

@@ -4,7 +4,8 @@ require_once 'readToken.php';
 header('Content-Type: application/json; charset=utf-8');
 $input = json_decode(file_get_contents('php://input'), true);
 $db->connect();
-
+$db->query("SET autocommit=0");
+$db->query("START TRANSACTION");
 /* =========================
    3. Query status
 ========================= */
@@ -42,7 +43,7 @@ create_date = NOW()");
 $db->query("update users set roles='CANDIDATE' where national_id='{$nationalId}'");
 
 $db->query("INSERT INTO `logs`(`nationalId`, `action`, `description`) VALUES ('{$nationalId}','ثبت کاندید','تغییر کد {$nationalId} ثبت نام کرد')");
-
+$db->query("COMMIT");
 echo json_encode([
     'status' => true,
     'message' => 'ثبت نهایی با موفقیت انجام شد.',

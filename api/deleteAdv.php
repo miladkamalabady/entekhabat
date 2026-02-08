@@ -4,7 +4,8 @@ require_once 'readToken.php';
 header('Content-Type: application/json; charset=utf-8');
 $input = json_decode(file_get_contents('php://input'), true);
 $db->connect();
-
+$db->query("SET autocommit=0");
+$db->query("START TRANSACTION");
 /* =========================
    3. Query status
 ========================= */
@@ -42,7 +43,7 @@ $res = $db->query($sql);
 
 $sql = "INSERT INTO `logs`(`nationalId`, `action`, `description`) VALUES ('{$nationalId}','تغییر وضعیت تبلیغ','تغییر کد {$id} به {$c}')";
 $res = $db->query($sql);
-
+$db->query("COMMIT");
 echo json_encode([
     'status' => true,
     'message' => ' با موفقیت انجام شد.' . $row['deleter'],

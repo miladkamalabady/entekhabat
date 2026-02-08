@@ -37,6 +37,8 @@ function generateJWT($payload)
 }
 
 $db->connect();
+$db->query("SET autocommit=0");
+$db->query("START TRANSACTION");
 
 /* =========================
    1. Validate input
@@ -55,7 +57,7 @@ if (!$code) {
 $curl = curl_init();
 
 curl_setopt_array($curl, [
-    CURLOPT_URL => 'https://my1.medu.ir/api/sso/UserInfo',
+    CURLOPT_URL => 'http://192.168.13.60:5002/api/sso/UserInfo',
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_FOLLOWLOCATION => true,
     CURLOPT_TIMEOUT => 10,
@@ -100,7 +102,7 @@ $data['madrak'] = 1;
 $nationalId = $data['nationalID'];
 
 
-$check = $db->query("SELECT id,roles FROM users WHERE national_id = '{$nationalId}'");
+$check = $db->query("SELECT id,roles,regionName FROM users WHERE national_id = '{$nationalId}'");
 $user  = $check->fetch_assoc();
 
 /* =========================
@@ -136,15 +138,20 @@ if ($user) {
     ";
     $db->query($sql);
     $action = 'updated';
+    $regionName=$user['regionName'];
 } else {
-
+$check = $db->query("SELECT `name` FROM region WHERE id = {$data['regionId']}");
+$reg  = $check->fetch_assoc();
+$regionName='';
+if ($reg) 
+$regionName=$reg['name'];
     // INSERT
     $sql = "
         INSERT INTO users (
             national_id, first_name, last_name, father_name, gender,
             birth_date, persian_birth_date, mobile, user_type, verified,
             employee_key, personnel_code, org_position_code, org_position_desc,
-            org_position_type_code, org_position_type_desc, region_id,
+            org_position_type_code, org_position_type_desc, region_id,regionName,
             is_foreigner, ip_address, created_at,roles
         ) VALUES (
             '{$nationalId}',
@@ -164,6 +171,7 @@ if ($user) {
             {$data['orgPositionTypeCode']},
             '{$db->escape($data['orgPositionTypeDesc'])}',
             {$data['regionId']},
+            '{$regionName}',
             " . ($data['isForeigner'] ? 1 : 0) . ",
             '{$data['ip']}',
             NOW(),'{$data['roles']}'
@@ -224,7 +232,7 @@ if (!empty($data['ozvsandogh'])) {
 /////jwt////////
 $jwtPayload = [
     'national_id'   => $nationalId,
-    'roles'  => $data['roles'],
+    'roles'  => $data['roles'],'regionName' => $regionName,
 ];
 
 $token = generateJWT($jwtPayload);
@@ -234,6 +242,7 @@ $token = generateJWT($jwtPayload);
 /* =========================
    6. API Response
 ========================= */
+$db->query("COMMIT");
 echo json_encode([
     'status' => true,
     'action' => $action, // inserted | updated
@@ -243,7 +252,7 @@ echo json_encode([
         'personnel_code' => $data['personnelCode'],
         'orgPositionDesc' => $data['orgPositionDesc'],
         'full_name' => trim($data['firstName'] . ' ' . $data['lastName']),
-        'roles' => [$data['roles']],
+        'roles' => [$data['roles']],'regionName' => $regionName,
         'regionId' => $data['regionId']
     ],
     'token' => $token

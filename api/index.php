@@ -37,6 +37,8 @@ $allowed_routes = [
     'getCandidsList',
     'insertVote',
     'getVote',
+    'submitFeedback',
+    'UploadUserDocuments',
     'createVoteToken',
     'getInfoVote'
 ];

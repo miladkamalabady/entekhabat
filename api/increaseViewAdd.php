@@ -4,7 +4,8 @@ require_once 'readToken.php';
 header('Content-Type: application/json; charset=utf-8');
 $input = json_decode(file_get_contents('php://input'), true);
 $db->connect();
-
+$db->query("SET autocommit=0");
+$db->query("START TRANSACTION");
 /* =========================
    3. Query status
 ========================= */
@@ -34,7 +35,8 @@ $c=$row['views']+1;
 $sql = "update advertisements set views={$c} WHERE id = {$id}";
 $res = $db->query($sql);
 
-
+/* کامیت تراکنش */
+$db->query("COMMIT");
 echo json_encode([
     'status' => true,
     'message' => ' با موفقیت انجام شد.',

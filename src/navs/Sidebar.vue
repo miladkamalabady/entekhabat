@@ -144,7 +144,7 @@ export default {
   mounted() {
     if(!this.stateCandidInfo && this.currentUser?.roles=='CANDIDATE')
     this.getstateCandid()
-  if(!this.ConfigInfo)
+  if(!this.ConfigInfo && this.currentUser)
     this.getConfig()
 
     this.setpanelactiveparvande(this.$route?.name)
@@ -211,7 +211,7 @@ export default {
   watch: {
     stateCandidInfo(val){
       if(val){
-        this.setRequestStatus(val)
+        this.setRequestStatus(val?.requestStatus)
       }
     }
   },

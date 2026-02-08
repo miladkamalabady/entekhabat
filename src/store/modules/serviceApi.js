@@ -50,6 +50,9 @@ const global = {
     },createVoteToken: {
         url: "/createVoteToken",
         method: 'POST'
+    },submitFeedback: {
+        url: "/submitFeedback",
+        method: 'POST'
     }
     
 };

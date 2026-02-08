@@ -69,83 +69,15 @@
 
     <!-- Main Voting Content -->
     <b-container class="voting-content" v-if="electionStatusAll === 'active' || electionStatusAll === 'ended'">
-      <!-- Step 1: Authentication -->
-      <div v-if="currentStep === 0" class="step-container">
-        <b-card class="auth-card">
-          <div class="text-center mb-4">
-            <div class="auth-icon">
-              <b-icon icon="shield-lock-fill"></b-icon>
-            </div>
-            <h4>احراز هویت رأی‌دهنده</h4>
-            <p class="text-muted">لطفاً اطلاعات هویتی خود را تأیید کنید</p>
-          </div>
-
-          <b-form @submit.prevent="verifyIdentity">
-            <b-row>
-              <b-col md="6">
-                <b-form-group label="کد ملی" label-for="national-id">
-                  <b-form-input id="national-id" v-model="authData.nationalId" :state="authState.nationalId"
-                    placeholder="مثال: ۰۰۱۲۳۴۵۶۷۸" required maxlength="10"></b-form-input>
-                  <b-form-invalid-feedback>
-                    کد ملی معتبر نیست
-                  </b-form-invalid-feedback>
-                </b-form-group>
-              </b-col>
-              <b-col md="6">
-                <b-form-group label="شماره همراه" label-for="mobile">
-                  <b-form-input id="mobile" v-model="authData.mobile" :state="authState.mobile"
-                    placeholder="مثال: ۰۹۱۲۳۴۵۶۷۸۹" required></b-form-input>
-                  <b-form-invalid-feedback>
-                    شماره همراه معتبر نیست
-                  </b-form-invalid-feedback>
-                </b-form-group>
-              </b-col>
-            </b-row>
-
-            <b-form-group label="کد تأیید" label-for="verification-code" class="mt-3">
-              <b-input-group>
-                <b-form-input id="verification-code" v-model="authData.verificationCode"
-                  :state="authState.verificationCode" placeholder="کد ۶ رقمی ارسال شده" maxlength="6"
-                  required></b-form-input>
-                <b-input-group-append>
-                  <b-button variant="outline-primary" @click="sendVerificationCode" :disabled="cooldown > 0">
-                    <span v-if="cooldown > 0">
-                      {{ cooldown }} ثانیه
-                    </span>
-                    <span v-else>
-                      دریافت کد
-                    </span>
-                  </b-button>
-                </b-input-group-append>
-              </b-input-group>
-              <small class="form-text text-muted">
-                کد تأیید به شماره همراه شما ارسال خواهد شد
-              </small>
-            </b-form-group>
-
-            <div class="text-center mt-4">
-              <b-button type="submit" variant="primary" size="lg" :disabled="verifying">
-                <b-spinner small v-if="verifying" class="ml-1"></b-spinner>
-                تأیید هویت و ادامه
-              </b-button>
-            </div>
-          </b-form>
-
-          <div class="auth-note mt-4">
-            <b-alert variant="info" show class="text-right">
-              <b-icon icon="info-circle" class="ml-1"></b-icon>
-              اطلاعات شما صرفاً برای احراز هویت استفاده می‌شود و محرمانه باقی می‌ماند.
-            </b-alert>
-          </div>
-        </b-card>
-      </div>
 
       <!-- Step 2: Candidates List -->
-      <div v-else-if="currentStep === 1 && electionStatusAll === 'active'" class="step-container">
+      <div v-if="currentStep === 1 && electionStatusAll === 'active'" class="step-container">
         <b-card>
           <div class="text-center mb-4">
             <h4>لیست کاندیداهای انتخابات</h4>
-            <p class="text-muted">لطفاً اطلاعات کاندیداها را مطالعه کنید</p>
+            <p v-if="maxVotes" class="text-muted">لطفاً اطلاعات کاندیداها را مطالعه کنید<br />
+              تعداد حداکثر کاندید انتخابی در حوزه <u class="text-success">{{ currentUser?.regionName }}</u> تعداد <u
+                class="text-success">{{ maxVotes }}</u> کاندید می‌باشد</p>
           </div>
 
           <div class="candidates-filter mb-4">
@@ -161,9 +93,19 @@
               </template>
             </b-input-group>
           </div>
+
+          <div class="text-center mt-2 mb-4">
+            <b-button variant="primary" @click="goToConfirmation" :disabled="selectedCandidates?.length === 0">
+              <b-icon icon="arrow-left" class="ml-1"></b-icon>
+              ادامه به انتخاب نهایی
+            </b-button>
+            <b-button variant="outline-secondary" class="mr-3" @click="prevStep">
+              بازگشت
+            </b-button>
+          </div>
           <b-row>
-            <b-col v-for="candidate in filteredCandidates" :key="candidate.id" cols="12" md="6" lg="4" class="mb-4">
-              <b-card class="candidate-card h-100" :class="{ 'selected': selectedCandidate?.id === candidate.id }"
+            <b-col v-for="candidate in filteredCandidates" :key="candidate.id" cols="12" md="4" lg="3" class="mb-4">
+              <b-card class="candidate-card h-100" :class="{ 'selected': selectedCandidates?.includes(candidate.id) }"
                 @click="previewCandidate(candidate)">
                 <!-- Candidate Image -->
                 <div class="candidate-image-container mb-3">
@@ -173,10 +115,11 @@
                 </div>
                 <!-- Candidate Info -->
                 <h5 class="candidate-name">{{ candidate.first_name }} {{ candidate.last_name }}</h5>
-                <p class="candidate-position text-muted">{{ candidate.org_position_desc }}</p>
+                <p class="candidate-position" :class="{ 'text-muted': !selectedCandidates?.includes(candidate.id) }">{{
+                  candidate.org_position_desc }}</p>
 
                 <!-- Candidate Stats -->
-                <div class="candidate-stats">
+                <div class="candidate-stats" :class="{ 'text-muted': !selectedCandidates?.includes(candidate.id) }">
                   <div class="stat-item">
                     <b-icon icon="award" class="ml-1"></b-icon>
                     {{ candidate.personnel_code }}
@@ -194,83 +137,72 @@
             </b-col>
           </b-row>
 
-          <div class="text-center mt-4">
-            <b-button variant="primary" @click="nextStep" :disabled="!selectedCandidate">
-              <b-icon icon="arrow-left" class="ml-1"></b-icon>
-              ادامه به انتخاب نهایی
-            </b-button>
-            <b-button variant="outline-secondary" class="mr-3" @click="prevStep">
-              بازگشت
-            </b-button>
-          </div>
         </b-card>
       </div>
 
       <!-- Step 3: Final Selection -->
       <div v-else-if="currentStep === 2" class="step-container">
         <b-card>
-          <div class="text-center mb-4">
-            <h4>انتخاب نهایی کاندیدا</h4>
-            <p class="text-muted">لطفاً انتخاب خود را نهایی کنید</p>
-          </div>
-
-          <div class="selection-container" v-if="selectedCandidate">
-            <b-row class="align-items-center">
-              <b-col md="5" class="text-center">
-                <div class="selected-candidate-image">
-                  <img :src="`${apiUrlrtb}/${selectedCandidate.user_photo}`" :alt="selectedCandidate.first_name"
-                    class="selected-image" />
-                </div>
-              </b-col>
-
-              <b-col md="7">
-                <div class="selected-candidate-info">
-                  <h3 class="selected-name"> {{ selectedCandidate.gender ? 'آقای' : 'خانم' }} {{
-                    selectedCandidate.first_name
-                  }} {{ selectedCandidate.last_name }}</h3>
-                  <p class="selected-position">{{ selectedCandidate.org_position_desc }}</p>
-
-                  <div class="selected-details">
-                    <div class="detail-item">
-                      <strong>تولد:</strong>
-                      <span>{{ selectedCandidate.persian_birth_date }}</span>
-                    </div>
-                    <div class="detail-item">
-                      <strong>کدکاندید:</strong>
-                      <span>{{ selectedCandidate.tracking_code }}</span>
-                    </div>
-                    <div class="detail-item">
-                      <strong>پرسنلی:</strong>
-                      <span>{{ selectedCandidate.personnel_code }}</span>
-                    </div>
-                    <div class="detail-item">
-                      <strong>شهر:</strong>
-                      <span>{{ selectedCandidate.region_id }}</span>
-                    </div>
-                  </div>
-
-                </div>
-              </b-col>
-            </b-row>
+          <div class="selection-container" v-if="selectedCandidates?.length">
 
             <!-- Confirmation -->
-            <div class="confirmation-section mt-5">
+            <div class="confirmation-section mt-1">
               <b-alert variant="warning" show class="text-center">
-                <h5 class="alert-heading">تأیید نهایی رأی</h5>
-                <p class="mb-3">آیا از انتخاب خود اطمینان دارید؟ پس از ثبت رأی، امکان تغییر وجود ندارد.</p>
+                <h5 class="alert-heading">بازبینی و تأیید نهایی رأی</h5>
+                <p class="mb-3"> شما افراد زیر را برای عضویت در هیئت مدیره صندوق ذخیره فرهنگیان انتخاب کرده‌اید. لطفاً
+                  لیست را
+                  با دقت بررسی نمایید. پس از ثبت، امکان تغییر رأی وجود نخواهد داشت. </p>
 
+                <!-- لیست انتخاب‌ها -->
+                <div class="selected-review-box mb-4">
+                  <b-row>
+                    <b-col v-for="cid in selectedCandidates" :key="cid" md="3" class="p-1 mb-2">
+                      <div class="review-item p-2">
+                        <div class="selected-candidate-image">
+                          <img :src="`${apiUrlrtb}/${findCandidate(cid).user_photo}`"
+                            :alt="findCandidate(cid).first_name" class="selected-image" />
+                        </div>
+
+                        <div class="selected-details">
+                          <div class="text-center">
+                            <span>{{ findCandidate(cid).gender ? 'آقای' : 'خانم' }} {{ findCandidate(cid).first_name }}
+                              {{
+                                findCandidate(cid).last_name }}</span>
+                            <hr />
+                          </div>
+                          <div class="detail-item">
+                            <strong>تولد:</strong>
+                            <span>{{ findCandidate(cid).persian_birth_date }}</span>
+                          </div>
+                          <div class="detail-item">
+                            <strong>کدکاندید:</strong>
+                            <span>{{ findCandidate(cid).tracking_code }}</span>
+                          </div>
+                          <div class="detail-item">
+                            <strong>پرسنلی:</strong>
+                            <span>{{ findCandidate(cid).personnel_code }}</span>
+                          </div>
+                          <div class="detail-item">
+                            <strong>منطقه:</strong>
+                            <span>{{ findCandidate(cid).regionName }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </b-col>
+                  </b-row>
+                </div>
+
+                <!-- چک تأیید -->
                 <div class="confirmation-check">
                   <b-form-checkbox v-model="confirmation.accepted" name="confirmation-check" :state="confirmationState">
-                    <span class="confirmation-text">
-                      تأیید می‌کنم که {{ selectedCandidate.name }} را به عنوان عضو هیئت مدیره صندوق ذخیره فرهنگیان
-                      انتخاب
-                      کرده‌ام و از غیرقابل تغییر بودن رأی اطلاع دارم.
-                    </span>
+                    <span class="confirmation-text"> اینجانب پس از
+                      مشاهده و بررسی کامل لیست فوق،
+                      انتخاب‌های خود را تأیید نموده و از غیرقابل تغییر بودن رأی پس از ثبت نهایی آگاه هستم. </span>
                   </b-form-checkbox>
-                  <b-form-invalid-feedback :state="confirmationState">
-                    لطفاً گزینه تأیید را انتخاب کنید
+                  <b-form-invalid-feedback :state="confirmationState"> لطفاً گزینه تأیید را انتخاب کنید
                   </b-form-invalid-feedback>
                 </div>
+
               </b-alert>
             </div>
 
@@ -329,11 +261,12 @@
                   <b-col md="6">
                     <div class="summary-item">
                       <strong>کاندیدای انتخاب شده:</strong>
-                      <span>{{ selectedCandidate?.first_name }} {{ selectedCandidate?.last_name }} </span>
+                      <span v-for="(cid, i) in selectedCandidate" :key="`${i}a`">{{ cid?.first_name }} {{ cid?.last_name
+                      }}<br /></span>
                     </div>
                     <div class="summary-item">
                       <strong>کد کاندیدای انتخاب شده:</strong>
-                      <span>{{ selectedCandidate?.id }}</span>
+                      <span v-for="(cid, i) in selectedCandidate" :key="`${i}b`">{{ cid?.candidate_id }}</span>
                     </div>
                     <div class="summary-item">
                       <strong>کدملی رأی‌دهنده:</strong>
@@ -366,12 +299,44 @@
               </b-alert>
             </div>
           </div>
+        
+          <h5 class="mb-3">
+            <b-icon icon="chat-dots-fill" class="ml-1"></b-icon>
+            نظر و امتیاز شما
+          </h5>
+
+          <!-- امتیاز ستاره -->
+          <div class="star-rating mb-3">
+            <b-form-group label="امتیاز (ستاره‌ها)" label-for="rating">
+              <div class="stars">
+                <span v-for="star in 5" :key="star" class="star" :class="{ filled: star <= feedback.rating }"
+                  @click="feedback.rating = star">★</span>
+              </div>
+            </b-form-group>
+          </div>
+
+          <!-- متن نظر -->
+          <b-form-group label="نظر شما" label-for="feedback-text">
+            <b-form-textarea id="feedback-text" v-model="feedback.comment" placeholder="نظر خود را بنویسید..." rows="3"
+              max-rows="6"></b-form-textarea>
+          </b-form-group>
+
+          <!-- دکمه ارسال -->
+          <div class="text-center mt-3">
+            <b-button variant="success" @click="submitFeedbackT" :disabled="submittingFeedback">
+              <b-spinner v-if="submittingFeedback" small class="ml-1"></b-spinner>
+              ارسال نظر
+            </b-button>
+          </div>
         </b-card>
+
       </div>
     </b-container>
 
     <!-- Candidate Preview Modal -->
-    <b-modal v-model="showCandidateModal" :title="previewCandidateData?.name" size="lg" hide-footer centered scrollable>
+    <b-modal v-model="showCandidateModal"
+      :title="`${previewCandidateData?.first_name} ${previewCandidateData?.last_name} `" size="lg" hide-footer centered
+      scrollable>
       <div v-if="previewCandidateData" class="candidate-preview">
         <b-row class="align-items-center mb-4">
           <b-col md="4" class="text-center">
@@ -395,8 +360,9 @@
 
         <b-tabs content-class="mt-3">
           <b-tab title="منطقه" active>
-            <p class="preview-text">{{ previewCandidateData.region_id }} -
-              {{ previewCandidateData.gender ? 'آقا' : 'خانم' }}</p>
+            <p class="preview-text">{{ previewCandidateData.regionName }} -
+              {{ previewCandidateData.gender ? 'آقا' : 'خانم' }} {{ previewCandidateData?.first_name }}
+              {{ previewCandidateData?.last_name }}</p>
           </b-tab>
 
           <!-- <b-tab title="سوابق کاری">
@@ -426,7 +392,7 @@
         </b-tabs>
 
         <div class="text-center mt-4">
-          <b-button variant="primary" @click="selectCandidate(previewCandidateData)" :disabled="voteStatus === 'voted'">
+          <b-button variant="primary" @click="toggleCandidate(previewCandidateData)" :disabled="voteStatus === 'voted'">
             <b-icon icon="check-circle" class="ml-1"></b-icon>
             انتخاب این کاندیدا
           </b-button>
@@ -488,15 +454,20 @@
 
 <script>
 import { isMobile } from "../../utils";
-import { apiUrlrtb } from '../../constants/config'
+import { apiUrlrtb, currentUser } from '../../constants/config'
 import { mapGetters, mapActions, mapMutations } from "vuex";
 export default {
   name: "VotingPage",
   data() {
     return {
       isMobile, apiUrlrtb,
+      feedback: {
+        rating: 0, // امتیاز 1 تا 5
+        comment: ''
+      },
+      submittingFeedback: false,
       // Voting Status
-      voteStatus: 'not_voted', // 'not_voted', 'voted'
+      voteStatus: '', // 'not_voted', 'voted'
       currentStep: 1,
       progress: 25,
       timeRemaining: '۲ ساعت و ۴۵ دقیقه',
@@ -528,7 +499,9 @@ export default {
       ],
 
       // Selected Candidate
-      selectedCandidate: null,
+      selectedCandidates: [],
+      maxVotes: null,
+      voteSessionToken: null,
       previewCandidateData: null,
       showCandidateModal: false,
 
@@ -584,15 +557,22 @@ export default {
     }
   },
   async mounted() {
-    if (this.electionStatusAll == 'inactive')
+    if (this.electionStatusAll == 'inactive') {
       this.$router.push('/home');
-    else {
+      return;
+    }
 
-      this.candidates = await this.getCandidsList()
-
-      this.checkVoteStatus();
+    try {
+      await this.checkVoteStatus();
       this.startTimer();
       this.startCooldownTimer();
+
+    } catch (e) {
+      this.$notify("warning", "هشدار", 'امکان ورود به صندوق رأی وجود ندارد', {
+        duration: 6000,
+        permanent: false,
+      });
+      this.$router.push('/home');
     }
   },
   beforeUnmount() {
@@ -601,7 +581,43 @@ export default {
     }
   },
   methods: {
-    ...mapActions(["getCandidsList", "getVote", "insertVote", "createVoteToken"]),
+    ...mapActions(["getCandidsList", "getVote", "insertVote", "createVoteToken","submitFeedback"]),
+    async submitFeedbackT() {
+      if (!this.feedback.comment && !this.feedback.rating) {
+        this.$bvToast.toast('لطفاً امتیاز یا نظر خود را وارد کنید', { variant: 'warning' });
+        return;
+      }
+
+      this.submittingFeedback = true;
+      try {
+        // ارسال به سرور
+      const ret= await this.submitFeedback({
+          rating: this.feedback.rating,
+          comment: this.feedback.comment
+        });
+        if(ret)
+        this.$bvToast.toast(ret, { variant: 'success' });
+        
+      } catch (err) {
+        console.error(err);
+        this.$bvToast.toast('خطا در ثبت نظر', { variant: 'danger' });
+      }
+      this.submittingFeedback = false;
+    },
+    goToConfirmation() {
+
+      if (this.selectedCandidates.length === 0) {
+        this.$bvToast.toast('حداقل یک کاندیدا باید انتخاب شود', {
+          variant: 'warning'
+        });
+        return;
+      }
+
+      this.nextStep();
+    },
+    findCandidate(id) {
+      return this.candidates.find(c => c.id == id) || {};
+    },
     // Step Navigation
     nextStep() {
       if (this.currentStep < 4) {
@@ -617,42 +633,6 @@ export default {
       }
     },
 
-    // Authentication
-    validateNationalId(id) {
-      if (!id || id.length !== 10) return false;
-
-      // Simple validation (in real app, use proper algorithm)
-      const regex = /^\d{10}$/;
-      return regex.test(id);
-    },
-
-    validateMobile(mobile) {
-      const regex = /^09\d{9}$/;
-      return regex.test(mobile);
-    },
-
-    sendVerificationCode() {
-      // Validate mobile
-      if (!this.validateMobile(this.authData.mobile)) {
-        this.authState.mobile = false;
-        return;
-      }
-
-      this.authState.mobile = true;
-
-      // Start cooldown
-      this.cooldown = 120; // 2 minutes
-
-      // Simulate API call
-      setTimeout(() => {
-        this.$bvToast.toast('کد تأیید به شماره همراه شما ارسال شد', {
-          title: 'ارسال کد',
-          variant: 'success',
-          solid: true
-        });
-      }, 1000);
-    },
-
     startCooldownTimer() {
       this.cooldownInterval = setInterval(() => {
         if (this.cooldown > 0) {
@@ -661,86 +641,39 @@ export default {
       }, 1000);
     },
 
-    async verifyIdentity() {
-      // Validate inputs
-      let valid = true;
-
-      if (!this.validateNationalId(this.authData.nationalId)) {
-        this.authState.nationalId = false;
-        valid = false;
-      } else {
-        this.authState.nationalId = true;
-      }
-
-      if (!this.validateMobile(this.authData.mobile)) {
-        this.authState.mobile = false;
-        valid = false;
-      } else {
-        this.authState.mobile = true;
-      }
-
-      if (!this.authData.verificationCode || this.authData.verificationCode.length !== 6) {
-        this.authState.verificationCode = false;
-        valid = false;
-      } else {
-        this.authState.verificationCode = true;
-      }
-
-      if (!valid) return;
-
-      this.verifying = true;
-
-      // Simulate API verification
-      try {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // Mock verification (in real app, verify with backend)
-        const mockCode = '123456';
-        if (this.authData.verificationCode === mockCode) {
-          this.$bvToast.toast('هویت شما با موفقیت تأیید شد', {
-            title: 'احراز هویت موفق',
-            variant: 'success',
-            solid: true
-          });
-
-          // Move to next step
-          this.nextStep();
-        } else {
-          this.$bvToast.toast('کد تأیید نامعتبر است', {
-            title: 'خطا در احراز هویت',
-            variant: 'danger',
-            solid: true
-          });
-          this.authState.verificationCode = false;
-        }
-      } catch (error) {
-        console.error('Verification error:', error);
-        this.$bvToast.toast('خطا در ارتباط با سرور', {
-          title: 'خطا',
-          variant: 'danger',
-          solid: true
-        });
-      } finally {
-        this.verifying = false;
-      }
-    },
-
     // Candidate Selection
     previewCandidate(candidate) {
       this.previewCandidateData = candidate;
       this.showCandidateModal = true;
     },
+    toggleCandidate(candidate) {
 
-    selectCandidate(candidate) {
-      this.selectedCandidate = candidate;
+      const id = candidate.id;
+      // اگر قبلاً انتخاب شده → حذف
+      if (this.selectedCandidates.includes(id)) {
+        this.selectedCandidates =
+          this.selectedCandidates.filter(c => c !== id);
+        this.showCandidateModal = false;
+        return;
+      }
+      // محدودیت تعداد
+      if (this.selectedCandidates.length >= this.maxVotes) {
+        this.$bvToast.toast(`حداکثر ${this.maxVotes} انتخاب مجاز است`, {
+          variant: 'warning'
+        });
+        this.showCandidateModal = false;
+        return;
+      }
+
+      this.selectedCandidates.push(id);
       this.showCandidateModal = false;
-
       this.$bvToast.toast(`کاندیدای ${candidate.first_name} ${candidate.last_name} انتخاب شد`, {
         title: 'انتخاب کاندیدا',
         variant: 'success',
         solid: true
       });
     },
+
 
     // Vote Submission
     async submitVote() {
@@ -753,42 +686,64 @@ export default {
       this.submitting = true;
 
       try {
-        this.voteTrackingCode = 'VT' + Date.now().toString().slice(-8);
-        this.voteDate = this.getCurrentDate();
-        this.voteTime = this.getCurrentTime();
-
-        // Update vote status
-        this.voteStatus = 'voted';
-
-        // Move to success step
-        this.nextStep();
-
-
-        const token = await this.createVoteToken();
-        await this.insertVote({ vote_token: token.vote_token, usernationalid: this.selectedCandidate.id, trackingCode: this.voteTrackingCode })
-
-        this.$bvToast.toast('رأی شما با موفقیت ثبت شد', {
-          title: 'ثبت رأی موفق',
-          variant: 'success',
-          solid: true
+        // ارسال یک درخواست به جای حلقه
+        const response = await this.insertVote({
+          vote_token: this.voteSessionToken,
+          candidateIds: this.selectedCandidates  // <-- آرایه همه کاندیداها
         });
 
+        if (response.status) {
+          // موفقیت
+          await this.checkVoteStatus()
+          this.voteStatus = 'voted';
 
-      } catch (error) {
-        console.error('Vote submission error:', error);
+          // // کد رهگیری سرور
+          // this.voteTrackingCode = response.data.tracking_code;
+
+          // // تاریخ و زمان رأی‌گیری
+          // const now = new Date();
+          // this.voteDate = now.toLocaleDateString('fa-IR');
+          // this.voteTime = now.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+
+          // // انتخاب کاندیدا (فقط برای نمایش)
+          // this.selectedCandidate = (this.selectedCandidates);
+
+          // // پاک کردن localStorage
+          localStorage.removeItem('ballot');
+
+          // رفتن به مرحله موفقیت
+          this.currentStep = 3;
+          this.progress = 100;
+
+
+          this.$bvToast.toast('رأی شما با موفقیت ثبت شد', {
+            variant: 'success'
+          });
+        } else {
+          this.$bvToast.toast(response.message || 'خطا در ثبت رأی', {
+            variant: 'danger'
+          });
+        }
+
+      } catch (e) {
+        console.error(e);
         this.$bvToast.toast('خطا در ثبت رأی', {
-          title: 'خطا',
-          variant: 'danger',
-          solid: true
+          variant: 'danger'
         });
-      } finally {
-        this.submitting = false;
       }
+
+      this.submitting = false;
     },
 
     // Success Actions
     downloadReceipt() {
       // Generate receipt content
+      //  <span  v-for="(cid,i) in selectedCandidate" :key="`${i}a`">{{ cid?.first_name }} {{ cid?.last_name }}<br/></span>
+      let na = ''; let ids = '';
+      this.selectedCandidate.forEach(element => {
+        na += element.first_name + ' ' + element.last_name + '-'
+        ids += element.candidate_id + '-'
+      });
 
       const receiptContent = `
         رسید رأی‌گیری الکترونیکی
@@ -804,9 +759,9 @@ export default {
         کد ملی: ${this.currentUser.national_id}
         
         کاندیدای انتخاب شده:
+        ${na}
         --------------------
-        نام: ${this.selectedCandidate?.first_name} ${this.selectedCandidate?.last_name}
-        سمت: ${this.selectedCandidate?.org_position_desc}
+        کد: ${ids}
         
         این سند به عنوان رسید رسمی رأی‌گیری محسوب می‌شود.
         
@@ -846,20 +801,35 @@ export default {
     async checkVoteStatus() {
       // Check if user has already voted (from localStorage for demo)
       const voteData = await this.getVote()
-      // const lastVote = localStorage.getItem('lastVote');
-      if (voteData) {
+      const isNumber = (value) => Number.isFinite(value);
+
+      if (!voteData) {
+        this.$notify("warning", "هشدار", 'امکان ورود به صندوق رأی وجود ندارد', {
+          duration: 6000,
+          permanent: false,
+        });
+        this.$router.push('/home');
+      }
+      else if (isNumber(voteData)) {
+        this.maxVotes = voteData;
+        this.voteStatus = 'not_voted';
+        const session = await this.createVoteToken();
+        this.voteSessionToken = session.vote_token;
+        this.candidates = await this.getCandidsList();
+      }
+      else if (voteData) {
         this.voteStatus = 'voted';
         this.currentStep = 3;
         this.progress = 100;
 
-        this.voteTrackingCode = voteData.trackingCode;
-        this.voteDate = new Date(voteData.createdate).toLocaleDateString('fa-IR');
-        this.voteTime = new Date(voteData.createdate).toLocaleTimeString('fa-IR');
+        this.voteTrackingCode = voteData[0].tracking_code;
+        this.voteDate = (voteData[0].date1);
+        this.voteTime = (voteData[0].Time1);
 
         // Find selected candidate
-        this.selectedCandidate = this.candidates?.find(c => c.id == voteData.candidateId);
-
+        this.selectedCandidate = voteData;
       }
+
     },
 
     getVoteStatusText() {
@@ -888,6 +858,18 @@ export default {
         }
       }, 60000); // Update every minute
     }
+  },
+  watch: {
+    selectedCandidates: {
+      handler(val) {
+        localStorage.setItem('ballot', JSON.stringify(val))
+      },
+      deep: true
+    }
+  },
+  created() {
+    const saved = localStorage.getItem('ballot');
+    if (saved) this.selectedCandidates = JSON.parse(saved);
   }
 };
 </script>
@@ -1023,8 +1005,8 @@ export default {
 }
 
 .candidate-card.selected {
-  border-color: #4CAF50;
-  background: #f8fff8;
+  border-color: #000;
+  background: #4CAF50;
 }
 
 .candidate-image-container {
@@ -1063,14 +1045,14 @@ export default {
 }
 
 .candidate-position {
-  font-size: 0.9rem;
+  font-size: 0.7rem;
   margin-bottom: 10px;
   min-height: 40px;
 }
 
 .candidate-stats {
   font-size: 0.8rem;
-  color: #666;
+  color: #5a5454;
 }
 
 .stat-item {
@@ -1081,16 +1063,16 @@ export default {
 
 /* Selected Candidate */
 .selected-candidate-image {
-  padding: 20px;
+  padding: 10px;
 }
 
 .selected-image {
-  width: 200px;
-  height: 200px;
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
   object-fit: cover;
   border: 5px solid #4CAF50;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 10px rgba(0, 0, 0, 0.2);
 }
 
 .selected-name {
@@ -1355,4 +1337,17 @@ export default {
     margin-bottom: 20px;
   }
 }
+.star-rating .stars {
+  display: inline-block;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+.star-rating .star {
+  color: #ccc;
+  margin-right: 4px;
+}
+.star-rating .star.filled {
+  color: gold;
+}
+
 </style>

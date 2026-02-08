@@ -4,7 +4,8 @@ require_once 'readToken.php';
 
 $db->connect();
 
-
+$db->query("SET autocommit=0");
+$db->query("START TRANSACTION");
 
 /* 2 — آیا قبلا رأی داده؟ */
 $check = $db->query("SELECT usernationalid  FROM voters WHERE usernationalid = '{$nationalId}'");
@@ -27,7 +28,7 @@ $expire = date("Y-m-d H:i:s", time() + 120); // 2 دقیقه
 $db->query(
     "INSERT INTO voting_tokens (user_id, token_hash, expires_at)
      VALUES ('{$nationalId}','$tokenHash', '$expire')");
-
+$db->query("COMMIT");
 echo json_encode([
     "status" => true,
     "vote_token" => $rawToken,

@@ -8,8 +8,6 @@ import global from '../../store/modules/serviceApi'
 import axios from 'axios'
 import qs from 'qs';
 
-
-
 export default async function (data, commit) {
   const urlInlineInsertResolver = (params, url) => {
     return url.replace(/\{\{(.*?)\}\}/ig, (target) => {
@@ -79,9 +77,15 @@ commit.commit('setProcessing', true)
       }
     })
     .catch(error => {
-      if (!error.response?.status) {
+      if(error.message==('Network Error') && location.href!='https://profile.medu.ir' && location.href!='http://localhost:2000/unauthorized'){
+        let err = "خطای ارتباط با سرور!";
+        commit.commit('setError', err)
+        
+        // if (location.href == 'https://profile.medu.ir/')
+        location.replace("/unauthorized");
+      }
+      else if (!error.response?.status) {
         commit.commit('clearError')
-
         return { status: 200, data: true };
       }
       else if (error.response?.status == 401) {

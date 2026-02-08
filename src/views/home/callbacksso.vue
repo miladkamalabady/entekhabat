@@ -37,7 +37,7 @@ export default {
     return {
       isMobile,
       adminRoot,
-      errorMessage:null,
+      errorMessage: null,
     };
   },
   computed: {
@@ -59,25 +59,25 @@ export default {
   async mounted() {
     const code = this.$route?.query?.code
 
-  if (!code && !this.currentUser) return
+    if (!code && !this.currentUser) return
 
-  if (code) {
-    await this.LoginUserSSO({ code: code })
-  }
+    if (code) {
+      await this.LoginUserSSO({ code: code })
+    }
 
 
   },
   watch: {
     currentUser(val) {
-    if (!val) return
-    this.$router.push({ name: 'home' })
-    if (this.$route?.query?.page) {
-      this.setpanelactiveparvande(this.$route.query.page)
-    }
+      if (!val) return
+        this.$router.push({ name: 'home' })
+      if (this.$route?.query?.page) {
+        this.setpanelactiveparvande(this.$route.query.page)
+      }
     },
     loginError(val) {
       if (val) {
-        this.errorMessage=val
+        this.errorMessage = val
       }
     },
   },

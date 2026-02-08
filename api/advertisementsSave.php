@@ -13,6 +13,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $db->connect();
+$db->query("SET autocommit=0");
+$db->query("START TRANSACTION");
 
 $input = [];
 if (!empty($_POST)) {
@@ -124,7 +126,7 @@ target_link = VALUES(target_link),
 status = VALUES(status)");
 
 $insertId = $id > 0 ? $id : $db->insert_id(null);
-
+$db->query("COMMIT");
 echo json_encode([
     'status' => true,
     'message' => 'تبلیغ با موفقیت ذخیره شد.',

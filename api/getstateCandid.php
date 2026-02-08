@@ -8,7 +8,7 @@ $db->connect();
 /* =========================
    3. Query status
 ========================= */
-$sql = "SELECT requestStatus  FROM final_submissions WHERE nationalId = '{$nationalId}'";
+$sql = "SELECT requestStatus,tracking_code  FROM final_submissions WHERE nationalId = '{$nationalId}'";
 
 $res = $db->query($sql);
 
@@ -28,6 +28,8 @@ $row = $res->fetch_assoc();
 ========================= */
 echo json_encode([
     'status' => true,
-    'data' => $row['requestStatus']
-    
+    'data' => [
+        'requestStatus' => $row['requestStatus'],
+        'tracking_code' => $row['tracking_code']
+    ]
 ], JSON_UNESCAPED_UNICODE);
