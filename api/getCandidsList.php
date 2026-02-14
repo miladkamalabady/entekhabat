@@ -6,27 +6,85 @@ header('Content-Type: application/json; charset=utf-8');
 
 $db->connect();
 
-/* =========================
-   3. Query status
-========================= */
-$roles =  $jwtData['roles'];
+function normalizeDigits($value)
+{
+    return tr_num((string)$value, 'en');
+}
+function normalizeToGregorianDateTime($value)
+{
+    if ($value === null) {
+        return null;
+    }
 
-$sql = "SELECT *  FROM config where id=1";
-$res = $db->query($sql);
-$row = $res->fetch_assoc();
+    $value = trim((string)$value);
+    if ($value === '') {
+        return null;
+    }
 
+    $value = normalizeDigits(str_replace('T', ' ', $value));
+    $parts = preg_split('/\s+/', $value);
+    $datePart = $parts[0] ?? '';
+    $timePart = $parts[1] ?? '00:00:00';
+
+    if (!preg_match('/^(\d{2,4})-(\d{1,2})-(\d{1,2})$/', $datePart, $m)) {
+        return null;
+    }
+
+    $year = (int)$m[1];
+    $month = (int)$m[2];
+    $day = (int)$m[3];
+
+    if (!preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $timePart)) {
+        $timePart = '00:00:00';
+    }
+    if (strlen($timePart) === 5) {
+        $timePart .= ':00';
+    }
+
+    if ($year < 1700) {
+        list($gy, $gm, $gd) = jalali_to_gregorian($year, $month, $day);
+        return sprintf('%04d-%02d-%02d %s', $gy, $gm, $gd, $timePart);
+    }
+
+    return sprintf('%04d-%02d-%02d %s', $year, $month, $day, $timePart);
+}
+
+$roles = $jwtData['roles'];
+$startDate = null;
+$endDate = null;
+
+$tableCheck = $db->query("SHOW TABLES LIKE 'election_schedule_events'");
+if ($tableCheck && $db->num_rows($tableCheck) > 0) {
+    $scheduleSql = "SELECT start_date, end_date FROM election_schedule_events WHERE event_key='voting' LIMIT 1";
+    $scheduleRes = $db->query($scheduleSql);
+    if ($scheduleRes && $db->num_rows($scheduleRes) > 0) {
+        $scheduleRow = $db->fetch_assoc($scheduleRes);
+        $startDate = normalizeToGregorianDateTime($scheduleRow['start_date'] ?? null);
+        $endDate = normalizeToGregorianDateTime($scheduleRow['end_date'] ?? null);
+    }
+}
+
+if (empty($startDate) || empty($endDate)) {
+    $sql = "SELECT startDate, EndDate FROM config WHERE id=1";
+    $res = $db->query($sql);
+    if ($res && $db->num_rows($res) > 0) {
+        $row = $db->fetch_assoc($res);
+        $startDate = normalizeToGregorianDateTime($row['startDate'] ?? null);
+        $endDate = normalizeToGregorianDateTime($row['EndDate'] ?? null);
+    }
+}
 
 // بررسی زمان انتخابات
 $now = time();
-$startTime = isset($row['startDate']) ? strtotime($row['startDate']) : 0;
-$endTime = isset($row['EndDate']) ? strtotime($row['EndDate']) : 0;
+$startTime = $startDate ? strtotime($startDate) : 0;
+$endTime = $endDate ? strtotime($endDate) : 0;
 
 // اگر تاریخ‌ها تنظیم نشده باشند
 if ($startTime === 0 || $endTime === 0) {
     http_response_code(400);
     echo json_encode([
         'status' => false,
-        'message' => 'زمان‌بندی انتخابات تنظیم نشده است'
+        'message' => 'زمان‌بندی انتخابات تنظیم نشده است'.$startDate
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }
@@ -66,10 +124,8 @@ $sql = "SELECT tracking_code,f.create_date,u.id,u.national_Id,u.first_name,u.las
 $res = $db->query($sql);
 
 $list = [];
-
-while ($row = $res->fetch_assoc()) {
-
-    $row['create_datesh']=jdate('H:i Y-n-j ', strtotime($row['create_date']), '', '', 'en');
+while ($row = $db->fetch_assoc($res)) {
+    $row['create_datesh'] = jdate('H:i Y-n-j ', strtotime($row['create_date']), '', '', 'en');
     $list[] = $row;
 }
 

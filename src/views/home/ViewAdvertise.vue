@@ -17,7 +17,6 @@
         </b-col>
       </b-row>
     </b-container>
-
     <!-- Main Content -->
     <b-container class="ads-container" v-if="electionStatusAll === 'upcoming'">
       <!-- Search and Filter -->
