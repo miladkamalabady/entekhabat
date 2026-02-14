@@ -469,10 +469,40 @@
 
         <!-- Ad Info -->
         <b-row class="mb-4">
-          <b-col md="6">
+          <!-- <b-col md="6">
             <div class="info-item">
               <strong>نوع تبلیغ:</strong>
               <span>{{ getAdTypeText(selectedAd.type) }}</span>
+            </div>
+          </b-col> -->
+          <b-col md="6">
+            <div class="info-item">
+              <strong>سوابق اجرایی مدیریتی:</strong>
+              <span>{{ selectedAd.managerialRecords }}</span>
+            </div>
+          </b-col>
+          <b-col md="6">
+            <div class="info-item">
+              <strong>سوابق علمی / پژوهشی:</strong>
+              <span>{{ selectedAd.academicRecords }}</span>
+            </div>
+          </b-col>
+          <b-col md="6">
+            <div class="info-item">
+              <strong>مدارج و افتخارات:</strong>
+              <span>{{ selectedAd.honors }}</span>
+            </div>
+          </b-col>
+          <b-col md="6">
+            <div class="info-item">
+              <strong>برنامه ها:</strong>
+              <span>{{ selectedAd.plans }}</span>
+            </div>
+          </b-col>
+          <b-col md="12">
+            <div class="info-item">
+              <strong>شعار تبلیغاتی:</strong>
+              <span>{{ selectedAd.slogan }}</span>
             </div>
           </b-col>
           <b-col md="6">
@@ -501,14 +531,12 @@
               <b-form-textarea id="ad-review-comment" v-model="adReviewComment" rows="3"
                 placeholder="نظر خود را در مورد این تبلیغ وارد کنید..."></b-form-textarea>
             </b-form-group>
-            <div class="text-center" v-if="selectedAd.deleter && selectedAd.deleter!='CANDIDATE'">
-              <b-button variant="success" @click="approveSelectedAd" :disabled="!adReviewComment">
+            <div class="text-center" >
+              <b-button variant="success" v-if="(selectedAd.deleter && selectedAd.deleter!='CANDIDATE') || selectedAd.status!='Pending'" @click="approveSelectedAd" >
                 <b-icon icon="check" class="ml-1"></b-icon>
                 تایید تبلیغ
               </b-button>
-            </div>
-            <div class="text-center" v-if="!selectedAd.deleter">
-              <b-button variant="danger" @click="rejectSelectedAd" :disabled="!adReviewComment">
+              <b-button variant="danger"  v-if="!selectedAd.deleter" @click="rejectSelectedAd" :disabled="!adReviewComment">
                 <b-icon icon="x" class="ml-1"></b-icon>
                 رد تبلیغ
               </b-button>
@@ -809,6 +837,7 @@ export default {
 
     getAdStatusText(status) {
       const texts = {
+        CANDIDATE: 'حذف توسط کاندید',
         SUBMITTED: 'در انتظار',
         EXECUTIVE_APPROVED: 'تایید اجرایی',
         CANDIDATE: 'حذف کاربر',

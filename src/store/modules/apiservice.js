@@ -44,7 +44,6 @@ commit.commit('setProcessing', true)
   }
   if (commit && commit.inline_insert) config.url = urlInlineInsertResolver(data.params, apiUrlrtb + url);
 
-
   config[config.method == "POST" || config.method == "PUT" ? "data" : "params"] = data.params;
 
 
@@ -77,11 +76,12 @@ commit.commit('setProcessing', true)
       }
     })
     .catch(error => {
-      if(error.message==('Network Error') && location.href!='https://profile.medu.ir' && location.href!='http://localhost:2000/unauthorized'){
+        
+      if(error.message==('Network Error') && location.href!='https://election.teacherassisant.ir/' && location.href!='http://localhost:2000/unauthorized'){
         let err = "خطای ارتباط با سرور!";
         commit.commit('setError', err)
         
-        // if (location.href == 'https://profile.medu.ir/')
+        // if (location.href == 'https://election.teacherassisant.ir/')
         location.replace("/unauthorized");
       }
       else if (!error.response?.status) {
@@ -95,12 +95,13 @@ commit.commit('setProcessing', true)
         let err = "زمان ورود شما به پایان رسیده است، لطفا مجدد وارد شوید";
         commit.commit('setError', err)
         setTimeout(() => {
-          // if (location.href == 'https://profile.medu.ir/')
-            // location.replace("https://my.medu.ir");
+          if (location.href == 'https://election.teacherassisant.ir/')
+            location.replace("https://my.medu.ir");
         }, 500)
 
       } else if (error.response?.status == 500) {
-        commit.commit('setError', error.response.message)
+        
+        commit.commit('setError', "خطای دریافت اطلاعات! مجدد تلاش نمایید")
       }
       else if (error.response?.data) {
         const data = error.response.data;

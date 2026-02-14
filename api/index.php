@@ -40,6 +40,8 @@ $allowed_routes = [
     'submitFeedback',
     'UploadUserDocuments',
     'createVoteToken',
+    'getSystemSchedule',
+    'saveSystemSchedule',
     'getInfoVote'
 ];
 

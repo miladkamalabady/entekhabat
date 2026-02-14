@@ -2,9 +2,9 @@
   <div id="app-container">
     <Topnav />
     <div style="" class="d-flex">
-   <div class=""
+   <div class=""  v-if="currentUser"
         :style="sidebarVisible ? !isMobile() ? 'width:250px;' : 'width:100%;' : 'width:0;'">
-        <b-card no-body class="p-0 " style="">
+        <b-card no-body class="p-0 ">
           <Transition name="fade" appear>
             <Sidebar />
           </Transition>

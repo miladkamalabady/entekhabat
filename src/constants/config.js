@@ -9,9 +9,9 @@ export var apiUrlrtb = 'http://localhost/apiEntekhabat';
 
 async function doGetRequest() {
   let res = await axios.get('/../config.js');
-  apiUrlrtb = (JSON.parse(res.data)[0].apiUrlrtb);
+  apiUrlrtb = (JSON.parse(res.data)[0].apiUrlNew);
 }
-//doGetRequest();
+doGetRequest();
 
 
 export const subHiddenBreakpoint = 1440

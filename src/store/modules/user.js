@@ -119,8 +119,6 @@ export default {
     }
   },
   actions: {
-
-
     LoginUserSSO({ commit }, payload) {
       commit('setProcessing', true)
       setTimeout(() => {
@@ -258,6 +256,16 @@ export default {
       if (response?.status)
         commit('clearError');
       return response.data;
+    }, async getSystemSchedule({ commit }) {
+      const response = await apiservice({ name: "getSystemSchedule" }, { commit });
+      if (response?.status)
+        commit('clearError');
+      return response?.data || [];
+    }, async saveSystemSchedule({ commit }, payload) {
+      const response = await apiservice({ name: "saveSystemSchedule", params: payload }, { commit });
+      if (response?.status)
+        commit('clearError');
+      return response;
     },
 
   }

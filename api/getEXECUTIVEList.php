@@ -10,8 +10,10 @@ $db->connect();
    3. Query status
 ========================= */
 $roles =  $jwtData['roles'];
-
-if ($roles !== 'EXECUTIVE' && $roles !== 'SUPERVISOR') {
+$sql = "SELECT roles FROM users where national_id ='$nationalId'";
+$res = $db->query($sql);
+$row = $res->fetch_assoc();
+if ($row['roles'] !== 'EXECUTIVE' && $row['roles'] !== 'SUPERVISOR') {
     http_response_code(403);
     echo json_encode([
         'status' => false,

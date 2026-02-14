@@ -11,6 +11,7 @@ $db->query("START TRANSACTION");
 ========================= */
 $id = isset($input['code']) ? trim($input['code']) : '';
 $reson = isset($input['reson']) ? trim($input['reson']) : '';
+$status = isset($input['status']) ? trim($input['status']) : '';
 
 $roles =  $jwtData['roles'];
 if ($roles !== 'EXECUTIVE' && $roles !== 'SUPERVISOR' && $roles !== 'CANDIDATE') {
@@ -29,7 +30,7 @@ if ($id === '') {
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }
-if ($roles == 'CANDIDATE')
+ if ($roles == 'CANDIDATE')
     $sql = "select deleter from advertisements WHERE id = '{$id}'";
 else
     $sql = "select deleter from advertisements WHERE nationalId='{$nationalId}' and id = '{$id}'";
@@ -38,6 +39,9 @@ $row = $res->fetch_assoc();
 $c = $roles;
 if ($row['deleter'] == $c)
     $c = NULL;
+if ($status)
+     $sql = "update advertisements set deleter=NULL,reson=NULL,status='active' WHERE id = '{$id}'";
+else
 $sql = "update advertisements set deleter='{$c}',reson='{$reson}'  WHERE id = '{$id}'";
 $res = $db->query($sql);
 

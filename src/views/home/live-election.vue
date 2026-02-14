@@ -48,13 +48,13 @@
     <b-container class="election-container" v-if="electionStatusAll == 'active'">
       <!-- Quick Stats -->
       <b-row class="mb-4">
-        <b-col cols="6" md="4">
+        <b-col cols="6" md="3">
           <b-card class="stat-card text-center">
             <div class="stat-icon voters-icon">
               <b-icon icon="people-fill"></b-icon>
             </div>
             <div class="stat-number">{{ formatNumber(infoVote?.totalVoters) }}</div>
-            <div class="stat-label">کل واجدین شرایط</div>
+            <div class="stat-label">کل و1اجدین شرایط</div>
             <div class="stat-change text-success">
               <b-icon icon="arrow-up"></b-icon>
               {{ infoVote?.voterParticipation.toFixed(2) }}% مشارکت
@@ -62,7 +62,7 @@
           </b-card>
         </b-col>
 
-        <b-col cols="6" md="4">
+        <b-col cols="6" md="3">
           <b-card class="stat-card text-center">
             <div class="stat-icon vote-icon">
               <b-icon icon="check-circle-fill"></b-icon>
@@ -76,7 +76,7 @@
           </b-card>
         </b-col>
 
-        <b-col cols="6" md="4">
+        <b-col cols="6" md="3">
           <b-card class="stat-card text-center">
             <div class="stat-icon candidate-icon">
               <b-icon icon="person-badge-fill"></b-icon>
@@ -86,6 +86,26 @@
             <div class="stat-change text-info">
               <b-icon icon="person-plus"></b-icon>
               {{ infoVote?.activeCandidates }} کاندیدای تایید شده
+            </div>
+          </b-card>
+        </b-col>
+        <b-col cols="6" md="3">
+          <b-card class="stat-card text-center">
+            <div class="stat-icon progress-icon">
+              <b-icon icon="person-check-fill"></b-icon>
+            </div>
+
+            <div class="stat-number">
+              {{ formatNumber(infoVote?.participants) }}
+            </div>
+
+            <div class="stat-label">
+              افراد شرکت‌کننده در رأی‌گیری
+            </div>
+
+            <div class="stat-change text-info">
+              میانگین انتخاب هر نفر:
+              {{ avgVotesPerPerson }}
             </div>
           </b-card>
         </b-col>
@@ -301,6 +321,10 @@ export default {
   },
   computed: {
     ...mapGetters(["ConfigInfo", "currentUser", "electionStatusAll"]),
+    avgVotesPerPerson() {
+      if (!this.infoVote || !this.infoVote.participants) return 0;
+      return (this.infoVote.totalVotes / this.infoVote.participants).toFixed(2);
+    },
     sortedCandidates() {
       return [...this.candidates].sort((a, b) => b.vote_count - a.vote_count);
     },
@@ -496,15 +520,22 @@ export default {
         }
       }, 30000);
     },
-
-
-    manualRefresh() {
+    async manualRefresh() {
       this.refreshing = true;
-      this.getInfoVote();
-      setTimeout(() => {
-        this.refreshing = false;
-      }, 1000);
+
+      const data = await this.getInfoVote();
+      this.infoVote = data;
+      this.candidates = data?.listCan || [];
+
+      this.lastUpdate = new Date().toLocaleTimeString('fa-IR');
+
+      if (this.rankingView === 'chart') {
+        this.$nextTick(() => this.createVotesChart());
+      }
+
+      this.refreshing = false;
     }
+
   }
 };
 </script>

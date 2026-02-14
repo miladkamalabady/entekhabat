@@ -55,6 +55,14 @@ const routes = [
           loginRequired: true,
           roles: [UserRole.EXECUTIVE]
         }
+      },{
+        name: "system-schedule",
+        path: 'system-schedule',
+        component: () => import(/* webpackChunkName: "supervisor" */ "./views/home/system-schedule"),
+        meta: {
+          loginRequired: true,
+          roles: [UserRole.SUPERVISOR]
+        }
       }
     ]
   },

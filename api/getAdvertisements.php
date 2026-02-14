@@ -10,7 +10,10 @@ $db->connect();
    3. Query status
 ========================= */
 $roles =  $jwtData['roles'];
-
+$sql = "SELECT roles FROM users where national_id ='$nationalId'";
+$res = $db->query($sql);
+$row = $res->fetch_assoc();
+$roles=$row['roles'];
 // if ($roles !== 'CANDIDATE') {
 //     http_response_code(403);
 //     echo json_encode([
@@ -23,7 +26,7 @@ $roles =  $jwtData['roles'];
 if ($roles === 'CANDIDATE')
     $sql = "SELECT * FROM advertisements where nationalId='{$nationalId}' ORDER BY create_date DESC;";
 else
-    $sql = "SELECT ad.*,u.first_name,u.last_name,u.id as code FROM advertisements as ad join users as u on u.national_id=ad.nationalId ORDER BY create_date DESC;";
+    $sql = "SELECT ad.*,u.first_name,u.last_name,u.id as code ,u.regionName ,u.education,u.user_type,u.yearsOfService FROM advertisements as ad join users as u on u.national_id=ad.nationalId ORDER BY create_date DESC;";
 $res = $db->query($sql);
 
 $list = [];

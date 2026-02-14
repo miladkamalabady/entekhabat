@@ -19,11 +19,11 @@
       <b-card class="mb-4">
         <h6 class="mb-3">فیلترها</h6>
         <b-row>
-          <b-col md="3">
+          <!-- <b-col md="3">
             <b-form-group label="نوع تبلیغ">
               <b-form-select v-model="filters.type" :options="adTypes" @change="loadAdvertisements"></b-form-select>
             </b-form-group>
-          </b-col>
+          </b-col> -->
           <b-col md="3">
             <b-form-group label="وضعیت">
               <b-form-select v-model="filters.status" :options="statusOptions"
@@ -36,7 +36,8 @@
       <!-- Advertisements List -->
       <b-card>
         <div class="table-responsive">
-          <b-table :items="advertisements?.filter(x=>x.deleter!='CANDIDATE')" :fields="fields" :busy="loading" striped hover class="text-right">
+          <b-table :items="advertisements?.filter(x => x.deleter != 'CANDIDATE')" :fields="fields" :busy="loading"
+            striped hover class="text-right">
             <!-- Image Column -->
             <template #cell(image)="data">
               <img v-if="data.value" :src="`${apiUrlrtb}/${data.value}`" class="ad-thumbnail" alt="تصویر تبلیغ" />
@@ -100,11 +101,11 @@
                 placeholder="عنوان تبلیغ را وارد کنید"></b-form-input>
             </b-form-group>
           </b-col>
-          <b-col md="6">
+          <!-- <b-col md="6">
             <b-form-group label="نوع تبلیغ" label-for="ad-type">
               <b-form-select id="ad-type" v-model="form.type" :options="adTypes" required></b-form-select>
             </b-form-group>
-          </b-col>
+          </b-col> -->
         </b-row>
 
         <b-form-group label="متن تبلیغ" label-for="ad-description">
@@ -112,8 +113,42 @@
             required></b-form-textarea>
         </b-form-group>
 
+        <b-row>
+          <b-col md="6">
+            <b-form-group label="سوابق اجرایی مدیریتی" label-for="ad-managerial-records">
+              <b-form-textarea id="ad-managerial-records" v-model="form.managerialRecords" rows="3"
+                placeholder="سوابق اجرایی مدیریتی را وارد کنید"></b-form-textarea>
+            </b-form-group>
+          </b-col>
+          <b-col md="6">
+            <b-form-group label="سوابق علمی / پژوهشی" label-for="ad-academic-records">
+              <b-form-textarea id="ad-academic-records" v-model="form.academicRecords" rows="3"
+                placeholder="سوابق علمی / پژوهشی را وارد کنید"></b-form-textarea>
+            </b-form-group>
+          </b-col>
+        </b-row>
+
+        <b-row>
+          <b-col md="6">
+            <b-form-group label="مدارج و افتخارات" label-for="ad-honors">
+              <b-form-textarea id="ad-honors" v-model="form.honors" rows="3"
+                placeholder="مدارج و افتخارات را وارد کنید"></b-form-textarea>
+            </b-form-group>
+          </b-col>
+          <b-col md="6">
+            <b-form-group label="برنامه ها" label-for="ad-plans">
+              <b-form-textarea id="ad-plans" v-model="form.plans" rows="3"
+                placeholder="برنامه ها را وارد کنید"></b-form-textarea>
+            </b-form-group>
+          </b-col>
+        </b-row>
+
+        <b-form-group label="شعار تبلیغاتی" label-for="ad-slogan">
+          <b-form-input id="ad-slogan" v-model="form.slogan" placeholder="شعار تبلیغاتی را وارد کنید"></b-form-input>
+        </b-form-group>
+
         <b-form-group label="تصویر تبلیغ" label-for="ad-image">
-          <b-form-file id="ad-image" v-model="form.imageFile" accept="image/*" @change="handleImageUpload"
+          <b-form-file id="ad-image" required v-model="form.imageFile" accept="image/*" @change="handleImageUpload"
             placeholder="تصویر را انتخاب کنید یا اینجا بکشید" drop-placeholder="تصویر را اینجا رها کنید"></b-form-file>
           <small class="form-text text-muted">حداکثر حجم: 2 مگابایت</small>
 
@@ -150,29 +185,51 @@
     <!-- View Modal -->
     <b-modal v-model="showViewModal" title="مشاهده تبلیغ" size="lg" hide-footer centered>
       <div v-if="selectedAd">
-        <b-row class="mb-3">
-          <b-col md="8">
-            <h5>{{ selectedAd.title }}</h5>
-            <p class="text-muted">{{ selectedAd.description }}</p>
-          </b-col>
-          <b-col md="4">
-            <img v-if="selectedAd.image" :src="`${apiUrlrtb}/${selectedAd.image}`" style="height:200px"
-              class="img-fluid rounded" alt="تصویر تبلیغ" />
-          </b-col>
-        </b-row>
-
-        <b-row class="mb-2">
-          <b-col><strong>نوع:</strong> {{ getTypeText(selectedAd.type) }}</b-col>
-          <b-col><strong>وضعیت:</strong> {{ getStatusText(selectedAd) }}</b-col>
-        </b-row>
-
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h5 class="mb-0">{{ selectedAd.title || 'بدون عنوان' }}</h5>
+          <div>
+            <b-badge :variant="getStatusBadge(selectedAd)">
+              {{ getStatusText(selectedAd) }}
+            </b-badge>
+          </div>
+        </div>
         <div v-if="selectedAd.targetLink" class="mb-2">
           <strong>لینک هدف:</strong>
           <a :href="selectedAd.targetLink" target="_blank">{{ selectedAd.targetLink }}</a>
         </div>
+        <div class="view-ad-image-wrapper mb-3">
+          <img v-if="selectedAd.image" :src="getImageUrl(selectedAd.image)" class="img-fluid rounded"
+            alt="تصویر تبلیغ" />
+          <div v-else class="text-muted text-center py-4">تصویری برای این تبلیغ ثبت نشده است.</div>
+        </div>
 
         <div class="mt-3">
-          <strong>آمار بازدید:</strong> {{ selectedAd.views || 0 }} بازدید
+          <p class="text-muted mb-3">{{ selectedAd.description || 'توضیحاتی ثبت نشده است.' }}</p>
+          <p>
+            <strong>سوابق اجرایی مدیریتی:</strong> {{ selectedAd.managerialRecords || 'سوابقی یافت نشد.' }} 
+          </p>
+          <p>
+            <strong>سوابق علمی / پژوهشی:</strong> {{ selectedAd.academicRecords || 'سوابقی یافت نشد.' }} 
+          </p>
+          <p>
+            <strong>مدارج و افتخارات:</strong> {{ selectedAd.honors || 'مدارجی یافت نشد.' }} 
+          </p>
+          <p>
+            <strong>برنامه ها:</strong> {{ selectedAd.plans || 'برنامه ای یافت نشد.' }} 
+          </p>
+          <p>
+            <strong>شعار تبلیغاتی:</strong> {{ selectedAd.slogan || 'شعاری یافت نشد.' }} 
+          </p>
+          <div class="d-flex flex-wrap align-items-center justify-content-between border-top pt-3">
+            <div class="mb-2 mb-md-0">
+              <strong>آمار بازدید:</strong> {{ selectedAd.views || 0 }} بازدید
+            </div>
+            <b-button v-if="selectedAd.targetLink" variant="outline-primary" size="sm" :href="selectedAd.targetLink"
+              target="_blank">
+              مشاهده لینک هدف
+              <b-icon icon="box-arrow-up-right" class="mr-1"></b-icon>
+            </b-button>
+          </div>
         </div>
       </div>
     </b-modal>
@@ -214,7 +271,7 @@ export default {
         { key: "id", label: "شناسه", sortable: true },
         { key: "image", label: "تصویر" },
         { key: "title", label: "عنوان", sortable: true },
-        { key: "type", label: "نوع", sortable: true },
+        // { key: "type", label: "نوع", sortable: true },
         { key: "status", label: "وضعیت", sortable: true },
         { key: "actions", label: "عملیات" }
       ],
@@ -240,7 +297,12 @@ export default {
         imageFile: null,
         imagePreview: null,
         targetLink: "",
-        status: "active"
+        status: "pending",
+        managerialRecords: "",
+        academicRecords: "",
+        honors: "",
+        plans: "",
+        slogan: ""
       }
     };
   },
@@ -252,7 +314,7 @@ export default {
   },
   methods: {
     ...mapMutations(["setsidebarVisible"]),
-    ...mapActions(["advertisementsSave", "getAdvertisements","deleteAdv"]),
+    ...mapActions(["advertisementsSave", "getAdvertisements", "deleteAdv"]),
     // Load Advertisements
     async loadAdvertisements() {
       this.loading = true;
@@ -303,7 +365,17 @@ export default {
       };
       return variants[type] || "secondary";
     },
+    getImageUrl(imagePath) {
+      if (!imagePath) {
+        return "";
+      }
 
+      if (imagePath.startsWith("http://") || imagePath.startsWith("https://") || imagePath.startsWith("data:")) {
+        return imagePath;
+      }
+
+      return `${apiUrlrtb}/${imagePath}`;
+    },
     getStatusBadge(status) {
       const variants = {
         active: "success",
@@ -325,6 +397,7 @@ export default {
     },
 
     getStatusText(status) {
+
       const statusMap = {
         active: "فعال",
         delete: "حذف مدیر",
@@ -351,7 +424,12 @@ export default {
         imageFile: null,
         imagePreview: apiUrlrtb + '/' + ad.image,
         targetLink: ad.targetLink || "",
-        status: ad.status
+        status: ad.status,
+        managerialRecords: ad.managerialRecords || "",
+        academicRecords: ad.academicRecords || "",
+        honors: ad.honors || "",
+        plans: ad.plans || "",
+        slogan: ad.slogan || ""
       };
       this.showCreateModal = true;
     },
@@ -390,6 +468,11 @@ export default {
         formData.append("type", this.form.type);
         formData.append("status", this.form.status);
         formData.append("targetLink", this.form.targetLink || "");
+        formData.append("managerialRecords", this.form.managerialRecords || "");
+        formData.append("academicRecords", this.form.academicRecords || "");
+        formData.append("honors", this.form.honors || "");
+        formData.append("plans", this.form.plans || "");
+        formData.append("slogan", this.form.slogan || "");
 
         if (this.form.imageFile) {
           formData.append("image", this.form.imageFile);
@@ -411,6 +494,11 @@ export default {
           image: response.data?.image || this.form.imagePreview,
           status: this.form.status,
           targetLink: this.form.targetLink,
+          managerialRecords: this.form.managerialRecords,
+          academicRecords: this.form.academicRecords,
+          honors: this.form.honors,
+          plans: this.form.plans,
+          slogan: this.form.slogan,
           views: this.form.views || 0
         };
 
@@ -465,7 +553,12 @@ export default {
         imageFile: null,
         imagePreview: null,
         targetLink: "",
-        status: "active"
+        status: "active",
+        managerialRecords: "",
+        academicRecords: "",
+        honors: "",
+        plans: "",
+        slogan: ""
       };
     }
   }
@@ -500,6 +593,21 @@ export default {
 .table-responsive {
   border-radius: 6px;
   overflow: hidden;
+}
+
+.view-ad-image-wrapper {
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  background: #f8f9fa;
+}
+
+.view-ad-image-wrapper img {
+  max-height: 260px;
+  object-fit: contain;
 }
 
 /* Responsive adjustments */

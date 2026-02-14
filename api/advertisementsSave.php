@@ -30,6 +30,11 @@ $type = isset($input['type']) ? trim($input['type']) : '';
 $status = isset($input['status']) ? trim($input['status']) : '';
 $targetLink = isset($input['targetLink']) ? trim($input['targetLink']) : '';
 $imagePath = isset($input['imagePath']) ? trim($input['imagePath']) : '';
+$managerialRecords = isset($input['managerialRecords']) ? trim($input['managerialRecords']) : '';
+$academicRecords = isset($input['academicRecords']) ? trim($input['academicRecords']) : '';
+$honors = isset($input['honors']) ? trim($input['honors']) : '';
+$plans = isset($input['plans']) ? trim($input['plans']) : '';
+$slogan = isset($input['slogan']) ? trim($input['slogan']) : '';
 
 if ($title === '' || $description === '' || $type === '' || $status === '') {
     http_response_code(400);
@@ -113,16 +118,21 @@ $typeSql = $db->escape($type);
 $statusSql = $db->escape($status);
 $targetLinkSql = $db->escape($targetLink);
 $imageSql = $storedImagePath !== null ? "'" . $db->escape($storedImagePath) . "'" : "NULL";
+$managerialRecords = $db->escape($managerialRecords);
+$academicRecords = $db->escape($academicRecords);
+$honors = $db->escape($honors);
+$plans = $db->escape($plans);
+$slogan = $db->escape($slogan);
 
-
-$db->query("INSERT INTO advertisements (id,nationalId, title, description, type,image, target_link, status)
-VALUES ($id,'{$nationalId}', '{$titleSql}', '{$descriptionSql}', '{$typeSql}', {$imageSql}, '{$targetLinkSql}', '{$statusSql}')
+$db->query("INSERT INTO advertisements (id,nationalId, title, description, type,image, target_link, status,managerialRecords,academicRecords,honors,plans,slogan)
+VALUES ($id,'{$nationalId}', '{$titleSql}', '{$descriptionSql}', '{$typeSql}', {$imageSql}, '{$targetLinkSql}', '{$statusSql}', '{$managerialRecords}', '{$academicRecords}', '{$honors}', '{$plans}', '{$slogan}')
 ON DUPLICATE KEY UPDATE
 title = VALUES(title),
 description = VALUES(description),
 type = VALUES(type),
 image = IF(VALUES(image) IS NULL, image, VALUES(image)),
 target_link = VALUES(target_link),
+managerialRecords = VALUES(managerialRecords),academicRecords = VALUES(academicRecords),honors = VALUES(honors),plans = VALUES(plans),slogan = VALUES(slogan),
 status = VALUES(status)");
 
 $insertId = $id > 0 ? $id : $db->insert_id(null);

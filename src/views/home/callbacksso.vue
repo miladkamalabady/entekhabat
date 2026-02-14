@@ -9,7 +9,7 @@
             </b-alert>
           </b-card>
           <b-card v-else-if="!errorMessage" class="mb-4 text-center">
-            در حال بررسی وضعیت...
+            در حال بررسی ...
             <img src="/assets/img/Loading.gif" style="max-width: 100%; width: 50px" />
           </b-card>
           <b-card v-else class="mb-4 text-center">
@@ -57,6 +57,7 @@ export default {
     ...mapMutations(["setpanelactiveparvande"]),
   },
   async mounted() {
+     localStorage.removeItem('user')
     const code = this.$route?.query?.code
 
     if (!code && !this.currentUser) return

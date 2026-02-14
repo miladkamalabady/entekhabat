@@ -18,7 +18,6 @@
       </b-row>
     </b-container>
 
-
     <!-- Main Content -->
     <b-container class="ads-container" v-if="electionStatusAll === 'upcoming'">
       <!-- Search and Filter -->
@@ -41,13 +40,13 @@
           </b-col>
           <b-col md="6">
             <b-row>
-              <b-col cols="6">
+              <!-- <b-col cols="6">
                 <b-form-select v-model="selectedType" :options="filterTypes" @change="filterAds">
                   <template #first>
                     <option value="">همه انواع</option>
                   </template>
                 </b-form-select>
-              </b-col>
+              </b-col> -->
               <b-col cols="6">
                 <b-form-select v-model="sortBy" :options="sortOptions" @change="sortAds"></b-form-select>
               </b-col>
@@ -94,9 +93,9 @@
                 <b-badge v-if="ad.isFeatured" variant="warning" class="ml-1">
                   ویژه
                 </b-badge>
-                <b-badge :variant="getTypeBadge(ad.type)" class="ml-1">
+                <!-- <b-badge :variant="getTypeBadge(ad.type)" class="ml-1">
                   {{ getTypeText(ad.type) }}
-                </b-badge>
+                </b-badge> -->
               </div>
 
               <!-- Ad Image -->
@@ -146,9 +145,9 @@
           <b-row class="align-items-center">
             <b-col cols="8">
               <div class="ad-meta">
-                <b-badge :variant="getTypeBadge(selectedAd.type)" class="ml-2">
+                <!-- <b-badge :variant="getTypeBadge(selectedAd.type)" class="ml-2">
                   {{ getTypeText(selectedAd.type) }}
-                </b-badge>
+                </b-badge> -->
                 <b-badge v-if="selectedAd.isFeatured" variant="warning" class="ml-2">
                   ویژه
                 </b-badge>
@@ -170,7 +169,7 @@
 
         <div v-if="selectedAd.first_name" class="detail-item mb-3">
           <strong>منتشر کننده:</strong>
-          <span class="mr-2">{{ selectedAd.first_name }} {{ selectedAd.last_name }}(کد {{ selectedAd.code * 1404
+          <span class="mr-2">{{ selectedAd.first_name }} {{ selectedAd.last_name }}(کد {{ selectedAd.id * 1404
           }})</span>
         </div>
 
@@ -187,20 +186,85 @@
         </div>
 
         <!-- Share Options -->
+        <div class="candidate-card-wrapper mt-4" id="candidate-share-card" ref="candidateCard">
+          <div class="candidate-card-header">
+            <h6 class="mb-1">کارت تبلیغاتی کاندید</h6>
+            <small>قابل مشاهده، دانلود و انتشار در پیام‌رسان‌های داخلی</small>
+          </div>
+
+          <div class="candidate-card-body">
+            <div class="candidate-photo">
+              <img v-if="selectedAd.image" :src="`${apiUrlrtb}/${selectedAd.image}`" alt="عکس کاندید" />
+              <div v-else class="photo-placeholder">
+                <b-icon icon="person" font-scale="2"></b-icon>
+              </div>
+            </div>
+
+            <div class="candidate-card-content">
+              <h5 class="candidate-name">{{ candidateCardInfo.name }}</h5>
+              <p class="candidate-slogan">{{ candidateCardInfo.slogan }}</p>
+
+              <div class="card-grid">
+                <div><strong>کد انتخاباتی:</strong> {{ candidateCardInfo.code }}</div>
+                <div><strong>حوزه انتخابیه:</strong> {{ candidateCardInfo.constituency }}</div>
+                <div><strong>مدرک تحصیلی:</strong> {{ candidateCardInfo.education }}</div>
+                <div><strong>وضعیت شغلی:</strong> {{ candidateCardInfo.employmentStatus }}</div>
+                <div><strong>سنوات:</strong> {{ candidateCardInfo.yearsOfService }} سال</div>
+              </div>
+              <b-col md="6">
+                <div class="candidate-slogan">
+                  <strong>سوابق اجرایی مدیریتی:</strong>
+                  <span>{{ selectedAd.managerialRecords }}</span>
+                </div>
+              </b-col>
+              <b-col md="6">
+                <div class="candidate-slogan">
+                  <strong>سوابق علمی / پژوهشی:</strong>
+                  <span>{{ selectedAd.academicRecords }}</span>
+                </div>
+              </b-col>
+              <b-col md="6">
+                <div class="candidate-slogan">
+                  <strong>مدارج و افتخارات:</strong>
+                  <span>{{ selectedAd.honors }}</span>
+                </div>
+              </b-col>
+              <b-col md="6">
+                <div class="candidate-slogan">
+                  <strong>برنامه ها:</strong>
+                  <span>{{ selectedAd.plans }}</span>
+                </div>
+              </b-col>
+
+              <div class="countdown-box mt-2">
+                <b-icon icon="calendar-event" class="ml-1"></b-icon>
+                {{ daysUntilElectionText }}
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Share Options -->
         <div class="share-section mt-4">
           <h6 class="mb-3">اشتراک‌گذاری:</h6>
-          <div class="d-flex">
-            <b-button variant="outline-secondary" size="sm" class="ml-2">
+          <div class="d-flex flex-wrap">
+            <b-button variant="outline-secondary" size="sm" class="ml-2 mb-2" @click="copyShareText">
               <b-icon icon="link"></b-icon>
-              کپی لینک
+              کپی متن کارت
             </b-button>
-            <b-button variant="outline-primary" size="sm" class="ml-2">
-              <b-icon icon="telegram"></b-icon>
-              تلگرام
+            <b-button variant="outline-success" size="sm" class="ml-2 mb-2" @click="downloadCardAsHtml">
+              <b-icon icon="download"></b-icon>
+              دانلود کارت
             </b-button>
-            <b-button variant="outline-info" size="sm" class="ml-2">
-              <b-icon icon="whatsapp"></b-icon>
-              واتس‌اپ
+            <b-button variant="outline-primary" size="sm" class="ml-2 mb-2" @click="shareToMessenger('bale')">
+              بله
+            </b-button>
+            <b-button variant="outline-info" size="sm" class="ml-2 mb-2" @click="shareToMessenger('eitaa')">
+              ایتا
+            </b-button>
+            <b-button variant="outline-dark" size="sm" class="ml-2 mb-2" @click="shareToMessenger('rubika')">
+              روبیکا
             </b-button>
           </div>
         </div>
@@ -234,13 +298,14 @@ export default {
     return {
       apiUrlrtb,
       allAds: [],
+      routeFilteredAds: [],
       filteredAds: [],
       searchQuery: "",
       selectedType: "",
       sortBy: "newest",
       carouselSlide: 0,
       sliding: null,
-
+      timeRemaining:0,
       // Modals
       showAdModal: false,
       showImportantModal: false,
@@ -264,7 +329,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(["sidebarVisible", "electionStatusAll"]),
+    ...mapGetters(["sidebarVisible", "electionStatusAll", "ConfigInfo"]),
     // Active Ads
     activeAds() {
       return this.filteredAds.filter(ad => ad.status === "active");
@@ -300,21 +365,113 @@ export default {
 
     activeAdsCount() {
       return this.activeAds.length;
-    }
+    },
+    candidateCardInfo() {
+      if (!this.selectedAd) {
+        return {
+          name: "-",
+          slogan: "-",
+          code: "-",
+          constituency: "-",
+          education: "-",
+          employmentStatus: "-",
+          yearsOfService: "-",
+        };
+      }
+
+
+      return {
+        name: `${this.selectedAd.first_name || ""} ${this.selectedAd.last_name || ""}`.trim() || this.selectedAd.title || "نامشخص",
+        slogan: this.selectedAd.slogan || this.selectedAd.description || "برای آینده‌ای بهتر",
+        code: this.selectedAd.electionCode || (this.selectedAd.id ? String(this.selectedAd.id * 1404) : "-"),
+        constituency: this.selectedAd.constituency || this.selectedAd?.regionName || "اعلام نشده",
+        education: this.selectedAd.education || this.selectedAd.degree || "اعلام نشده",
+        employmentStatus: this.selectedAd.user_type == 4 ? "بازنشسته" : "شاغل",
+        yearsOfService: this.selectedAd.yearsOfService || this.selectedAd.seniority || "اعلام نشده",
+        managerialRecords: this.selectedAd.managerialRecords || "اعلام نشده",
+        academicRecords: this.selectedAd.academicRecords || "اعلام نشده",
+        honors: this.selectedAd.honors || "اعلام نشده",
+        plans: this.selectedAd.plans || "اعلام نشده",
+      };
+    },
+
+    daysUntilElectionText() {
+      if (!this.ConfigInfo?.startDate) {
+        return "تاریخ انتخابات مشخص نشده است";
+      }
+if (this.timeRemaining <= 0) return '00:00:00';
+
+      const hours = Math.floor(this.timeRemaining / (1000 * 60 * 60));
+      const minutes = Math.floor((this.timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((this.timeRemaining % (1000 * 60)) / 1000);
+
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')} تا انتخابات باقی مانده است`;
+
+      const start = new Date(this.ConfigInfo.startDate);
+      const now = new Date();
+      const diffMs = start.getTime() - now.getTime();
+      const days = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+      return `${this.timeRemaining} روز تا انتخابات باقی مانده است`;
+    },
   },
   created() {
     this.loadAds();
-    this.trackView();
+    this.trackView();this.timer = setInterval(() => {
+      this.calculateStatus();
+    }, 1000);
   },
   methods: {
-    ...mapMutations([]),
+    ...mapMutations(["SetelectionStatusAll"]),
     ...mapActions(["getAdvertisements", "increaseViewAdd"]),
+    calculateStatus() {
+      if (!this.ConfigInfo?.startDate || !this.ConfigInfo?.EndDate) {
+        this.SetelectionStatusAll('inactive')
+        return;
+      }
+
+      const now = new Date();
+      const startDate = new Date(this.ConfigInfo.startDate);
+      const endDate = new Date(this.ConfigInfo.EndDate);
+
+      // اگر هنوز شروع نشده
+      if (now < startDate) {
+        this.SetelectionStatusAll('upcoming')
+        this.timeRemaining = startDate - now;
+      }
+      // اگر در حال برگزاری است
+      else if (now >= startDate && now <= endDate) {
+        this.SetelectionStatusAll('active')
+        this.timeRemaining = endDate - now;
+      }
+      // اگر پایان یافته
+      else {
+        this.SetelectionStatusAll('ended')
+        this.electionStatus = 'ended';
+        this.timeRemaining = 0;
+      }
+    },
+
+    applyRouteCodeFilter(ads) {
+      const candidateCode = String(this.$route.query.code || this.$route.query.candidateCode || "").trim();
+      if (!candidateCode) {
+        return [...ads];
+      }
+
+      return ads.filter(ad => {
+        
+        const rawCode = String(ad.id || "").trim();
+        const scaledCode = rawCode && !Number.isNaN(Number(rawCode)) ? String(Number(rawCode) * 1404) : "";
+        return rawCode === candidateCode || scaledCode === candidateCode;
+      });
+    },
     // Load Ads Data
     async loadAds() {
       try {
         this.allAds = await this.getAdvertisements()
         this.allAds = this.allAds?.filter(x => !x.deleter)
-        this.filteredAds = [...this.allAds];
+        this.routeFilteredAds = this.applyRouteCodeFilter(this.allAds);
+        this.filteredAds = [...this.routeFilteredAds];
+        this.filterAds();
       } catch (error) {
         console.error("Error loading ads:", error);
       }
@@ -322,7 +479,7 @@ export default {
 
     // Filter Ads
     filterAds() {
-      let filtered = [...this.allAds];
+      let filtered = [...this.routeFilteredAds];
 
       // Filter by search query
       if (this.searchQuery) {
@@ -473,7 +630,69 @@ export default {
     // Track Page View
     trackView() {
       // Send analytics or track page view
-      console.log("Advertisements page viewed");
+      // console.log("Advertisements page viewed");
+    },
+    buildShareText() {
+      if (!this.selectedAd) return "";
+      
+      return `کارت تبلیغاتی کاندید\nنام: ${this.candidateCardInfo.name}\nکد انتخاباتی: ${this.candidateCardInfo.code}\nشعار: ${this.candidateCardInfo.slogan}\nحوزه انتخابیه: ${this.candidateCardInfo.constituency}\nمدرک تحصیلی: ${this.candidateCardInfo.education}\nوضعیت: ${this.candidateCardInfo.employmentStatus}\nسنوات: ${this.candidateCardInfo.yearsOfService} سال \n سوابق اجرایی: ${this.candidateCardInfo.managerialRecords}\n سوابق علمی / پژوهشی: ${this.candidateCardInfo.academicRecords}\n مدارج و افتخارات: ${this.candidateCardInfo.honors}\n برنامه ها: ${this.candidateCardInfo.plans}\n${this.daysUntilElectionText}`;
+    },
+
+    async copyShareText() {
+      const shareText = this.buildShareText();
+      try {
+        await navigator.clipboard.writeText(shareText);
+        this.$bvToast.toast("متن کارت تبلیغاتی کپی شد", {
+          title: "موفق",
+          variant: "success",
+          solid: true
+        });
+      } catch (error) {
+        this.$bvToast.toast("امکان کپی خودکار وجود ندارد", {
+          title: "هشدار",
+          variant: "warning",
+          solid: true
+        });
+      }
+    },
+    downloadCardAsHtml() {
+      if (!this.selectedAd) return;
+
+      const cardHtml = this.$refs.candidateCard?.outerHTML || "";
+      const htmlContent = `<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><title>candidate-card</title><style>body{font-family:tahoma;padding:16px;background:#f5f6f8}.candidate-card-wrapper{max-width:720px;margin:auto;border:1px solid #e4e7eb;border-radius:16px;background:#fff;padding:16px}.candidate-card-header{background:linear-gradient(120deg,#1f4ba5,#3f88ff);color:#fff;padding:12px;border-radius:12px;margin-bottom:12px}.candidate-card-body{display:flex;gap:16px}.candidate-photo img{width:160px;height:180px;object-fit:cover;border-radius:12px}.card-grid{display:grid;grid-template-columns:repeat(2,minmax(160px,1fr));gap:8px;margin-top:8px}.countdown-box{background:#ecf8f0;color:#1f7a44;padding:8px;border-radius:8px}.site-path{color:#2b3648}@media(max-width:600px){.candidate-card-body{flex-direction:column}.card-grid{grid-template-columns:1fr}}</style></head><body>${cardHtml}</body></html>`;
+
+      const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `candidate-card-${this.selectedAd.id || "item"}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    },
+
+    shareToMessenger(messenger) {
+      const text = encodeURIComponent(this.buildShareText());
+      console.log(this.selectedAd);
+
+      const urls = {
+        bale: `https://ble.ir/share?text=${text}&url=${location.href}?code=${this.candidateCardInfo.code}`,
+        eitaa: `https://eitaa.com/share/url?text=${text}`,
+        rubika: `https://rubika.ir/share?text=${text}`
+      };
+
+      if (urls[messenger]) {
+        window.open(urls[messenger], "_blank");
+      }
+    }
+  },
+  watch: {
+    '$route.query': {
+      deep: true,
+      handler() {
+        this.routeFilteredAds = this.applyRouteCodeFilter(this.allAds);
+        this.filterAds();
+      }
     }
   }
 };
@@ -696,6 +915,72 @@ export default {
   border-top: 1px solid #eee;
 }
 
+.candidate-card-wrapper {
+  border: 1px solid #e6e9ef;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.candidate-card-header {
+  padding: 14px;
+  background: linear-gradient(120deg, #1f4ba5 0%, #3f88ff 100%);
+  color: #fff;
+}
+
+.candidate-card-body {
+  display: flex;
+  gap: 16px;
+  padding: 14px;
+}
+
+.candidate-photo img,
+.photo-placeholder {
+  width: 150px;
+  height: 180px;
+  border-radius: 12px;
+  background: #edf1f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.candidate-card-content {
+  flex: 1;
+}
+
+.candidate-name {
+  color: #253858;
+  margin-bottom: 4px;
+}
+
+.candidate-slogan {
+  color: #56637a;
+  margin-bottom: 8px;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.countdown-box {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #eef9f2;
+  color: #1f7a44;
+  font-weight: 600;
+}
+
+.site-path {
+  color: #394b66;
+  word-break: break-all;
+}
+
 /* Floating Action Button */
 .floating-action-btn {
   position: fixed;
@@ -729,6 +1014,20 @@ export default {
 
 /* Responsive Adjustments */
 @media (max-width: 768px) {
+  .candidate-card-body {
+    flex-direction: column;
+  }
+
+  .candidate-photo img,
+  .photo-placeholder {
+    width: 100%;
+    height: 220px;
+  }
+
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+
   .carousel-image-wrapper {
     height: 200px;
   }

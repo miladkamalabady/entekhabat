@@ -53,6 +53,12 @@ const global = {
     },submitFeedback: {
         url: "/submitFeedback",
         method: 'POST'
+    },getSystemSchedule: {
+        url: "/getSystemSchedule",
+        method: 'GET'
+    },saveSystemSchedule: {
+        url: "/saveSystemSchedule",
+        method: 'POST'
     }
     
 };

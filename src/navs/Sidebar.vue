@@ -130,6 +130,13 @@ export default {
           "cate": 2,
           roles: ['SUPERVISOR'],
         }, {
+          "title": "زمان‌بندی انتخابات",
+          "link": "system-schedule",
+          "img": "assets/img/ltms.svg",
+          "type": "3",
+          "cate": 2,
+          roles: ['SUPERVISOR'],
+        }, {
           "title": "پشتیبانی",
           "link": "Contact",
           "img": "assets/img/ltms.svg",
