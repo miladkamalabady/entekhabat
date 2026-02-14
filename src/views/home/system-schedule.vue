@@ -69,7 +69,7 @@ export default {
         { id: 3, key: 'first_stage_announce', name: 'اعلام نتایج مرحله اول', startDate: null, endDate: null },
         { id: 4, key: 'first_stage_objection', name: 'اعتراض به نتایج مرحله اول', startDate: null, endDate: null },
         { id: 5, key: 'first_stage_final_announce', name: 'اعلام نتیجه پس از بررسی مرحله اول', startDate: null, endDate: null },
-        { id: 6, key: 'ads_upload_start', name: 'شروع بارگداری اقلام تبلیغات', startDate: null, endDate: null },
+        { id: 6, key: 'ads_upload_start', name: 'شروع بارگذاری اقلام تبلیغات', startDate: null, endDate: null },
         { id: 7, key: 'ads_review_approve', name: 'بررسی تبلیغات/تایید', startDate: null, endDate: null },
         { id: 8, key: 'campaign_start', name: 'شروع تبلیغات', startDate: null, endDate: null },
         { id: 9, key: 'voting', name: 'رای گیری', startDate: null, endDate: null },
