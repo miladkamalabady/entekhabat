@@ -20,14 +20,15 @@
                   <ElectionStatusTimer :config-info="ConfigInfo" />
                 </div>
                 <div v-if="electionStatusAll == 'upcoming'">
-                  <CustomStepper
-                    v-if="(currentUser?.roles.includes('CANDIDATE')) && requestStatus "
+                  <CustomStepper v-if="(currentUser?.roles.includes('CANDIDATE')) && requestStatus"
                     :steps="stepperSteps" :current-step="currentStep" :disabled="processing" />
                   <!-- درخواست ثبت شده -->
-                  <b-alert v-if="currentUser?.roles.includes('CANDIDATE') && (requestStatus === 'SUBMITTED' || requestStatus === 'EXECUTIVE_APPROVED' || requestStatus === 'EXECUTIVE_REJECTED')" variant="warning" show>
+                  <b-alert
+                    v-if="currentUser?.roles.includes('CANDIDATE') && (requestStatus === 'SUBMITTED' || requestStatus === 'EXECUTIVE_APPROVED' || requestStatus === 'EXECUTIVE_REJECTED')"
+                    variant="warning" show>
                     ⏳ درخواست شما ثبت شده و در حال بررسی توسط مراجع است
-                    <br/>
-                    <b-button variant="outline-danger" class="mt-2" @click="canselRequest()">
+                    <br />
+                    <b-button  variant="outline-danger" class="mt-2" @click="canselRequest()">
                       انصراف
                     </b-button>
                   </b-alert>
@@ -81,7 +82,7 @@ export default {
     Sidebar, CustomStepper, ElectionStatusTimer
   },
   computed: {
-    ...mapGetters(["ConfigInfo", "sidebarVisible", "processing", "loginError", "currentUser","stateCandidInfo", "electionStatusAll", "requestStatus"]),
+    ...mapGetters(["SystemScheduleInfo", "ConfigInfo", "sidebarVisible", "processing", "loginError", "currentUser", "stateCandidInfo", "electionStatusAll", "requestStatus"]),
     filteredMenu() {
       return this.menu.filter(item => {
         const roleAllowed = item.roles.includes(this.currentUser?.roles[0])
@@ -92,7 +93,7 @@ export default {
 
         return roleAllowed && statusAllowed
       })
-    }, currentStep() {      
+    }, currentStep() {
       return this.STATUS_STEP_MAP[this.requestStatus] ?? 0
     },
 
@@ -122,7 +123,7 @@ export default {
           route: '/candidate/request',
           icon: 'bi bi-person-plus',
           roles: ['VOTER'],
-          electionStatusAll:'upcoming',
+          electionStatusAll: 'upcoming',
           // visibleWhen: status => !status
         },
         {
@@ -180,16 +181,58 @@ export default {
     }
   },
   methods: {
-    ...mapMutations(["setRequestStatus","setUser"]),
-    ...mapActions(["getConfig","canselRequestCANDIDATE"]),
-   async canselRequest() {
-     await this.canselRequestCANDIDATE()
-     this.setRequestStatus("DRAFT")
+    ...mapMutations(["setRequestStatus", "setUser"]),
+    ...mapActions(["getConfig", "canselRequestCANDIDATE", "getSystemSchedule"]),
+    async canselRequest() {
+      const check = await this.canWithdrawByElectionTime()
+
+      if (!check.ok) {
+        await this.$bvModal.msgBoxOk(check.msg, {
+          title: 'امکان انصراف وجود ندارد',
+          centered: true,
+          okVariant: 'danger'
+        })
+        return
+      }
+
+      const resp = await this.canselRequestCANDIDATE()
+      if (resp.status) {
+        this.setRequestStatus("DRAFT")
         const cu = {
           ...this.currentUser,
           roles: ['VOTER']
         }
         this.setUser(cu)
+      }
+    },
+    async canWithdrawByElectionTime() {
+      if (!this.SystemScheduleInfo || !this.SystemScheduleInfo.length) {
+        await this.getSystemSchedule()
+      }
+
+      const votingEvent = this.SystemScheduleInfo?.find(e => e.event_key === 'voting')
+
+
+      if (!votingEvent?.start_date) {
+        return { ok: false, msg: 'زمان انتخابات توسط سیستم تعریف نشده است' }
+      }
+
+      const electionStart = this.$moment(votingEvent.start_date, 'jYYYY-jMM-jDD HH:mm:ss')
+      const now = this.$moment()
+      const hoursLeft = electionStart.diff(now, 'hours', true)
+
+      if (hoursLeft < 0) {
+        return { ok: false, msg: 'زمان انتخابات آغاز شده است و امکان انصراف وجود ندارد' }
+      }
+
+      if (hoursLeft < 48) {
+        return {
+          ok: false,
+          msg: `انصراف فقط در بازه ۴۸ ساعت مانده تا انتخابات مجاز است. زمان شروع انتخابات: ${electionStart.format('jYYYY/jMM/jDD ساعت HH:mm')}`
+        }
+      }
+
+      return { ok: true }
     },
     go(route) {
       this.$router.push(route)

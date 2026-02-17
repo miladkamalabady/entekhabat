@@ -42,6 +42,7 @@ $allowed_routes = [
     'createVoteToken',
     'getSystemSchedule',
     'saveSystemSchedule',
+    'canselRequestCANDIDATE',
     'getInfoVote'
 ];
 

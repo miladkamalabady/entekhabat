@@ -57,7 +57,7 @@ if (!$code) {
 $curl = curl_init();
 
 curl_setopt_array($curl, [
-    CURLOPT_URL => 'http://192.168.13.60:5002/api/sso/UserInfo',
+    CURLOPT_URL => 'https://my1.medu.ir/api/sso/UserInfo',
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_FOLLOWLOCATION => true,
     CURLOPT_TIMEOUT => 10,
@@ -253,6 +253,7 @@ echo json_encode([
         'orgPositionDesc' => $data['orgPositionDesc'],
         'full_name' => trim($data['firstName'] . ' ' . $data['lastName']),
         'roles' => [$data['roles']],'regionName' => $regionName,
+        'userType' => [$data['userType']],
         'regionId' => $data['regionId']
     ],
     'token' => $token

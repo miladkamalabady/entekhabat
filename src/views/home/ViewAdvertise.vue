@@ -18,7 +18,7 @@
       </b-row>
     </b-container>
     <!-- Main Content -->
-    <b-container class="ads-container" v-if="electionStatusAll === 'upcoming'">
+    <b-container class="ads-container" v-if="shouldShowAds">
       <!-- Search and Filter -->
       <b-card class="mb-4 filter-card">
         <b-row>
@@ -132,7 +132,7 @@
     <b-container class="ads-container" v-else>
       <!-- Search and Filter -->
       <b-card class="mb-4 filter-card">
-        <b-alert variant="danger" class="text-center" show>زمان تبلیغات به اتمام رسیده است!</b-alert>
+        <b-alert variant="danger" class="text-center" show>{{ adsWindowMessage }}</b-alert>
       </b-card>
     </b-container>
     <!-- Ad Details Modal -->
@@ -295,6 +295,9 @@ export default {
   name: "UserAdvertisements",
   data() {
     return {
+      nowTime: Date.now(),
+      scheduleRows: [],
+
       apiUrlrtb,
       allAds: [],
       routeFilteredAds: [],
@@ -304,7 +307,7 @@ export default {
       sortBy: "newest",
       carouselSlide: 0,
       sliding: null,
-      timeRemaining:0,
+      timeRemaining: 0,
       // Modals
       showAdModal: false,
       showImportantModal: false,
@@ -328,12 +331,76 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(["sidebarVisible", "electionStatusAll", "ConfigInfo"]),
+    ...mapGetters(["sidebarVisible", "electionStatusAll", "ConfigInfo", "SystemScheduleInfo"]),
     // Active Ads
     activeAds() {
       return this.filteredAds.filter(ad => ad.status === "active");
     },
+    campaignStartDate() {
+      const campaignEvent = (this.scheduleRows || []).find(item => item?.event_key === 'campaign_start');
+      if (campaignEvent?.start_date) {
+        return new Date(campaignEvent.start_date);
+      }
 
+      if (this.ConfigInfo?.campaignStartDate) {
+        return new Date(this.ConfigInfo.campaignStartDate);
+      }
+
+      return null;
+    },
+    votingStartDate() {
+      const votingEvent = (this.scheduleRows || []).find(item => item?.event_key === 'voting');
+      if (votingEvent?.start_date) {
+        return new Date(votingEvent.start_date);
+      }
+
+      if (this.ConfigInfo?.startDate) {
+        return new Date(this.ConfigInfo.startDate);
+      }
+
+      return null;
+    },
+    shouldShowAds() {
+      const campaignEvent = (this.scheduleRows || []).find(e => e.event_key === 'campaign_start');
+      const votingEvent = (this.scheduleRows || []).find(e => e.event_key === 'voting');
+
+      if (!campaignEvent?.start_date || !votingEvent?.start_date) return false;
+
+      // زمان شروع کمپین و رأی گیری
+      const campaignStart = this.$moment(campaignEvent.start_date, 'jYYYY-jMM-jDD HH:mm:ss');
+      const votingStart = this.$moment(votingEvent.start_date, 'jYYYY-jMM-jDD HH:mm:ss');
+
+      // ۷ روز بعد از شروع کمپین
+      const legalWindowEnd = campaignStart.clone().add(7, 'days');
+
+      // ۲۴ ساعت قبل از رأی گیری
+      const votingCutoff = votingStart.clone().subtract(24, 'hours');
+
+      // نمایش تبلیغات تا زودترین زمان
+      const displayEnd = this.$moment.min(legalWindowEnd, votingCutoff);
+
+      const now = this.$moment(); // زمان فعلی
+
+      return now.isSameOrAfter(campaignStart) && now.isBefore(displayEnd);
+    },
+
+    adsWindowMessage() {
+      const campaignEvent = (this.scheduleRows || []).find(e => e.event_key === 'campaign_start');
+      const votingEvent = (this.scheduleRows || []).find(e => e.event_key === 'voting');
+
+      if (!campaignEvent?.start_date || !votingEvent?.start_date) {
+        return 'بازه قانونی تبلیغات هنوز تنظیم نشده است.';
+      }
+
+      const campaignStart = this.$moment(campaignEvent.start_date, 'jYYYY-jMM-jDD HH:mm:ss');
+      const votingStart = this.$moment(votingEvent.start_date, 'jYYYY-jMM-jDD HH:mm:ss');
+      const displayEnd = this.$moment.min(campaignStart.clone().add(7, 'days'), votingStart.clone().subtract(24, 'hours'));
+
+      const now = this.$moment();
+
+      if (now.isBefore(campaignStart)) return 'نمایش تبلیغات هنوز آغاز نشده است.';
+      return 'زمان مجاز نمایش تبلیغات به اتمام رسیده است.';
+    },
     // Banner Ads for Carousel
     bannerAds() {
       return this.activeAds.filter(ad => ad.type === "banner" && ad.isCarousel);
@@ -398,7 +465,7 @@ export default {
       if (!this.ConfigInfo?.startDate) {
         return "تاریخ انتخابات مشخص نشده است";
       }
-if (this.timeRemaining <= 0) return '00:00:00';
+      if (this.timeRemaining <= 0) return '00:00:00';
 
       const hours = Math.floor(this.timeRemaining / (1000 * 60 * 60));
       const minutes = Math.floor((this.timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
@@ -413,40 +480,39 @@ if (this.timeRemaining <= 0) return '00:00:00';
       return `${this.timeRemaining} روز تا انتخابات باقی مانده است`;
     },
   },
-  created() {
+  async created() {
+    // فرضی از API زمان‌ها
+
     this.loadAds();
-    this.trackView();this.timer = setInterval(() => {
-      this.calculateStatus();
+    this.trackView();
+    this.loadSchedule();
+    this.timer = setInterval(() => {
+      this.refreshClock();
     }, 1000);
+  }, beforeDestroy() {
+    if (this.timer) {
+      clearInterval(this.timer);
+    }
   },
   methods: {
     ...mapMutations(["SetelectionStatusAll"]),
-    ...mapActions(["getAdvertisements", "increaseViewAdd"]),
-    calculateStatus() {
-      if (!this.ConfigInfo?.startDate || !this.ConfigInfo?.EndDate) {
-        this.SetelectionStatusAll('inactive')
+    ...mapActions(["getAdvertisements", "increaseViewAdd", "getSystemSchedule"]),
+
+    refreshClock() {
+      this.nowTime = Date.now();
+      if (this.ConfigInfo?.startDate) {
+        const startDate = new Date(this.ConfigInfo.startDate);
+        const now = new Date(this.nowTime);
+        this.timeRemaining = Math.max(0, startDate - now);
+      }
+    }, async loadSchedule() {
+      if (Array.isArray(this.SystemScheduleInfo) && this.SystemScheduleInfo.length > 0) {
+        this.scheduleRows = this.SystemScheduleInfo;
         return;
       }
-
-      const now = new Date();
-      const startDate = new Date(this.ConfigInfo.startDate);
-      const endDate = new Date(this.ConfigInfo.EndDate);
-
-      // اگر هنوز شروع نشده
-      if (now < startDate) {
-        this.SetelectionStatusAll('upcoming')
-        this.timeRemaining = startDate - now;
-      }
-      // اگر در حال برگزاری است
-      else if (now >= startDate && now <= endDate) {
-        this.SetelectionStatusAll('active')
-        this.timeRemaining = endDate - now;
-      }
-      // اگر پایان یافته
-      else {
-        this.SetelectionStatusAll('ended')
-        this.electionStatus = 'ended';
-        this.timeRemaining = 0;
+      const rows = await this.getSystemSchedule();
+      if (Array.isArray(rows)) {
+        this.scheduleRows = rows;
       }
     },
 
@@ -457,7 +523,7 @@ if (this.timeRemaining <= 0) return '00:00:00';
       }
 
       return ads.filter(ad => {
-        
+
         const rawCode = String(ad.id || "").trim();
         const scaledCode = rawCode && !Number.isNaN(Number(rawCode)) ? String(Number(rawCode) * 1404) : "";
         return rawCode === candidateCode || scaledCode === candidateCode;
@@ -633,7 +699,7 @@ if (this.timeRemaining <= 0) return '00:00:00';
     },
     buildShareText() {
       if (!this.selectedAd) return "";
-      
+
       return `کارت تبلیغاتی کاندید\nنام: ${this.candidateCardInfo.name}\nکد انتخاباتی: ${this.candidateCardInfo.code}\nشعار: ${this.candidateCardInfo.slogan}\nحوزه انتخابیه: ${this.candidateCardInfo.constituency}\nمدرک تحصیلی: ${this.candidateCardInfo.education}\nوضعیت: ${this.candidateCardInfo.employmentStatus}\nسنوات: ${this.candidateCardInfo.yearsOfService} سال \n سوابق اجرایی: ${this.candidateCardInfo.managerialRecords}\n سوابق علمی / پژوهشی: ${this.candidateCardInfo.academicRecords}\n مدارج و افتخارات: ${this.candidateCardInfo.honors}\n برنامه ها: ${this.candidateCardInfo.plans}\n${this.daysUntilElectionText}`;
     },
 

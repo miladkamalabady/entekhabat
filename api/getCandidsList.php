@@ -64,15 +64,6 @@ if ($tableCheck && $db->num_rows($tableCheck) > 0) {
     }
 }
 
-if (empty($startDate) || empty($endDate)) {
-    $sql = "SELECT startDate, EndDate FROM config WHERE id=1";
-    $res = $db->query($sql);
-    if ($res && $db->num_rows($res) > 0) {
-        $row = $db->fetch_assoc($res);
-        $startDate = normalizeToGregorianDateTime($row['startDate'] ?? null);
-        $endDate = normalizeToGregorianDateTime($row['EndDate'] ?? null);
-    }
-}
 
 // بررسی زمان انتخابات
 $now = time();

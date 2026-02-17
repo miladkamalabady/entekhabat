@@ -1,9 +1,23 @@
 <?php
 require_once 'database.php';
 require_once 'readToken.php';
+require_once 'jdf.php';
+date_default_timezone_set('Asia/Tehran');
+
+function jalaliScheduleToTimestamp($dateStr)
+{
+    list($date,$time) = explode(' ',$dateStr);
+    list($jy,$jm,$jd) = explode('-',$date);
+
+    // تبدیل جلالی → میلادی
+    list($gy,$gm,$gd) = jalali_to_gregorian($jy,$jm,$jd);
+
+    return strtotime("$gy-$gm-$gd $time");
+}
 header('Content-Type: application/json; charset=utf-8');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    $db->query("ROLLBACK");
     http_response_code(405);
     echo json_encode([
         'status' => false,
@@ -11,6 +25,27 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }
+
+// شروع مهلت قانونی تبلیغات
+$resStart = $db->query("SELECT start_date FROM election_schedule_events WHERE event_key='ads_upload_start' LIMIT 1");
+$adsStart = jalaliScheduleToTimestamp($resStart->fetch_assoc()['start_date']);
+$adsEndMax7Days = $adsStart + (7 * 24 * 60 * 60); // 7 روز بعد
+// زمان شروع رأی‌گیری
+$resVoting = $db->query("SELECT start_date FROM election_schedule_events WHERE event_key='voting' LIMIT 1");
+$votingStart = jalaliScheduleToTimestamp($resVoting->fetch_assoc()['start_date']);
+$adsEndBeforeVoting = $votingStart - (24 * 60 * 60); // 24 ساعت قبل از شروع رأی‌گیری
+$adsEnd = min($adsEndMax7Days, $adsEndBeforeVoting);
+$now = time();
+if($now < $adsStart || $now > $adsEnd){
+    $db->query("ROLLBACK");
+    http_response_code(403);
+    echo json_encode([
+        'status'=>false,
+        'message'=>'امکان ارسال تبلیغ خارج از بازه قانونی وجود ندارد.'
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 
 $db->connect();
 $db->query("SET autocommit=0");
@@ -37,6 +72,7 @@ $plans = isset($input['plans']) ? trim($input['plans']) : '';
 $slogan = isset($input['slogan']) ? trim($input['slogan']) : '';
 
 if ($title === '' || $description === '' || $type === '' || $status === '') {
+    $db->query("ROLLBACK");
     http_response_code(400);
     echo json_encode([
         'status' => false,
@@ -49,6 +85,7 @@ $storedImagePath = $imagePath !== '' ? $imagePath : null;
 
 if (isset($_FILES['image']) && $_FILES['image']['error'] !== UPLOAD_ERR_NO_FILE) {
     if ($_FILES['image']['error'] !== UPLOAD_ERR_OK) {
+        $db->query("ROLLBACK");
         http_response_code(400);
         echo json_encode([
             'status' => false,
@@ -58,6 +95,7 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] !== UPLOAD_ERR_NO_FILE)
     }
 
     if ($_FILES['image']['size'] > 2 * 1024 * 1024) {
+        $db->query("ROLLBACK");
         http_response_code(400);
         echo json_encode([
             'status' => false,
@@ -72,6 +110,7 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] !== UPLOAD_ERR_NO_FILE)
     $allowed = ['image/jpeg', 'image/png', 'image/jpg'];
 
     if (!in_array($mimeType, $allowed, true)) {
+        $db->query("ROLLBACK");
         http_response_code(400);
         echo json_encode([
             'status' => false,
@@ -82,6 +121,7 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] !== UPLOAD_ERR_NO_FILE)
 
     $baseUploadDir = __DIR__ . '/uploads/advertisements';
     if (!is_dir($baseUploadDir) && !mkdir($baseUploadDir, 0775, true)) {
+        $db->query("ROLLBACK");
         http_response_code(500);
         echo json_encode([
             'status' => false,
@@ -101,6 +141,7 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] !== UPLOAD_ERR_NO_FILE)
     $relativePath = 'uploads/advertisements/' . $fileName;
 
     if (!move_uploaded_file($tmpName, $serverPath)) {
+        $db->query("ROLLBACK");
         http_response_code(500);
         echo json_encode([
             'status' => false,

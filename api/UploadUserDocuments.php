@@ -41,10 +41,6 @@ $requiredFiles = [
         'label' => 'عکس کاربر',
         'allowed' => ['image/jpeg', 'image/png', 'image/jpg']
     ],
-    'employment_cert' => [
-        'label' => 'گواهی عدم اعتیاد',
-        'allowed' => ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf']
-    ],
     'soPishine_cert' => [
         'label' => 'گواهی سوء پشینیه',
         'allowed' => ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf']
@@ -187,27 +183,24 @@ foreach ($optionalFiles as $field => $meta) {
 $nationalIdSql = $db->escape($nationalId);
 $userPhotoSql = $db->escape($storedPaths['user_photo']);
 $educationDocSql = isset($storedPaths['education_doc']) ? $db->escape($storedPaths['education_doc']) : 'NULL';
-$employmentCertSql = $db->escape($storedPaths['employment_cert']);
 $soPishineCertSql = $db->escape($storedPaths['soPishine_cert']);
 $ravanCertSql = $db->escape($storedPaths['ravan_cert']);
 
 // ساخت کوئری با توجه به اختیاری بودن education_doc
 if (isset($storedPaths['education_doc'])) {
     $db->query("INSERT INTO user_documents (nationalId, user_photo, education_doc, employment_cert, soPishine_cert, ravan_cert)
-    VALUES ('{$nationalIdSql}', '{$userPhotoSql}', '{$educationDocSql}', '{$employmentCertSql}', '{$soPishineCertSql}', '{$ravanCertSql}')
+    VALUES ('{$nationalIdSql}', '{$userPhotoSql}', '{$educationDocSql}', '', '{$soPishineCertSql}', '{$ravanCertSql}')
     ON DUPLICATE KEY UPDATE
     user_photo = VALUES(user_photo),
     education_doc = VALUES(education_doc),
-    employment_cert = VALUES(employment_cert),
     soPishine_cert = VALUES(soPishine_cert),
     ravan_cert = VALUES(ravan_cert),
     updated_at = NOW()");
 } else {
     $db->query("INSERT INTO user_documents (nationalId, user_photo, employment_cert, soPishine_cert, ravan_cert)
-    VALUES ('{$nationalIdSql}', '{$userPhotoSql}', '{$employmentCertSql}', '{$soPishineCertSql}', '{$ravanCertSql}')
+    VALUES ('{$nationalIdSql}', '{$userPhotoSql}', '', '{$soPishineCertSql}', '{$ravanCertSql}')
     ON DUPLICATE KEY UPDATE
     user_photo = VALUES(user_photo),
-    employment_cert = VALUES(employment_cert),
     soPishine_cert = VALUES(soPishine_cert),
     ravan_cert = VALUES(ravan_cert),
     updated_at = NOW()");
@@ -219,7 +212,6 @@ $responseData = [
     'data' => [
         'nationalId' => $nationalId,
         'user_photo' => $storedPaths['user_photo'],
-        'employment_cert' => $storedPaths['employment_cert'],
         'soPishine_cert' => $storedPaths['soPishine_cert'],
         'ravan_cert' => $storedPaths['ravan_cert']
     ]
