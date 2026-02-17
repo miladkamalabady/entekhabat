@@ -1,8 +1,6 @@
 <template>
   <div class="px-2">
-
-
-    <b-container fluid class="request-wrapper">
+    <b-container fluid class="request-wrapper" v-if="SystemScheduleInfo?.filter(x=>x.event_key=='candidate_registration')[0]?.start_date">
 
       <!-- Wizard -->
       <ul class="wizard mb-3">
@@ -60,6 +58,9 @@
         </b-card>
       </b-card>
     </b-container>
+    <b-container fluid class="request-wrapper" v-else>
+    <b-alert show>زمان انتخابات مشخص نشده است!</b-alert>
+    </b-container>
   </div>
 </template>
 
@@ -70,11 +71,28 @@ export default {
   name: 'CandidateRequest',
   components: {
   },
+  async created() {
+    if (!this.SystemScheduleInfo) {
+      const rows = await this.getSystemSchedule()
+      if (Array.isArray(rows) && rows.length) {
+        const mapByKey = rows.reduce((acc, item) => {
+          acc[item.event_key] = item
+          return acc
+        }, {})
+
+        this.events = this.events.map(event => ({
+          ...event,
+          startDate: mapByKey[event.key]?.start_date || event.startDate,
+          endDate: mapByKey[event.key]?.end_date || event.endDate
+        }))
+      }
+    }
+  },
   async mounted() {
     this.userstatus()
   },
   computed: {
-    ...mapGetters(["sidebarVisible", "processing", "loginError", "currentUser", "userstatusInfo"]),
+    ...mapGetters(["sidebarVisible", "processing", "loginError", "currentUser", "userstatusInfo","SystemScheduleInfo"]),
     canContinue() {
       if (!this.accepted || !this.checksFinished) return false
       return this.conditions.every(c => c.state === 'success')
@@ -86,7 +104,21 @@ export default {
       accepted: false,
       checksFinished: false,
       progress: 0,
-
+      events: [
+        { id: 1, key: 'candidate_registration', name: 'ثبت نام داوطلبان', startDate: null, endDate: null },
+        { id: 2, key: 'supervision_review', name: 'بررسی نتایج در هیات نظارت', startDate: null, endDate: null },
+        { id: 3, key: 'first_stage_announce', name: 'اعلام نتایج مرحله اول', startDate: null, endDate: null },
+        { id: 4, key: 'first_stage_objection', name: 'اعتراض به نتایج مرحله اول', startDate: null, endDate: null },
+        { id: 5, key: 'first_stage_final_announce', name: 'اعلام نتیجه پس از بررسی مرحله اول', startDate: null, endDate: null },
+        { id: 6, key: 'ads_upload_start', name: 'شروع بارگذاری اقلام تبلیغات', startDate: null, endDate: null },
+        { id: 7, key: 'ads_review_approve', name: 'بررسی تبلیغات/تایید', startDate: null, endDate: null },
+        { id: 8, key: 'campaign_start', name: 'شروع تبلیغات', startDate: null, endDate: null },
+        { id: 9, key: 'voting', name: 'رای گیری', startDate: null, endDate: null },
+        { id: 10, key: 'results_announce', name: 'اعلام نتایج', startDate: null, endDate: null },
+        { id: 11, key: 'objections_registration', name: 'ثبت اعتراضات', startDate: null, endDate: null },
+        { id: 12, key: 'final_results_announce', name: 'اعلام نتایج نهایی', startDate: null, endDate: null },
+        { id: 13, key: 'certificate_issue', name: 'صدور ابلاغ و گواهی فعالیت', startDate: null, endDate: null }
+      ],
       conditions: [
         {
           key: 'membership',
@@ -131,7 +163,7 @@ export default {
   },
   methods: {
     ...mapMutations(["setRequestStatus"]),
-    ...mapActions(["userstatus"]),
+    ...mapActions(["userstatus", "getSystemSchedule"]),
     async runChecks() {
       const step = 100 / this.conditions.length
 

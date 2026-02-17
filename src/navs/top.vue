@@ -98,7 +98,6 @@
     مشاهده همه اطلاعیه‌ها
   </b-dropdown-item>
 </b-nav-item-dropdown>
-
       <img
         src="/assets/img/logout1.png"
         @click="logout()"

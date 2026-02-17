@@ -28,7 +28,7 @@
           </b-row>
 
           <!-- مدرک تحصیلی -->
-          <b-row class="align-items-center mb-2">
+          <b-row class="align-items-center mb-2" v-if="currentUser?.userType == 4">
             <b-col cols="4"><strong>مدرک تحصیلی:</strong></b-col>
             <b-col>
               <img v-if="files.degree?.preview" :src="files.degree.preview" class="thumbnail" />
@@ -49,7 +49,7 @@
 
           <!-- گواهی سوء پشینیه -->
           <b-row class="align-items-center mb-2">
-            <b-col cols="4"><strong>گواهی عدم سوپیشینه:</strong></b-col>
+            <b-col cols="4"><strong>گواهی عدم سوء پیشینه:</strong></b-col>
             <b-col>
               <img v-if="files.soPishine?.preview" :src="files.soPishine.preview" class="thumbnail" />
               <span v-else-if="files.soPishine">{{ files.soPishine.name }}</span>
@@ -59,7 +59,7 @@
 
           <!-- گواهی روان -->
           <b-row class="align-items-center mb-2">
-            <b-col cols="4"><strong>گواهی سلامت روانی و جسمی:</strong></b-col>
+            <b-col cols="4"><strong>برخورداری از سلامت جسمی و روانی کامل (نداشتن اعتیاد به مواد مخدر یا روان گردان و هرگونه سابقه بیماری یا نقص عضوی که مانع از انجام وظایف نمایندگی اعضا در هیئت امنا باشد.) :</strong></b-col>
             <b-col>
               <img v-if="files.ravan?.preview" :src="files.ravan.preview" class="thumbnail" />
               <span v-else-if="files.ravan">{{ files.ravan.name }}</span>

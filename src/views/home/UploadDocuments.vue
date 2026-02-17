@@ -22,14 +22,15 @@
             <b-colxx xxs="12" xs="4" v-if="currentUser?.userType == 4">
               <document-upload title="مدرک تحصیلی" :file.sync="files.degree" />
             </b-colxx>
-            <b-colxx xxs="12" xs="4">
+            <!-- <b-colxx xxs="12" xs="4">
               <document-upload title="گواهی عدم اعتیاد" :file.sync="files.noAddiction" />
-            </b-colxx>
+            </b-colxx> -->
             <b-colxx xxs="12" xs="4">
               <document-upload title="گواهی عدم سوپیشینه" :file.sync="files.soPishine" />
             </b-colxx>
             <b-colxx xxs="12" xs="4">
-              <document-upload title="گواهی سلامت روانی و جسمی " :file.sync="files.ravan" />
+              <document-upload title="برخورداری از سلامت جسمی و روانی کامل " :file.sync="files.ravan" />
+              <label class="small text-justify">برخورداری از سلامت جسمی و روانی کامل (نداشتن اعتیاد به مواد مخدر یا روان گردان و هرگونه سابقه بیماری یا نقص عضوی که مانع از انجام وظایف نمایندگی اعضا در هیئت امنا باشد.) </label>
             </b-colxx>
           </b-row>
           <!-- Actions -->
@@ -82,7 +83,7 @@ export default {
       files: {
         photo: null,
         degree: null,
-        noAddiction: null,
+        // noAddiction: null,
         soPishine: null,
         ravan: null
       }
@@ -111,7 +112,7 @@ export default {
         formData.append("user_photo", this.files.photo.raw);
         if (this.currentUser?.userType == 4)
           formData.append("education_doc", this.files.degree.raw);
-        formData.append("employment_cert", this.files.noAddiction.raw);
+        // formData.append("employment_cert", this.files.noAddiction.raw);
         formData.append("soPishine_cert", this.files.soPishine.raw);
         formData.append("ravan_cert", this.files.ravan.raw);
         this.UploadUserDocuments(formData);
@@ -128,7 +129,7 @@ export default {
   watch: {
     UploadUserDocumentsInfo(val) {
       if (val) {
-        this.setCandidateFiles({ ...this.files, noAddiction: this.files.noAddiction });
+        this.setCandidateFiles({ ...this.files});
         this.setRequestStatus("DOCUMENTS_UPLOADED");
         this.$router.push("/candidate/Confirmation");
       }
@@ -141,7 +142,7 @@ export default {
       this.files = {
         photo: this.$store.state.candidateFiles.photo || null,
         degree: this.$store.state.candidateFiles.degree || null,
-        noAddiction: this.$store.state.candidateFiles.noAddiction || null,
+        // noAddiction: this.$store.state.candidateFiles.noAddiction || null,
         soPishine: this.$store.state.candidateFiles.soPishine || null,
         ravan: this.$store.state.candidateFiles.ravan || null
       };

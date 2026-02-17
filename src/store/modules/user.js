@@ -12,6 +12,7 @@ export default {
     stateCandidInfo: null,
     EXECUTIVEListInfo: null,
     ConfigInfo: null,
+    SystemScheduleInfo: null,
     requestStatus: null,
     hasActiveRequest: false,
     electionStatusAll: 'inactive',
@@ -40,6 +41,7 @@ export default {
     stateCandidInfo: state => state.stateCandidInfo,
     EXECUTIVEListInfo: state => state.EXECUTIVEListInfo,
     ConfigInfo: state => state.ConfigInfo,
+    SystemScheduleInfo: state => state.SystemScheduleInfo,
     processing: state => state.processing,
     loginError: state => state.loginError,
     candidateFiles: state => state.candidateFiles,
@@ -111,6 +113,9 @@ export default {
       state.loginError = null
     }, setConfigInfo(state, payload) {
       state.ConfigInfo = payload
+      state.loginError = null
+    }, setSystemScheduleInfo(state, payload) {
+      state.SystemScheduleInfo = payload
       state.loginError = null
     },
     clearError(state) {
@@ -258,8 +263,10 @@ export default {
       return response.data;
     }, async getSystemSchedule({ commit }) {
       const response = await apiservice({ name: "getSystemSchedule" }, { commit });
-      if (response?.status)
+      if (response?.status){
+        commit('setSystemScheduleInfo', response.data)
         commit('clearError');
+      }
       return response?.data || [];
     }, async saveSystemSchedule({ commit }, payload) {
       const response = await apiservice({ name: "saveSystemSchedule", params: payload }, { commit });

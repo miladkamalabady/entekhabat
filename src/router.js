@@ -61,7 +61,7 @@ const routes = [
         component: () => import(/* webpackChunkName: "supervisor" */ "./views/home/system-schedule"),
         meta: {
           loginRequired: true,
-          roles: [UserRole.SUPERVISOR]
+          // roles: [UserRole.SUPERVISOR]
         }
       }
     ]

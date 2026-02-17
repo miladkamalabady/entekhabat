@@ -20,14 +20,14 @@
           <div class="event-name">{{ data.item.name }}</div>
         </template>
 
-         <template #cell(startDate)="data">
-          <datePicker placeholder="شروع" type="datetime" v-model="data.item.startDate" :auto-submit="true"
-             class="w-100" :max="data.item.endDate || undefined" simple />
+        <template #cell(startDate)="data">
+          <datePicker placeholder="شروع" type="datetime" v-model="data.item.startDate" :auto-submit="true" class="w-100"
+            :max="data.item.endDate || undefined" simple />
         </template>
 
         <template #cell(endDate)="data">
-        <datePicker placeholder="پایان" type="datetime" v-model="data.item.endDate" :auto-submit="true"
-             class="w-100" :min="data.item.startDate || undefined" simple />
+          <datePicker placeholder="پایان" type="datetime" v-model="data.item.endDate" :auto-submit="true" class="w-100"
+            :min="data.item.startDate || undefined" simple />
         </template>
 
         <template #cell(status)="data">
@@ -46,13 +46,16 @@
 </template>
 
 <script>
-import { mapActions } from 'vuex'
+import { mapActions, mapGetters } from 'vuex'
 import VuePersianDatetimePicker from "vue-persian-datetime-picker";
 import "vue-good-table/dist/vue-good-table.css";
 export default {
   name: 'SystemSchedule',
   components: {
     datePicker: VuePersianDatetimePicker,
+  },
+  computed: {
+    ...mapGetters(["SystemScheduleInfo", "currentUser"]),
   },
   data() {
     return {
@@ -81,18 +84,20 @@ export default {
     }
   },
   async created() {
-    const rows = await this.getSystemSchedule()
-    if (Array.isArray(rows) && rows.length) {
-      const mapByKey = rows.reduce((acc, item) => {
-        acc[item.event_key] = item
-        return acc
-      }, {})
+    if (!this.SystemScheduleInfo) {
+      const rows = await this.getSystemSchedule()
+      if (Array.isArray(rows) && rows.length) {
+        const mapByKey = rows.reduce((acc, item) => {
+          acc[item.event_key] = item
+          return acc
+        }, {})
 
-      this.events = this.events.map(event => ({
-        ...event,
-        startDate: mapByKey[event.key]?.start_date || event.startDate,
-        endDate: mapByKey[event.key]?.end_date || event.endDate
-      }))
+        this.events = this.events.map(event => ({
+          ...event,
+          startDate: mapByKey[event.key]?.start_date || event.startDate,
+          endDate: mapByKey[event.key]?.end_date || event.endDate
+        }))
+      }
     }
   },
   methods: {

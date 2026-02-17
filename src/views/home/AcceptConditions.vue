@@ -19,16 +19,21 @@
         <h6 class="mb-3">شرایط و تعهدات داوطلب</h6>
 
         <!-- Conditions -->
-        <b-form-checkbox-group v-model="checkedItems" stacked>
+        <!-- <b-form-checkbox-group v-model="checkedItems" stacked>
           <b-form-checkbox v-for="item in conditions" :key="item.id" :value="item.id" class="mb-2">
             {{ item.text }}
           </b-form-checkbox>
-        </b-form-checkbox-group>
+        </b-form-checkbox-group> -->
+        <ul>
+          <li v-for="item in conditions" :key="item.id"  class="mb-2">
+            {{ item.text }}
+          </li>
+        </ul>
 
         <hr />
 
         <!-- Final Confirmation -->
-        <b-form-checkbox v-model="finalConfirm" :disabled="!allChecked" class="mt-3 final-confirm">
+        <b-form-checkbox v-model="finalConfirm"  class="mt-3 final-confirm">
           <strong>
             اینجانب صحت تمامی موارد فوق را تأیید نموده و مسئولیت هرگونه مغایرت را می‌پذیرم.
           </strong>
@@ -44,7 +49,7 @@
             <b-button variant="outline-danger" class="mr-2" @click="cancel">
               انصراف
             </b-button>
-            <b-button variant="primary" :disabled="!canContinue" @click="nextStep">
+            <b-button variant="primary" :disabled="!finalConfirm" @click="nextStep">
               ادامه
             </b-button>
           </div>
@@ -70,10 +75,6 @@ export default {
       return this.checkedItems.length === this.conditions.length
     },
 
-    canContinue() {
-      return this.allChecked && this.finalConfirm
-    },
-
     progress() {
       if (!this.allChecked) return 50
       if (this.finalConfirm) return 75
@@ -86,11 +87,7 @@ export default {
       checkedItems: [],
       finalConfirm: false,
 
-      conditions: [
-        {
-          id: 0,
-          text: 'التزام به جمهوری اسلامی'
-        },{
+      conditions: [{
           id: 1,
           text: 'التزام به قانون اساسی جمهوری اسلامی ایران، امانت‌داری و حسن شهرت'
         },

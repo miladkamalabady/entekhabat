@@ -40,7 +40,7 @@
                   <b-col v-for="(item, index) in filteredMenu" :key="index" cols="12" sm="4" class="mb-3">
                     <b-card class="dashboard-card h-100"
                       :class="{ disabled: (item.electionStatusAll && item.electionStatusAll != electionStatusAll) }"
-                      @click="handleClick(item)">
+                      @click="!(item.electionStatusAll && item.electionStatusAll != electionStatusAll) ? handleClick(item) : ''">
                       <div class="icon mb-2">
                         <i :class="item.icon"></i>
                       </div>
@@ -114,12 +114,12 @@ export default {
         { title: "ثبت تبلیغات", description: "ثبت تبلیغات", state: ["SUPERVISION_APPROVED"] },],
       menu: [
         {
-          title: 'ثبت درخواست کاندیداتوری',
+          title: 'ثبت نام داوطلبان',
           route: '/candidate/request',
           icon: 'bi bi-person-plus',
           roles: ['VOTER'],
-          // electionStatusAll:'upcoming',
-          visibleWhen: status => !status
+          electionStatusAll:'upcoming',
+          // visibleWhen: status => !status
         },
         {
           title: 'کارتابل اجرایی',

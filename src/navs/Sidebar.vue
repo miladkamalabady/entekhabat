@@ -7,9 +7,9 @@
           <!-- نمایه کاربر -->
           <div class="text-center ">
 
+            <h6 class="text-dark muirtl-16hg5vz">وزارت آموزش و پرورش</h6>
             <img src="assets/img/szf.0.jpg" style="max-width:100%;height: 50px;" />
 
-            <h6 class="text-dark muirtl-16hg5vz">وزارت آموزش و پرورش</h6>
             <p class="text-dark muirtl-1rehyf">سامانه انتخابات الکترونیک</p>
           </div>
           <hr class="my-2 mb-0" />
@@ -151,8 +151,10 @@ export default {
   mounted() {
     if(!this.stateCandidInfo && this.currentUser?.roles=='CANDIDATE')
     this.getstateCandid()
-  if(!this.ConfigInfo && this.currentUser)
+  setTimeout(() => {
+  if(this.$route?.name!='home' && !this.ConfigInfo && this.currentUser)
     this.getConfig()
+  }, 1000);
 
     this.setpanelactiveparvande(this.$route?.name)
     if (this.profilecontent1.filter(x => x.link == this.$route?.name).length > 0)
