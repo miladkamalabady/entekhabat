@@ -273,6 +273,11 @@ export default {
       if (response?.status)
         commit('clearError');
       return response;
+    }, async canselRequestCANDIDATE({ commit }, payload) {
+      const response = await apiservice({ name: "canselRequestCANDIDATE" }, { commit });
+      if (response?.status)
+        commit('clearError');
+      return response;
     },
 
   }

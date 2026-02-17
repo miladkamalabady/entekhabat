@@ -11,6 +11,9 @@ const global = {
     },confirmRegister: {
         url: "/FinalSubmit",
         method: 'POST'
+    },canselRequestCANDIDATE: {
+        url: "/canselRequestCANDIDATE",
+        method: 'POST'
     },getstateCandid: {
         url: "/getstateCandid",
         method: 'GET'

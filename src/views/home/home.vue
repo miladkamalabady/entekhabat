@@ -24,8 +24,12 @@
                     v-if="(currentUser?.roles.includes('CANDIDATE')) && requestStatus "
                     :steps="stepperSteps" :current-step="currentStep" :disabled="processing" />
                   <!-- درخواست ثبت شده -->
-                  <b-alert v-if="requestStatus === 'SUBMITTED' || requestStatus === 'EXECUTIVE_APPROVED' || requestStatus === 'EXECUTIVE_REJECTED'" variant="warning" show>
+                  <b-alert v-if="currentUser?.roles.includes('CANDIDATE') && (requestStatus === 'SUBMITTED' || requestStatus === 'EXECUTIVE_APPROVED' || requestStatus === 'EXECUTIVE_REJECTED')" variant="warning" show>
                     ⏳ درخواست شما ثبت شده و در حال بررسی توسط مراجع است
+                    <br/>
+                    <b-button variant="outline-danger" class="mt-2" @click="canselRequest()">
+                      انصراف
+                    </b-button>
                   </b-alert>
                   <b-alert v-else-if="requestStatus === 'SUPERVISION_REJECTED'" variant="danger" show>
                     ❌ درخواست شما رد شده است
@@ -176,8 +180,17 @@ export default {
     }
   },
   methods: {
-    ...mapMutations(["setRequestStatus"]),
-    ...mapActions(["getConfig"]),
+    ...mapMutations(["setRequestStatus","setUser"]),
+    ...mapActions(["getConfig","canselRequestCANDIDATE"]),
+   async canselRequest() {
+     await this.canselRequestCANDIDATE()
+     this.setRequestStatus("DRAFT")
+        const cu = {
+          ...this.currentUser,
+          roles: ['VOTER']
+        }
+        this.setUser(cu)
+    },
     go(route) {
       this.$router.push(route)
     },

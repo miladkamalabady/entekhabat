@@ -1,6 +1,6 @@
 <template>
   <div class="px-2">
-    <b-container fluid class="request-wrapper" v-if="SystemScheduleInfo?.filter(x=>x.event_key=='candidate_registration')[0]?.start_date">
+    <b-container fluid class="request-wrapper" v-if="isRegistrationOpen">
 
       <!-- Wizard -->
       <ul class="wizard mb-3">
@@ -59,13 +59,13 @@
       </b-card>
     </b-container>
     <b-container fluid class="request-wrapper" v-else>
-    <b-alert show>زمان انتخابات مشخص نشده است!</b-alert>
+      <b-alert show>زمان انتخابات مشخص نشده است!</b-alert>
     </b-container>
   </div>
 </template>
 
 <script>
-import { isMobile } from "../../utils";
+import { convertDate, isMobile } from "../../utils";
 import { mapGetters, mapActions, mapMutations } from "vuex";
 export default {
   name: 'CandidateRequest',
@@ -89,10 +89,31 @@ export default {
     }
   },
   async mounted() {
-    this.userstatus()
+
+    // گرفتن زمان‌بندی اگر هنوز نیامده
+    if (!this.SystemScheduleInfo || !this.SystemScheduleInfo.length) {
+      await this.getSystemSchedule()
+    }
+
+    const check = this.isRegistrationOpen();
+
+    if (!check.ok) {
+
+      await this.$bvModal.msgBoxOk(check.msg, {
+        title: 'امکان ثبت‌نام وجود ندارد',
+        centered: true,
+        okVariant: 'danger'
+      });
+
+      this.$router.replace('/');
+      return;
+    }
+
+    // اگر مجاز بود تازه احراز شرایط شروع شود
+    this.userstatus();
   },
   computed: {
-    ...mapGetters(["sidebarVisible", "processing", "loginError", "currentUser", "userstatusInfo","SystemScheduleInfo"]),
+    ...mapGetters(["sidebarVisible", "processing", "loginError", "currentUser", "userstatusInfo", "SystemScheduleInfo"]),
     canContinue() {
       if (!this.accepted || !this.checksFinished) return false
       return this.conditions.every(c => c.state === 'success')
@@ -100,7 +121,7 @@ export default {
   },
   data() {
     return {
-      isMobile,
+      isMobile, convertDate,
       accepted: false,
       checksFinished: false,
       progress: 0,
@@ -164,6 +185,35 @@ export default {
   methods: {
     ...mapMutations(["setRequestStatus"]),
     ...mapActions(["userstatus", "getSystemSchedule"]),
+    isRegistrationOpen() {
+
+      const event = this.SystemScheduleInfo?.find(e => e.event_key === 'candidate_registration');
+
+      if (!event)
+        return { ok: false, msg: 'زمان ثبت‌نام انتخابات توسط سیستم تعریف نشده است' };
+
+      // تبدیل تاریخ شمسی API
+      const start = this.$moment(event.start_date, "jYYYY-jMM-jDD HH:mm:ss");
+      const end = this.$moment(event.end_date, "jYYYY-jMM-jDD HH:mm:ss");
+
+      const now = this.$moment();
+
+      // هنوز شروع نشده
+      if (now.isBefore(start))
+        return {
+          ok: false,
+          msg: `ثبت‌نام از تاریخ ${start.format("jYYYY/jMM/jDD ساعت HH:mm")} آغاز می‌شود`
+        };
+
+      // تمام شده
+      if (now.isAfter(end))
+        return {
+          ok: false,
+          msg: `مهلت ثبت‌نام در تاریخ ${end.format("jYYYY/jMM/jDD ساعت HH:mm")} به پایان رسیده است`
+        };
+
+      return { ok: true };
+    },
     async runChecks() {
       const step = 100 / this.conditions.length
 

@@ -35,9 +35,9 @@ export const convertDate = (val) => {
   //     tav=p2e(tav)
   // }
   // return (tav);
-  // return  this.$moment(val, "YYYY/MM/DD").format(
-  //             "jYYYY/jMM/jDD"
-  //           ) 
+  return  this.$moment(val, "YYYY/MM/DD").format(
+              "jYYYY/jMM/jDD"
+            ) 
 };
 export const getclasscolor = (key) => {
   if (key < 6)

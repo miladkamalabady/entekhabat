@@ -38,14 +38,14 @@
           </b-row>
 
           <!-- گواهی عدم اعتیاد -->
-          <b-row class="align-items-center mb-2">
+          <!-- <b-row class="align-items-center mb-2">
             <b-col cols="4"><strong>گواهی عدم اعتیاد:</strong></b-col>
             <b-col>
               <img v-if="files.noAddiction?.preview" :src="files.noAddiction.preview" class="thumbnail" />
               <span v-else-if="files.noAddiction">{{ files.noAddiction.name }}</span>
               <span v-else>بارگذاری نشده</span>
             </b-col>
-          </b-row>
+          </b-row> -->
 
           <!-- گواهی سوء پشینیه -->
           <b-row class="align-items-center mb-2">
@@ -59,7 +59,7 @@
 
           <!-- گواهی روان -->
           <b-row class="align-items-center mb-2">
-            <b-col cols="4"><strong>برخورداری از سلامت جسمی و روانی کامل (نداشتن اعتیاد به مواد مخدر یا روان گردان و هرگونه سابقه بیماری یا نقص عضوی که مانع از انجام وظایف نمایندگی اعضا در هیئت امنا باشد.) :</strong></b-col>
+            <b-col cols="4"><strong>برخورداری از سلامت جسمی و روانی کامل </strong></b-col>
             <b-col>
               <img v-if="files.ravan?.preview" :src="files.ravan.preview" class="thumbnail" />
               <span v-else-if="files.ravan">{{ files.ravan.name }}</span>
@@ -117,7 +117,7 @@ export default {
   computed: {
     ...mapGetters(["confirmRegisterInfo", "candidateFiles", "currentUser"]),
     canConfirm() {
-      return this.files.photo && this.files.noAddiction && (this.currentUser?.userType != 4 || this.files.degree) && this.files.soPishine && this.files.ravan;
+      return this.files.photo && (this.currentUser?.userType != 4 || this.files.degree) && this.files.soPishine && this.files.ravan;
     },
     progress() {
       return 100;
