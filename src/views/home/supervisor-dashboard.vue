@@ -897,6 +897,8 @@ export default {
         degree: 'file-earmark-text',
         photo: 'image',
         no_addiction: 'file-medical',
+        certificate: 'patch-check',
+        legal: 'shield-check',
         id_card: 'credit-card',
         experience: 'briefcase'
       };
@@ -905,8 +907,9 @@ export default {
     getCandidateDocuments(candidate) {
       return [
         { key: 'user_photo', label: 'تصویر کاربر', path: candidate.user_photo, icon: 'photo' },
-        { key: 'education_doc', label: 'تصویر مدرک', path: candidate.education_doc, icon: 'degree' },
-        { key: 'employment_cert', label: 'گواهی عدم اعتیاد', path: candidate.employment_cert, icon: 'no_addiction' }
+        { key: 'education_doc', label: 'مدرک تحصیلی', path: candidate.education_doc, icon: 'degree' },
+        { key: 'employment_cert', label: 'گواهی اشتغال', path: candidate.employment_cert, icon: 'certificate' },
+        { key: 'soPishine_cert', label: 'گواهی سوءپیشینه', path: candidate.soPishine_cert, icon: 'legal' },
       ].filter(doc => doc.path);
     },
 
@@ -1010,7 +1013,9 @@ export default {
       this.showCandidateModal = true;
     },
 
-
+    getCandidateNationalId(candidate) {
+      return candidate?.national_Id || candidate?.national_id || candidate?.nationalId || '';
+    },
     async approveCandidate(val) {
       if (val) {
         this.selectedCandidate = val;
@@ -1021,16 +1026,25 @@ export default {
       }
 
       const candidate = this.selectedCandidate;
+      const nationalId = this.getCandidateNationalId(candidate);
+      if (!nationalId) {
+        this.$bvToast.toast('کد ملی کاندیدا یافت نشد و امکان ثبت تصمیم وجود ندارد.', {
+          title: 'خطا',
+          variant: 'danger',
+          solid: true
+        });
+        return;
+      }
       candidate.requestStatus = 'SUPERVISION_APPROVED';
 
       try {
         const response = await this.ChangeState({
-          national_Id: candidate.national_Id,
+          national_Id: nationalId,
           requestStatus: 'SUPERVISION_APPROVED',
           reason: this.finalComment
         });
 
-        if (response?.status === false) {
+        if (!response || response.status !== true) {
           throw new Error(response?.message || 'ثبت تایید مدارک ناموفق بود.');
         }
 

@@ -151,9 +151,9 @@ export default {
   mounted() {
     if (this.currentUser?.roles == 'CANDIDATE') {
       this.getstateCandid()
-      this.stateRefreshIntervalId = setInterval(() => {
-        this.getstateCandid()
-      }, 5000)
+      // this.stateRefreshIntervalId = setInterval(() => {
+      //   this.getstateCandid()
+      // }, 5000)
     }
     setTimeout(() => {
       if (this.$route?.name != 'home' && !this.ConfigInfo && this.currentUser)
