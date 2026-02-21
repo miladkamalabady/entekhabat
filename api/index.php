@@ -43,6 +43,7 @@ $allowed_routes = [
     'getSystemSchedule',
     'saveSystemSchedule',
     'canselRequestCANDIDATE',
+    'getRegions',
     'getInfoVote'
 ];
 

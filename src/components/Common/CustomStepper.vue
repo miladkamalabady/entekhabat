@@ -1,11 +1,16 @@
 <template>
   <div class="custom-stepper">
-    <div v-if="stateCandidInfo?.tracking_code" class="text-muted">کد پیگیری: {{ stateCandidInfo?.tracking_code }}</div>
+    <div v-if="stateCandidInfo?.tracking_code" class="text-muted">کد پیگیری: {{ stateCandidInfo?.tracking_code }}
+      <button class="btn btn-sm btn-outline-secondary" @click="copyTrackingCode(stateCandidInfo?.tracking_code)">
+        کپی
+      </button>
+    </div>
     <b-row class="text-center stepper-row" no-gutters>
       <template v-for="(step, index) in steps">
 
         <b-col :xs="responsive.xs" :xxs="responsive.xxs" class="position-relative stepper-col">
-          <div v-if="index > 0" class="stepper-connector" :class="{ 'connector-completed': currentStep >= index }"></div>
+          <div v-if="index > 0" class="stepper-connector" :class="{ 'connector-completed': currentStep >= index }">
+          </div>
           <div @click="!disabled && handleStepClick(index)" class="cursor-pointer stepper-item p-3" :class="{
             'stepper-item-active': currentStep === index,
             'stepper-item-completed': currentStep > index,
@@ -97,6 +102,18 @@ export default {
   },
 
   methods: {
+    copyTrackingCode(code) {
+      if (!code) return
+
+      navigator.clipboard.writeText(code)
+        .then(() => {
+          // اگر خواستی نوتیفیکیشن بذاری اینجا بزار
+          alert('کد پیگیری کپی شد ✅')
+        })
+        .catch(() => {
+          alert('خطا در کپی کردن ❌')
+        })
+    },
     handleStepClick(index) {
       if (index < 0 || index >= this.steps.length) return
 

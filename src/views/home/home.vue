@@ -28,12 +28,18 @@
                     variant="warning" show>
                     ⏳ درخواست شما ثبت شده و در حال بررسی توسط مراجع است
                     <br />
-                    <b-button  variant="outline-danger" class="mt-2" @click="canselRequest()">
+                    <b-button variant="outline-danger" class="mt-2" @click="canselRequest()">
                       انصراف
                     </b-button>
                   </b-alert>
                   <b-alert v-else-if="requestStatus === 'SUPERVISION_REJECTED'" variant="danger" show>
                     ❌ درخواست شما رد شده است
+                    <div v-if="stateCandidInfo?.reson" class="mt-2">
+                      نظر نهایی هیأت نظارت: {{ stateCandidInfo.reson }}
+                    </div>
+                    <div v-if="stateCandidInfo?.edited_at_sh" class="mt-1">
+                      تاریخ آخرین ویرایش: {{ stateCandidInfo.edited_at_sh }}
+                    </div>
                     <br />
                     <b-button variant="outline-danger" class="mt-2" @click="$router.push('/candidate/objection')">
                       ثبت اعتراض
@@ -176,6 +182,13 @@ export default {
           roles: ['VOTER', 'CANDIDATE', 'EXECUTIVE', 'SUPERVISOR'],
           electionStatusAll: 'ended',
           badge: 'نمایش نهایی'
+        },
+        {
+          title: 'زمان بندی سیستم',
+          route: '/supervisor/system-schedule',
+          icon: 'bi bi-bar-chart',
+          roles: ['ADMIN'],
+          badge: 'استانی و کشوری'
         }
       ]
     }

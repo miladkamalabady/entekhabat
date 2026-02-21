@@ -170,14 +170,13 @@ export default {
             commit('clearError')
           }
         })
-    }, ChangeState({ commit }, payload) {
-      apiservice({ name: "ChangeState", params: payload }, { commit })
-        .then(response => {
-          if (response.status) {
-            commit('setChangeStateInfo', response.data)
-            commit('clearError')
-          }
-        })
+    }, async ChangeState({ commit }, payload) {
+       const response = await apiservice({ name: "ChangeState", params: payload }, { commit });
+      if (response.status) {
+        commit('setChangeStateInfo', response.data);
+        commit('clearError');
+      }
+      return response;
     }, getstateCandid({ commit }, payload) {
       apiservice({ name: "getstateCandid", params: payload }, { commit })
         .then(response => {
@@ -275,6 +274,11 @@ export default {
       return response;
     }, async canselRequestCANDIDATE({ commit }, payload) {
       const response = await apiservice({ name: "canselRequestCANDIDATE" }, { commit });
+      if (response?.status)
+        commit('clearError');
+      return response;
+    },async getRegions({ commit }) {
+      const response = await apiservice({ name: "getRegions" }, { commit });
       if (response?.status)
         commit('clearError');
       return response;

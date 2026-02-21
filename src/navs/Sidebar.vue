@@ -135,7 +135,7 @@ export default {
           "img": "assets/img/ltms.svg",
           "type": "3",
           "cate": 2,
-          roles: ['SUPERVISOR'],
+          roles: ['ADMIN'],
         }, {
           "title": "پشتیبانی",
           "link": "Contact",
@@ -149,12 +149,16 @@ export default {
     };
   },
   mounted() {
-    if(!this.stateCandidInfo && this.currentUser?.roles=='CANDIDATE')
-    this.getstateCandid()
-  setTimeout(() => {
-  if(this.$route?.name!='home' && !this.ConfigInfo && this.currentUser)
-    this.getConfig()
-  }, 1000);
+    if (this.currentUser?.roles == 'CANDIDATE') {
+      this.getstateCandid()
+      this.stateRefreshIntervalId = setInterval(() => {
+        this.getstateCandid()
+      }, 5000)
+    }
+    setTimeout(() => {
+      if (this.$route?.name != 'home' && !this.ConfigInfo && this.currentUser)
+        this.getConfig()
+    }, 1000);
 
     this.setpanelactiveparvande(this.$route?.name)
     if (this.profilecontent1.filter(x => x.link == this.$route?.name).length > 0)
@@ -163,26 +167,32 @@ export default {
       this.openMenu = null
     }
   },
+  beforeDestroy() {
+    if (this.stateRefreshIntervalId) {
+      clearInterval(this.stateRefreshIntervalId)
+      this.stateRefreshIntervalId = null
+    }
+  },
   components: {
 
   },
   computed: {
-    ...mapGetters(["currentUser", "panelactiveparvande", "sidebarVisible","ConfigInfo","stateCandidInfo"]),
+    ...mapGetters(["currentUser", "panelactiveparvande", "sidebarVisible", "ConfigInfo", "stateCandidInfo"]),
     filteredMenu() {
       return this.profilecontent.filter(item => {
-        let roleAllowed=true
-        
-        if(item?.roles)
-        roleAllowed = item?.roles?.includes(this.currentUser?.roles[0])
- 
-        const disabled= item.requiresActive && !this.ConfigInfo?.active
+        let roleAllowed = true
+
+        if (item?.roles)
+          roleAllowed = item?.roles?.includes(this.currentUser?.roles[0])
+
+        const disabled = item.requiresActive && !this.ConfigInfo?.active
         return roleAllowed && !disabled
       })
     }
   },
   methods: {
-    ...mapMutations(["setpanelactiveparvande", "setsidebarVisible", "setProcessing","setRequestStatus"]),
-    ...mapActions(["getstateCandid","getConfig"]),
+    ...mapMutations(["setpanelactiveparvande", "setsidebarVisible", "setProcessing", "setRequestStatus"]),
+    ...mapActions(["getstateCandid", "getConfig"]),
     toggleMenu(title) {
       this.openMenu = this.openMenu === title ? null : title;
     },
@@ -218,8 +228,8 @@ export default {
 
   },
   watch: {
-    stateCandidInfo(val){
-      if(val){
+    stateCandidInfo(val) {
+      if (val) {
         this.setRequestStatus(val?.requestStatus)
       }
     }

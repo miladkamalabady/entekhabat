@@ -98,55 +98,32 @@
                       <div class="documents-list mb-3">
                         <h6 class="mb-3">مدارک ارسال شده:</h6>
                         <div class="document-item">
-                          <div class="d-flex justify-content-between align-items-center">
-                            <div class="document-info">
-                              <b-icon :icon="getDocumentIcon('photo')" class="ml-2"></b-icon>
-                              <span>تصویر کاربر</span>
+                          <div v-for="doc in getCandidateDocuments(candidate)" :key="`${candidate.id}-${doc.key}`"
+                            class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="document-info d-flex align-items-center">
+                              <b-icon :icon="getDocumentIcon(doc.icon)" class="ml-2"></b-icon>
+                              <span>{{ doc.label }}</span>
+                              <b-badge class="mr-2"
+                                :variant="getDocumentReviewVariant(getDocumentReview(candidate, doc.key))">
+                                {{ getDocumentReviewText(getDocumentReview(candidate, doc.key)) }}
+                              </b-badge>
                             </div>
-                            <div class="document-actions">
+                            <div class="document-actions d-flex align-items-center">
                               <b-button size="sm" variant="outline-primary"
-                                @click="viewDocument(candidate.user_photo, 'تصویر کاربر', candidate.datepic)"
+                                @click="viewDocument(candidate, doc.key, doc.path, doc.label, candidate.datepic)"
                                 class="mr-2">
                                 <b-icon icon="eye"></b-icon>
                               </b-button>
-                              <b-button size="sm" variant="outline-success"
-                                :href="`${apiUrlrtb}/${candidate.user_photo}`" target="_blank">
-                                <b-icon icon="download"></b-icon>
+                              <b-button size="sm" variant="outline-success" class="mr-2"
+                                @click="setDocumentReview(candidate, doc.key, 'approved')">
+                                <b-icon icon="check-circle"></b-icon>
                               </b-button>
-                            </div>
-                          </div>
-
-                          <div class="d-flex justify-content-between align-items-center">
-                            <div class="document-info">
-                              <b-icon :icon="getDocumentIcon('photo')" class="ml-2"></b-icon>
-                              <span>تصویر مدرک</span>
-                            </div>
-                            <div class="document-actions">
-                              <b-button size="sm" variant="outline-primary"
-                                @click="viewDocument(candidate.education_doc, 'تصویر مدرک', candidate.datepic)"
-                                class="mr-2">
-                                <b-icon icon="eye"></b-icon>
+                              <b-button size="sm" variant="outline-danger" class="mr-2"
+                                @click="setDocumentReview(candidate, doc.key, 'rejected')">
+                                <b-icon icon="x-circle"></b-icon>
                               </b-button>
-                              <b-button size="sm" variant="outline-success"
-                                :href="`${apiUrlrtb}/${candidate.education_doc}`" target="_blank">
-                                <b-icon icon="download"></b-icon>
-                              </b-button>
-                            </div>
-                          </div>
-
-                          <div class="d-flex justify-content-between align-items-center">
-                            <div class="document-info">
-                              <b-icon :icon="getDocumentIcon('photo')" class="ml-2"></b-icon>
-                              <span>گواهی عدم اعتیاد</span>
-                            </div>
-                            <div class="document-actions">
-                              <b-button size="sm" variant="outline-primary"
-                                @click="viewDocument(candidate.employment_cert, 'گواهی عدم اعتیاد', candidate.datepic)"
-                                class="mr-2">
-                                <b-icon icon="eye"></b-icon>
-                              </b-button>
-                              <b-button size="sm" variant="outline-success"
-                                :href="`${apiUrlrtb}/${candidate.employment_cert}`" target="_blank">
+                              <b-button size="sm" variant="outline-success" :href="`${apiUrlrtb}/${doc.path}`"
+                                target="_blank">
                                 <b-icon icon="download"></b-icon>
                               </b-button>
                             </div>
@@ -389,7 +366,25 @@
             </b-col>
           </b-row>
         </div>
-
+        <div class="document-review-actions mt-3" v-if="selectedDocument.candidate">
+          <h6 class="mb-2">بررسی مدرک</h6>
+          <div class="d-flex align-items-center">
+            <b-button variant="success" size="sm" class="mr-2"
+              @click="setDocumentReview(selectedDocument.candidate, selectedDocument.key, 'approved')">
+              <b-icon icon="check-circle" class="ml-1"></b-icon>
+              تایید مدرک
+            </b-button>
+            <b-button variant="danger" size="sm"
+              @click="setDocumentReview(selectedDocument.candidate, selectedDocument.key, 'rejected')">
+              <b-icon icon="x-circle" class="ml-1"></b-icon>
+              رد مدرک
+            </b-button>
+            <b-badge class="mr-3"
+              :variant="getDocumentReviewVariant(getDocumentReview(selectedDocument.candidate, selectedDocument.key))">
+              {{ getDocumentReviewText(getDocumentReview(selectedDocument.candidate, selectedDocument.key)) }}
+            </b-badge>
+          </div>
+        </div>
       </div>
     </b-modal>
 
@@ -407,24 +402,46 @@
             </b-col>
             <b-col md="8">
               <h4>{{ selectedCandidate.first_name }} {{ selectedCandidate.last_name }}</h4>
-              <p class="text-muted">{{ selectedCandidate.org_position_desc }}</p>
+              <p class="text-muted">{{ getCandidateValue(selectedCandidate, ['constituency', 'electoral_district',
+                'hoze'])
+              }}</p>
               <div class="candidate-meta">
                 <div class="meta-item">
-                  <b-icon icon="geo-alt" class="ml-1"></b-icon>
-                  {{ selectedCandidate.address }}
+                  <strong>نام و نام خانوادگی داوطلب:</strong>
+                  {{ selectedCandidate.first_name }} {{ selectedCandidate.last_name }}
                 </div>
                 <div class="meta-item">
-                  <b-icon icon="calendar" class="ml-1"></b-icon>
-                  {{ selectedCandidate.persian_birth_date }}
+                  <strong>حوزه انتخابیه:</strong>
+                  {{ getCandidateValue(selectedCandidate, ['constituency', 'electoral_district', 'hoze']) }}
                 </div>
                 <div class="meta-item">
-                  <b-icon icon="briefcase" class="ml-1"></b-icon>
-                  کدپرسنلی {{ selectedCandidate.personnel_code }}
+                  <strong>وضعیت اشتغال:</strong>
+                  {{ getEmploymentStatusText(selectedCandidate) }}
                 </div>
               </div>
+              <div class="meta-item">
+                <strong>پست:</strong>
+                {{ getCandidateValue(selectedCandidate, ['org_position_desc', 'position', 'post']) }}
+              </div>
+              <div class="meta-item">
+                <strong>سنوات:</strong>
+                {{ getCandidateValue(selectedCandidate, ['years_of_service', 'senavat', 'service_years']) }}
+              </div>
+              <div class="meta-item">
+                <strong>سال تولد:</strong>
+                {{ getCandidateValue(selectedCandidate, ['birth_year', 'persian_birth_date', 'birthDateYear']) }}
+              </div>
+              <div class="meta-item">
+                <strong>مدرک تحصیلی:</strong>
+                {{ getCandidateValue(selectedCandidate, ['education_level', 'education', 'degree']) }}
+              </div>
               <div class="meta-item" v-if="selectedCandidate.reson">
-                <b-icon icon="briefcase" class="ml-1"></b-icon>
-                علت: {{ selectedCandidate.reson }}
+                <b-icon icon="chat-left-text" class="ml-1"></b-icon>
+                نظر نهایی: {{ selectedCandidate.reson }}
+              </div>
+              <div class="meta-item" v-if="selectedCandidate.edited_at_sh">
+                <b-icon icon="clock-history" class="ml-1"></b-icon>
+                تاریخ آخرین ویرایش نظر: {{ selectedCandidate.edited_at_sh }}
               </div>
             </b-col>
           </b-row>
@@ -442,13 +459,12 @@
             </b-form-group>
 
             <div class="text-center mt-3">
-              <b-button variant="success" v-if="selectedCandidate.requestStatus != 'SUPERVISION_APPROVED'" class="mr-3"
-                @click="approveCandidate(selectedCandidate)" :disabled="!finalComment">
+              <b-button variant="success" class="mr-3" @click="approveCandidate(selectedCandidate)"
+                :disabled="!finalComment">
                 <b-icon icon="check-circle" class="ml-1"></b-icon>
                 تایید صلاحیت
               </b-button>
-              <b-button variant="danger" v-if="selectedCandidate.requestStatus != 'SUPERVISION_REJECTED'"
-                @click="rejectCandidate(selectedCandidate)" :disabled="!finalComment">
+              <b-button variant="danger" @click="rejectCandidate(selectedCandidate)" :disabled="!finalComment">
                 <b-icon icon="x-circle" class="ml-1"></b-icon>
                 رد صلاحیت
               </b-button>
@@ -528,19 +544,22 @@
         </b-row>
 
         <!-- Ad Review -->
-        <div class="ad-review" v-if="selectedAd.deleter!='CANDIDATE'">
+        <div class="ad-review" v-if="selectedAd.deleter != 'CANDIDATE'">
           <h6 class="mb-3">بررسی تبلیغ</h6>
           <b-form @submit.prevent="reviewAd">
             <b-form-group label="نظر بررسی" label-for="ad-review-comment">
               <b-form-textarea id="ad-review-comment" v-model="adReviewComment" rows="3"
                 placeholder="نظر خود را در مورد این تبلیغ وارد کنید..."></b-form-textarea>
             </b-form-group>
-            <div class="text-center" >
-              <b-button variant="success" v-if="(selectedAd.deleter && selectedAd.deleter!='CANDIDATE') || selectedAd.status!='Pending'" @click="approveSelectedAd" >
+            <div class="text-center">
+              <b-button variant="success"
+                v-if="(selectedAd.deleter && selectedAd.deleter != 'CANDIDATE') || selectedAd.status != 'Pending'"
+                @click="approveSelectedAd">
                 <b-icon icon="check" class="ml-1"></b-icon>
                 تایید تبلیغ
               </b-button>
-              <b-button variant="danger"  v-if="!selectedAd.deleter" @click="rejectSelectedAd" :disabled="!adReviewComment">
+              <b-button variant="danger" v-if="!selectedAd.deleter" @click="rejectSelectedAd"
+                :disabled="!adReviewComment">
                 <b-icon icon="x" class="ml-1"></b-icon>
                 رد تبلیغ
               </b-button>
@@ -720,7 +739,7 @@ export default {
       selectedCandidate: null,
       selectedAd: null,
       selectedDocuments: [],
-
+      documentReviewStates: {},
       // Review Data
       reviewComment: '',
       finalComment: '',
@@ -844,7 +863,7 @@ export default {
         active: 'info',
         expired: 'secondary'
       };
-      return !status.deleter ? (variants[status.status] || 'secondary') : variants['REJECTED'] ;
+      return !status.deleter ? (variants[status.status] || 'secondary') : variants['REJECTED'];
     },
 
     getAdStatusText(status) {
@@ -859,7 +878,7 @@ export default {
         active: 'فعال',
         expired: 'منقضی'
       };
-      return !status.deleter ? (texts[status.status] || status.status) : status.deleter=='SUPERVISOR' ? texts['SUPERVISION_REJECTED'] :status.deleter=='CANDIDATE' ? texts['CANDIDATE']: texts['EXECUTIVE_REJECTED'];
+      return !status.deleter ? (texts[status.status] || status.status) : status.deleter == 'SUPERVISOR' ? texts['SUPERVISION_REJECTED'] : status.deleter == 'CANDIDATE' ? texts['CANDIDATE'] : texts['EXECUTIVE_REJECTED'];
     },
 
     getAdTypeText(type) {
@@ -883,7 +902,54 @@ export default {
       };
       return icons[type] || 'file-earmark';
     },
+    getCandidateDocuments(candidate) {
+      return [
+        { key: 'user_photo', label: 'تصویر کاربر', path: candidate.user_photo, icon: 'photo' },
+        { key: 'education_doc', label: 'تصویر مدرک', path: candidate.education_doc, icon: 'degree' },
+        { key: 'employment_cert', label: 'گواهی عدم اعتیاد', path: candidate.employment_cert, icon: 'no_addiction' }
+      ].filter(doc => doc.path);
+    },
 
+    getDocumentReviewVariant(status) {
+      const variants = {
+        pending: 'warning',
+        approved: 'success',
+        rejected: 'danger'
+      };
+
+      return variants[status] || 'secondary';
+    },
+
+    getDocumentReviewText(status) {
+      const texts = {
+        pending: 'در انتظار بررسی',
+        approved: 'تایید شده',
+        rejected: 'رد شده'
+      };
+
+      return texts[status] || 'نامشخص';
+    },
+
+    getDocumentReview(candidate, documentKey) {
+      const candidateKey = candidate.national_Id || candidate.id;
+      return this.documentReviewStates[candidateKey]?.[documentKey] || 'pending';
+    },
+
+    setDocumentReview(candidate, documentKey, status) {
+      const candidateKey = candidate.national_Id || candidate.id;
+      if (!this.documentReviewStates[candidateKey]) {
+        this.$set(this.documentReviewStates, candidateKey, {});
+      }
+
+      this.$set(this.documentReviewStates[candidateKey], documentKey, status);
+
+      this.$bvToast.toast(`مدرک با وضعیت "${this.getDocumentReviewText(status)}" ثبت شد.`, {
+        title: 'ثبت نظر هیأت نظارت',
+        variant: status === 'approved' ? 'success' : 'danger',
+        autoHideDelay: 2500,
+        solid: true
+      });
+    },
     getActivityIcon(type) {
       const icons = {
         approve: 'check-circle',
@@ -893,6 +959,24 @@ export default {
         delete: 'trash'
       };
       return icons[type] || 'info-circle';
+    },
+    getCandidateValue(candidate, keys) {
+      for (const key of keys) {
+        if (candidate?.[key] !== undefined && candidate?.[key] !== null && `${candidate[key]}`.trim() !== '') {
+          return candidate[key];
+        }
+      }
+      return '-';
+    },
+
+    getEmploymentStatusText(candidate) {
+      const status = this.getCandidateValue(candidate, ['employment_status', 'job_status', 'is_retired']);
+
+      if (status === '-') return '-';
+      const normalized = `${status}`.toLowerCase();
+      if (['retired', 'بازنشسته', '1', 'true'].includes(normalized)) return 'بازنشسته';
+      if (['employed', 'شاغل', '0', 'false'].includes(normalized)) return 'شاغل';
+      return status;
     },
 
 
@@ -905,8 +989,14 @@ export default {
     },
 
     // Document Methods
-    viewDocument(doc, name, datepic) {
-      this.selectedDocument = { url: apiUrlrtb + '/' + doc, name: name, datepic: datepic };
+    viewDocument(candidate, documentKey, doc, name, datepic) {
+      this.selectedDocument = {
+        url: apiUrlrtb + '/' + doc,
+        name,
+        datepic,
+        candidate,
+        key: documentKey
+      };
       this.reviewComment = '';
       this.showDocumentModal = true;
     },
@@ -916,17 +1006,61 @@ export default {
     // Candidate Methods
     viewCandidateDetails(candidate) {
       this.selectedCandidate = candidate;
-      this.finalComment = '';
+      this.finalComment = candidate?.reson || '';
       this.showCandidateModal = true;
     },
 
 
-    approveCandidate(val) {
-      if (val)
-        this.selectedCandidate = val
-      if (this.selectedCandidate) {
-        this.selectedCandidate.requestStatus = 'SUPERVISION_APPROVED';
-        this.ChangeState({ national_Id: this.selectedCandidate.national_Id, requestStatus: 'SUPERVISION_APPROVED', reason: this.finalComment })
+    async approveCandidate(val) {
+      if (val) {
+        this.selectedCandidate = val;
+      }
+
+      if (!this.selectedCandidate) {
+        return;
+      }
+
+      const candidate = this.selectedCandidate;
+      candidate.requestStatus = 'SUPERVISION_APPROVED';
+
+      try {
+        const response = await this.ChangeState({
+          national_Id: candidate.national_Id,
+          requestStatus: 'SUPERVISION_APPROVED',
+          reason: this.finalComment
+        });
+
+        if (response?.status === false) {
+          throw new Error(response?.message || 'ثبت تایید مدارک ناموفق بود.');
+        }
+
+        this.$bvToast.toast(`مدارک ${candidate.first_name} ${candidate.last_name} تایید و ثبت شد`, {
+          title: 'ثبت موفق',
+          variant: 'success',
+          solid: true
+        });
+
+        this.recentActivities.unshift({
+          id: Date.now(),
+          type: 'approve',
+          text: `مدارک ${candidate.first_name} ${candidate.last_name} تایید شد`,
+          time: 'همین حالا',
+          user: this.currentUser.first_name + this.currentUser.last_name
+        });
+
+        await this.getEXECUTIVEList();
+        this.calculateStats();
+
+        if (this.showCandidateModal) {
+          this.showCandidateModal = false;
+        }
+      } catch (error) {
+        candidate.requestStatus = 'SUBMITTED';
+        this.$bvToast.toast(error?.message || 'ثبت تایید مدارک با خطا مواجه شد', {
+          title: 'خطا',
+          variant: 'danger',
+          solid: true
+        });
       }
     },
 
@@ -940,12 +1074,24 @@ export default {
         cancelTitle: 'لغو',
         hideHeaderClose: false,
         centered: true
-      }).then(value => {
-        if (value) {
-          this.selectedCandidate = candidate
-          candidate.requestStatus = 'SUPERVISION_REJECTED';
-          this.ChangeState({ national_Id: candidate.national_Id, requestStatus: 'SUPERVISION_REJECTED', reason: this.finalComment })
-          // Add to activities
+      }).then(async value => {
+        if (!value) {
+          return;
+        }
+
+        this.selectedCandidate = candidate;
+        candidate.requestStatus = 'SUPERVISION_REJECTED';
+
+        try {
+          const response = await this.ChangeState({
+            national_Id: candidate.national_Id,
+            requestStatus: 'SUPERVISION_REJECTED',
+            reason: this.finalComment
+          });
+
+          if (response?.status === false) {
+            throw new Error(response?.message || 'ثبت رد مدارک ناموفق بود.');
+          }
           this.recentActivities.unshift({
             id: Date.now(),
             type: 'reject',
@@ -953,12 +1099,23 @@ export default {
             time: 'همین حالا',
             user: this.currentUser.first_name + this.currentUser.last_name
           });
-
-
+          this.$bvToast.toast(`رد مدارک ${candidate.first_name} ${candidate.last_name} ثبت شد`, {
+            title: 'ثبت موفق',
+            variant: 'warning',
+            solid: true
+          });
+          await this.getEXECUTIVEList();
           this.calculateStats();
           if (this.showCandidateModal) {
             this.showCandidateModal = false;
           }
+        } catch (error) {
+          candidate.requestStatus = 'SUBMITTED';
+          this.$bvToast.toast(error?.message || 'ثبت رد مدارک با خطا مواجه شد', {
+            title: 'خطا',
+            variant: 'danger',
+            solid: true
+          });
         }
       });
     },
@@ -979,7 +1136,7 @@ export default {
     async approveSelectedAd() {
       if (this.selectedAd) {
         this.selectedAd.status = 'SUPERVISION_APPROVED';
-        await this.deleteAdv({ code: this.selectedAd.id,status:this.selectedAd.status, reson: this.adReviewComment })
+        await this.deleteAdv({ code: this.selectedAd.id, status: this.selectedAd.status, reson: this.adReviewComment })
 
         if (!this.selectedAd.reviews) {
           this.selectedAd.reviews = [];

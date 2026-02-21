@@ -11,6 +11,16 @@
     </b-card>
 
     <b-card class="shadow-sm border-0">
+      <b-row class="mb-3 align-items-end">
+        <b-col cols="12" lg="8">
+          <label class="d-block font-weight-bold mb-2">استان‌های هدف</label>
+          <b-form-select v-model="selectedProvinceIds" :options="provinceOptions" multiple :disabled="!canEditSchedule"
+             />
+          <small class="text-muted d-block mt-2">
+            با انتخاب یک یا چند استان، زمان‌بندی رویدادها فقط برای همان استان‌ها اعمال می‌شود.
+          </small>
+        </b-col>
+      </b-row>
       <b-table :items="events" :fields="fields" responsive striped hover class="text-right align-middle">
         <template #cell(index)="data">
           <strong>{{ data.index + 1 }}</strong>
@@ -22,12 +32,12 @@
 
         <template #cell(startDate)="data">
           <datePicker placeholder="شروع" type="datetime" v-model="data.item.startDate" :auto-submit="true" class="w-100"
-            :max="data.item.endDate || undefined" simple />
+            :max="data.item.endDate || undefined" :disabled="!canEditSchedule" simple />
         </template>
 
         <template #cell(endDate)="data">
           <datePicker placeholder="پایان" type="datetime" v-model="data.item.endDate" :auto-submit="true" class="w-100"
-            :min="data.item.startDate || undefined" simple />
+            :min="data.item.startDate || undefined" :disabled="!canEditSchedule" simple />
         </template>
 
         <template #cell(status)="data">
@@ -36,7 +46,7 @@
       </b-table>
 
       <div class="d-flex flex-wrap justify-content-end mt-3">
-        <b-button variant="success" @click="saveSchedule">
+        <b-button variant="success" @click="saveSchedule" :disabled="!canEditSchedule">
           <b-icon icon="check2-circle" class="ml-1"></b-icon>
           ذخیره زمان‌بندی
         </b-button>
@@ -56,9 +66,19 @@ export default {
   },
   computed: {
     ...mapGetters(["SystemScheduleInfo", "currentUser"]),
+    canEditSchedule() {
+      return this.currentUser?.roles?.includes('ADMIN')
+    },
+    provinceOptions() {
+      return this.provinces.map(province => ({
+        value: province.id,
+        text: province.name
+      }))
+    }
   },
   data() {
     return {
+      selectedProvinceIds: [],
       fields: [
         { key: 'index', label: '#' },
         { key: 'name', label: 'رویداد' },
@@ -80,28 +100,49 @@ export default {
         { id: 11, key: 'objections_registration', name: 'ثبت اعتراضات', startDate: null, endDate: null },
         { id: 12, key: 'final_results_announce', name: 'اعلام نتایج نهایی', startDate: null, endDate: null },
         { id: 13, key: 'certificate_issue', name: 'صدور ابلاغ و گواهی فعالیت', startDate: null, endDate: null }
-      ]
+      ],
+      provinces: []
     }
   },
   async created() {
-    if (!this.SystemScheduleInfo) {
-      const rows = await this.getSystemSchedule()
-      if (Array.isArray(rows) && rows.length) {
-        const mapByKey = rows.reduce((acc, item) => {
+    // if (!this.SystemScheduleInfo) {
+    //   const rows = await this.getSystemSchedule()
+    //   if (Array.isArray(rows) && rows.length) {
+    //     const mapByKey = rows.reduce((acc, item) => {
+    //       acc[item.event_key] = item
+    //       return acc
+    //     }, {})
+
+    //     this.events = this.events.map(event => ({
+    //       ...event,
+    //       startDate: mapByKey[event.key]?.start_date || event.startDate,
+    //       endDate: mapByKey[event.key]?.end_date || event.endDate
+    //     }))
+    //   }
+    // }
+    await this.loadSchedule()
+  },
+  methods: {
+    ...mapActions(['getSystemSchedule', 'saveSystemSchedule','getRegions']),
+    async loadSchedule() {
+      const payload = this.selectedProvinceIds.length ? { province_ids: this.selectedProvinceIds } : {}
+      const rows = await this.getSystemSchedule(payload)
+      const mapByKey = Array.isArray(rows)
+        ? rows.reduce((acc, item) => {
           acc[item.event_key] = item
           return acc
         }, {})
+        : {}
+      this.events = this.events.map(event => ({
+        ...event,
+        startDate: mapByKey[event.key]?.start_date || null,
+        endDate: mapByKey[event.key]?.end_date || null
+      }))
+       const r1 = await this.getRegions()
+       this.provinces=r1?.data
+       
+    },
 
-        this.events = this.events.map(event => ({
-          ...event,
-          startDate: mapByKey[event.key]?.start_date || event.startDate,
-          endDate: mapByKey[event.key]?.end_date || event.endDate
-        }))
-      }
-    }
-  },
-  methods: {
-    ...mapActions(['getSystemSchedule', 'saveSystemSchedule']),
     getStatusVariant(event) {
       if (event.startDate && event.endDate) return 'success'
       if (event.startDate || event.endDate) return 'warning'
@@ -120,7 +161,8 @@ export default {
           name: event.name,
           startDate: event.startDate || null,
           endDate: event.endDate || null
-        }))
+        })),
+        province_ids: this.selectedProvinceIds
       }
 
       const response = await this.saveSystemSchedule(payload)

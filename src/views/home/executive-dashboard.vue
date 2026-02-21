@@ -10,7 +10,7 @@
             </div>
             <div>
               <h2 class="mb-1">هیأت اجرایی انتخابات</h2>
-              <p class="text-muted mb-0">مدیریت و تایید مدارک کاندیداها و تبلیغات</p>
+              <p class="text-muted mb-0">مدیریت و مشاهده مدارک کاندیداها و تبلیغات</p>
             </div>
           </div>
         </b-col>
@@ -157,11 +157,11 @@
 
                       <!-- Actions -->
                       <div class="candidate-actions">
-                        <b-button v-if="candidate.requestStatus === 'SUBMITTED'" variant="success" size="sm"
+                        <!-- <b-button v-if="candidate.requestStatus === 'SUBMITTED'" variant="success" size="sm"
                           class="mr-2" @click="approveCandidate(candidate)">
                           <b-icon icon="check-circle" class="ml-1"></b-icon>
                           تایید
-                        </b-button>
+                        </b-button> -->
                         <!-- <b-button
                           v-if="candidate.requestStatus === 'SUBMITTED'"
                           variant="danger"
@@ -409,28 +409,46 @@
             </b-col>
             <b-col md="8">
               <h4>{{ selectedCandidate.first_name }} {{ selectedCandidate.last_name }}</h4>
-              <p class="text-muted">{{ selectedCandidate.org_position_desc }}</p>
+              <p class="text-muted">{{ getCandidateValue(selectedCandidate, ['constituency', 'electoral_district',
+                'hoze'])
+                }}</p>
               <div class="candidate-meta">
                 <div class="meta-item">
-                  <b-icon icon="geo-alt" class="ml-1"></b-icon>
-                  {{ selectedCandidate.address }}
+                  <strong>نام و نام خانوادگی داوطلب:</strong>
+                  {{ selectedCandidate.first_name }} {{ selectedCandidate.last_name }}
                 </div>
                 <div class="meta-item">
-                  <b-icon icon="calendar" class="ml-1"></b-icon>
-                  {{ selectedCandidate.persian_birth_date }}
+                  <strong>حوزه انتخابیه:</strong>
+                  {{ getCandidateValue(selectedCandidate, ['constituency', 'electoral_district', 'hoze']) }}
                 </div>
                 <div class="meta-item">
-                  <b-icon icon="briefcase" class="ml-1"></b-icon>
-                  کدپرسنلی {{ selectedCandidate.personnel_code }}
+                  <strong>وضعیت اشتغال:</strong>
+                  {{ getEmploymentStatusText(selectedCandidate) }}
+                </div>
+                <div class="meta-item">
+                  <strong>پست:</strong>
+                  {{ getCandidateValue(selectedCandidate, ['org_position_desc', 'position', 'post']) }}
+                </div>
+                <div class="meta-item">
+                  <strong>سنوات:</strong>
+                  {{ getCandidateValue(selectedCandidate, ['years_of_service', 'senavat', 'service_years']) }}
+                </div>
+                <div class="meta-item">
+                  <strong>سال تولد:</strong>
+                  {{ getCandidateValue(selectedCandidate, ['birth_year', 'persian_birth_date', 'birthDateYear']) }}
+                </div>
+                <div class="meta-item">
+                  <strong>مدرک تحصیلی:</strong>
+                  {{ getCandidateValue(selectedCandidate, ['education_level', 'education', 'degree']) }}
                 </div>
               </div>
             </b-col>
           </b-row>
         </div>
 
-        <!-- Final Decision -->
+        <!-- View-only Note -->
         <div v-if="selectedCandidate.requestStatus === 'SUBMITTED'" class="final-decision">
-          <b-alert variant="warning" show>
+          <!-- <b-alert variant="warning" show>
             <h6 class="alert-heading">تصمیم نهایی</h6>
             <p>پس از بررسی تمام مدارک، تصمیم نهایی را در مورد صلاحیت این کاندیدا بگیرید.</p>
 
@@ -450,6 +468,11 @@
                 رد صلاحیت
               </b-button>
             </div>
+          </b-alert> -->
+          <b-alert variant="info" show>
+            <h6 class="alert-heading">مشاهده مدارک</h6>
+            <p class="mb-0">در کارتابل اجرایی فقط امکان مشاهده وجود دارد و تصمیم تایید/رد صرفا در کارتابل نظارت انجام
+              می‌شود.</p>
           </b-alert>
         </div>
       </div>
@@ -461,7 +484,8 @@
         <!-- Ad Content -->
         <div class="ad-content mb-4 text-center">
           <div v-if="selectedAd.image" class="ad-image mb-3">
-            <img :src="`${apiUrlrtb}/${selectedAd.image}`" style="width:200px;height:auto" class="img-fluid" alt="تصویر تبلیغ" />
+            <img :src="`${apiUrlrtb}/${selectedAd.image}`" style="width:200px;height:auto" class="img-fluid"
+              alt="تصویر تبلیغ" />
           </div>
           <h5>{{ selectedAd.title }}</h5>
           <p class="ad-description">{{ selectedAd.description }}</p>
@@ -524,26 +548,36 @@
         </b-row>
 
         <!-- Ad Review -->
-        <div class="ad-review" v-if="!selectedAd.deleter || (selectedAd.deleter!='SUPERVISOR' && selectedAd.deleter!='CANDIDATE')">
+        <div class="ad-review"
+          v-if="!selectedAd.deleter || (selectedAd.deleter != 'SUPERVISOR' && selectedAd.deleter != 'CANDIDATE')">
           <h6 class="mb-3">بررسی تبلیغ</h6>
           <b-form @submit.prevent="reviewAd">
             <b-form-group label="نظر بررسی" label-for="ad-review-comment">
               <b-form-textarea id="ad-review-comment" v-model="adReviewComment" rows="3"
                 placeholder="نظر خود را در مورد این تبلیغ وارد کنید..."></b-form-textarea>
             </b-form-group>
-            <div class="text-center" >
-              <b-button variant="success" v-if="(selectedAd.deleter && selectedAd.deleter!='CANDIDATE') || selectedAd.status!='Pending'" @click="approveSelectedAd" >
+            <div class="text-center">
+              <b-button variant="success"
+                v-if="(selectedAd.deleter && selectedAd.deleter != 'CANDIDATE') || selectedAd.status != 'Pending'"
+                @click="approveSelectedAd">
                 <b-icon icon="check" class="ml-1"></b-icon>
                 تایید تبلیغ
               </b-button>
-              <b-button variant="danger"  v-if="!selectedAd.deleter" @click="rejectSelectedAd" :disabled="!adReviewComment">
+              <b-button variant="danger" v-if="!selectedAd.deleter" @click="rejectSelectedAd"
+                :disabled="!adReviewComment">
                 <b-icon icon="x" class="ml-1"></b-icon>
                 رد تبلیغ
               </b-button>
             </div>
           </b-form>
         </div>
-
+        <!-- Ad View-only Note -->
+        <div class="ad-review" v-if="selectedAd.status === 'Pending' || !selectedAd.deleter">
+          <b-alert variant="info" show>
+            <h6 class="alert-heading">مشاهده تبلیغ</h6>
+            <p class="mb-0">اقدامات تایید یا رد تبلیغ فقط در کارتابل نظارت انجام می‌شود.</p>
+          </b-alert>
+        </div>
         <!-- Previous Reviews -->
         <div v-if="selectedAd.reviews && selectedAd.reviews.length > 0" class="previous-reviews mt-4">
           <h6 class="mb-3">بررسی‌های قبلی</h6>
@@ -848,12 +882,12 @@ export default {
         active: 'فعال',
         expired: 'منقضی'
       };
-      return !status.deleter ? (texts[status.status] || status.status) : status.deleter=='SUPERVISOR' ? texts['SUPERVISION_REJECTED'] :status.deleter=='CANDIDATE' ? texts['CANDIDATE']: texts['EXECUTIVE_REJECTED'];
+      return !status.deleter ? (texts[status.status] || status.status) : status.deleter == 'SUPERVISOR' ? texts['SUPERVISION_REJECTED'] : status.deleter == 'CANDIDATE' ? texts['CANDIDATE'] : texts['EXECUTIVE_REJECTED'];
     },
 
     getAdTypeText(type) {
       const texts = {
-         banner: "بنر",
+        banner: "بنر",
         video: "ویدیو",
         text: "متنی",
         popup: "پاپ‌آپ",
@@ -882,6 +916,24 @@ export default {
         delete: 'trash'
       };
       return icons[type] || 'info-circle';
+    },
+    getCandidateValue(candidate, keys) {
+      for (const key of keys) {
+        if (candidate?.[key] !== undefined && candidate?.[key] !== null && `${candidate[key]}`.trim() !== '') {
+          return candidate[key];
+        }
+      }
+      return '-';
+    },
+
+    getEmploymentStatusText(candidate) {
+      const status = this.getCandidateValue(candidate, ['employment_status', 'job_status', 'is_retired']);
+
+      if (status === '-') return '-';
+      const normalized = `${status}`.toLowerCase();
+      if (['retired', 'بازنشسته', '1', 'true'].includes(normalized)) return 'بازنشسته';
+      if (['employed', 'شاغل', '0', 'false'].includes(normalized)) return 'شاغل';
+      return status;
     },
 
 

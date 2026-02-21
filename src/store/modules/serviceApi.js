@@ -62,6 +62,9 @@ const global = {
     },saveSystemSchedule: {
         url: "/saveSystemSchedule",
         method: 'POST'
+    },getRegions: {
+        url: "/getRegions",
+        method: 'GET'
     }
     
 };

@@ -104,7 +104,7 @@
         style="width: 35px; cursor: pointer"
       />
 
-      <span class="small text-center">
+      <span class="small text-center" v-if="currentUser">
         {{ currentUser?.full_name }}<br/> <span>{{ currentUser?.userType==3 ? 'شاغل' : 'بازنشسته' }} - {{ currentUser?.regionName }}</span>
       </span>
       
@@ -115,6 +115,7 @@
 <script>
 import { mapActions, mapMutations, mapGetters } from "vuex";
   import { notifs } from "../data/dataConst";
+import { currentUser } from "../constants/config";
 const gohomepath=[]
 export default {
   data() {
