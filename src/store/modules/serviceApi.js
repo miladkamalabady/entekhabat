@@ -23,6 +23,9 @@ const global = {
     },ChangeState: {
         url: "/ChangeState",
         method: 'POST'
+    },UpdateDocumentReview: {
+        url: "/UpdateDocumentReview",
+        method: 'POST'
     },advertisementsSave: {
         url: "/advertisementsSave",
         method: 'POST'

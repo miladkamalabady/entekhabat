@@ -41,6 +41,7 @@ $allowed_routes = [
     'UploadUserDocuments',
     'createVoteToken',
     'getSystemSchedule',
+    'UpdateDocumentReview',
     'saveSystemSchedule',
     'canselRequestCANDIDATE',
     'getRegions',

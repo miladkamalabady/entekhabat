@@ -10,7 +10,7 @@
             </div>
             <div>
               <h2 class="mb-1">هیأت اجرایی انتخابات</h2>
-              <p class="text-muted mb-0">مدیریت و مشاهده مدارک کاندیداها و تبلیغات</p>
+              <p class="text-muted mb-0">مدیریت و تایید مدارک کاندیداها و تبلیغات</p>
             </div>
           </div>
         </b-col>
@@ -70,55 +70,93 @@
 
               <!-- Documents List -->
               <div v-if="filteredDocuments?.length > 0">
-                <div class="table-responsive">
-                  <b-table :items="filteredDocuments" :fields="candidateFields" striped hover class="text-right">
-                    <template #cell(candidate)="data">
-                      <div class="d-flex align-items-center">
-                        <img :src="`${apiUrlrtb}/${data.item.user_photo}` || '/default-avatar.png'"
-                          class="candidate-avatar mr-2" alt="عکس کاندیدا" />
-                        <div>
-                          <div class="font-weight-bold">{{ data.item.first_name }} {{ data.item.last_name }}</div>
-                          <small class="text-muted">{{ data.item.org_position_desc || '-' }}</small>
+                <b-row>
+                  <b-col v-for="candidate in filteredDocuments" :key="candidate.id" cols="12" lg="6" class="mb-4">
+                    <b-card class="candidate-card">
+                      <!-- Candidate Header -->
+                      <div class="candidate-header mb-3">
+                        <div class="d-flex align-items-center">
+                          <img :src="`${apiUrlrtb}/${candidate.user_photo}` || '/default-avatar.png'"
+                            class="candidate-avatar mr-3" alt="عکس کاندیدا" />
+                          <div>
+                            <h5 class="mb-1">{{ candidate.first_name }} {{ candidate.last_name }}</h5>
+                            <p class="text-muted mb-1">{{ candidate.org_position_desc }}</p>
+                            <div class="candidate-status">
+                              <b-badge :variant="getStatusVariant(candidate.requestStatus)">
+                                {{ getStatusText(candidate.requestStatus) }}
+                              </b-badge>
+                              <small class="text-muted mr-3">
+                                <b-icon icon="clock" class="ml-1"></b-icon>
+                                {{ candidate.create_datesh }}
+                              </small>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Documents List -->
+                      <div class="documents-list mb-3">
+                        <h6 class="mb-3">مدارک ارسال شده:</h6>
+                        <div class="document-item">
+                          <div v-for="doc in getCandidateDocuments(candidate)" :key="`${candidate.id}-${doc.key}`"
+                            class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="document-info d-flex align-items-center">
+                              <b-icon :icon="getDocumentIcon(doc.icon)" class="ml-2"></b-icon>
+                              <span>{{ doc.label }}</span>
+                              <b-badge class="mr-2"
+                                :variant="getDocumentReviewVariant(getDocumentReview(candidate, doc.key))">
+                                {{ getDocumentReviewText(getDocumentReview(candidate, doc.key)) }}
+                              </b-badge>
+                            </div>
+                            <div class="document-actions d-flex align-items-center">
+                              <b-button size="sm" variant="outline-primary"
+                                @click="viewDocument(candidate, doc.key, doc.path, doc.label, candidate.datepic)"
+                                class="mr-2">
+                                <b-icon icon="eye"></b-icon>
+                              </b-button>
+                              <b-button size="sm" variant="outline-success" class="mr-2"
+                                @click="setDocumentReview(candidate, doc.key, 'approved')">
+                                <b-icon icon="check-circle"></b-icon>
+                              </b-button>
+                              <b-button size="sm" variant="outline-danger" class="mr-2"
+                                @click="setDocumentReview(candidate, doc.key, 'rejected')">
+                                <b-icon icon="x-circle"></b-icon>
+                              </b-button>
+                              <b-button size="sm" variant="outline-success" :href="`${apiUrlrtb}/${doc.path}`"
+                                target="_blank">
+                                <b-icon icon="download"></b-icon>
+                              </b-button>
+                            </div>
+                          </div>
 
                         </div>
                       </div>
 
-                    </template>
-
-                    <template #cell(status)="data">
-                      <b-badge :variant="getStatusVariant(data.item.requestStatus)">
-                        {{ getStatusText(data.item.requestStatus) }}
-                      </b-badge>
-                    </template>
-
-                    <template #cell(documents)="data">
-                      {{ getCandidateDocumentsSummary(data.item) }}
-                    </template>
-
-                    <template #cell(actions)="data">
-                      <b-button-group size="sm">
-                        <b-button variant="outline-primary"
-                          @click="viewDocument(data.item.user_photo, 'تصویر کاربر', data.item.datepic)"
-                          title="مشاهده تصویر کاربر">
-                          <b-icon icon="person-badge"></b-icon>
+                      <!-- Actions -->
+                      <div class="candidate-actions">
+                        <b-button v-if="candidate.requestStatus === 'SUBMITTED'" variant="success" size="sm"
+                          class="mr-2" @click="approveCandidate(candidate)">
+                          <b-icon icon="check-circle" class="ml-1"></b-icon>
+                          تایید
                         </b-button>
-                        <b-button variant="outline-primary"
-                          @click="viewDocument(data.item.education_doc, 'تصویر مدرک', data.item.datepic)"
-                          title="مشاهده مدرک تحصیلی">
-                          <b-icon icon="file-earmark-text"></b-icon>
+                        <!-- <b-button
+                          v-if="candidate.requestStatus === 'SUBMITTED'"
+                          variant="danger"
+                          size="sm"
+                          class="mr-2"
+                          @click="rejectCandidate(candidate)"
+                        >
+                          <b-icon icon="x-circle" class="ml-1"></b-icon>
+                          رد صلاحیت
+                        </b-button> -->
+                        <b-button variant="info" size="sm" @click="viewCandidateDetails(candidate)">
+                          <b-icon icon="info-circle" class="ml-1"></b-icon>
+                          جزئیات کامل
                         </b-button>
-                        <b-button variant="outline-primary"
-                          @click="viewDocument(data.item.employment_cert, 'گواهی عدم اعتیاد', data.item.datepic)"
-                          title="مشاهده گواهی عدم اعتیاد">
-                          <b-icon icon="file-medical"></b-icon>
-                        </b-button>
-                        <b-button variant="outline-info" @click="viewCandidateDetails(data.item)" title="جزئیات کامل">
-                          <b-icon icon="info-circle"></b-icon>
-                        </b-button>
-                      </b-button-group>
-                    </template>
-                  </b-table>
-                </div>
+                      </div>
+                    </b-card>
+                  </b-col>
+                </b-row>
               </div>
 
               <div v-else class="text-center py-5">
@@ -182,8 +220,6 @@
                       {{ getAdStatusText(data.item) }}
                     </b-badge>
                   </template>
-
-                  <!-- Status Column -->
                   <template #cell(createdBy)="data">
                     {{ data.item.first_name }} {{ data.item.last_name }} ({{ data.item.code }})
                   </template>
@@ -330,7 +366,25 @@
             </b-col>
           </b-row>
         </div>
-
+        <div class="document-review-actions mt-3" v-if="selectedDocument.candidate">
+          <h6 class="mb-2">بررسی مدرک</h6>
+          <div class="d-flex align-items-center">
+            <b-button variant="success" size="sm" class="mr-2"
+              @click="setDocumentReview(selectedDocument.candidate, selectedDocument.key, 'approved')">
+              <b-icon icon="check-circle" class="ml-1"></b-icon>
+              تایید مدرک
+            </b-button>
+            <b-button variant="danger" size="sm"
+              @click="setDocumentReview(selectedDocument.candidate, selectedDocument.key, 'rejected')">
+              <b-icon icon="x-circle" class="ml-1"></b-icon>
+              رد مدرک
+            </b-button>
+            <b-badge class="mr-3"
+              :variant="getDocumentReviewVariant(getDocumentReview(selectedDocument.candidate, selectedDocument.key))">
+              {{ getDocumentReviewText(getDocumentReview(selectedDocument.candidate, selectedDocument.key)) }}
+            </b-badge>
+          </div>
+        </div>
       </div>
     </b-modal>
 
@@ -364,36 +418,44 @@
                   <strong>وضعیت اشتغال:</strong>
                   {{ getEmploymentStatusText(selectedCandidate) }}
                 </div>
-                <div class="meta-item">
-                  <strong>پست:</strong>
-                  {{ getCandidateValue(selectedCandidate, ['org_position_desc', 'position', 'post']) }}
-                </div>
-                <div class="meta-item">
-                  <strong>سنوات:</strong>
-                  {{ getCandidateValue(selectedCandidate, ['years_of_service', 'senavat', 'service_years']) }}
-                </div>
-                <div class="meta-item">
-                  <strong>سال تولد:</strong>
-                  {{ getCandidateValue(selectedCandidate, ['birth_year', 'persian_birth_date', 'birthDateYear']) }}
-                </div>
-                <div class="meta-item">
-                  <strong>مدرک تحصیلی:</strong>
-                  {{ getCandidateValue(selectedCandidate, ['education_level', 'education', 'degree']) }}
-                </div>
+              </div>
+              <div class="meta-item">
+                <strong>پست:</strong>
+                {{ getCandidateValue(selectedCandidate, ['org_position_desc', 'position', 'post']) }}
+              </div>
+              <div class="meta-item">
+                <strong>سنوات:</strong>
+                {{ getCandidateValue(selectedCandidate, ['years_of_service', 'senavat', 'service_years']) }}
+              </div>
+              <div class="meta-item">
+                <strong>سال تولد:</strong>
+                {{ getCandidateValue(selectedCandidate, ['birth_year', 'persian_birth_date', 'birthDateYear']) }}
+              </div>
+              <div class="meta-item">
+                <strong>مدرک تحصیلی:</strong>
+                {{ getCandidateValue(selectedCandidate, ['education_level', 'education', 'degree']) }}
+              </div>
+              <div class="meta-item" v-if="selectedCandidate.reson">
+                <b-icon icon="chat-left-text" class="ml-1"></b-icon>
+                نظر نهایی: {{ selectedCandidate.reson }}
+              </div>
+              <div class="meta-item" v-if="selectedCandidate.edited_at_sh">
+                <b-icon icon="clock-history" class="ml-1"></b-icon>
+                تاریخ آخرین ویرایش نظر: {{ selectedCandidate.edited_at_sh }}
               </div>
             </b-col>
           </b-row>
         </div>
 
-        <!-- View-only Note -->
-        <div v-if="selectedCandidate.requestStatus === 'SUBMITTED'" class="final-decision">
-          <!-- <b-alert variant="warning" show>
-            <h6 class="alert-heading">تصمیم نهایی</h6>
-            <p>پس از بررسی تمام مدارک، تصمیم نهایی را در مورد صلاحیت این کاندیدا بگیرید.</p>
+        <!-- Final Decision -->
+        <div class="final-decision">
+          <b-alert variant="warning" show>
+            <h6 class="alert-heading">تصمیم</h6>
+            <p>پس از بررسی تمام مدارک، تصمیم را در مورد صلاحیت این کاندیدا بگیرید.</p>
 
-            <b-form-group label="نظر نهایی" label-for="final-comment">
+            <b-form-group label="نظر هیأت نظارت" label-for="final-comment">
               <b-form-textarea id="final-comment" v-model="finalComment" rows="2"
-                placeholder="نظر نهایی را وارد کنید..."></b-form-textarea>
+                placeholder="نظر هیأت را وارد کنید..."></b-form-textarea>
             </b-form-group>
 
             <div class="text-center mt-3">
@@ -407,11 +469,6 @@
                 رد صلاحیت
               </b-button>
             </div>
-          </b-alert> -->
-          <b-alert variant="info" show>
-            <h6 class="alert-heading">مشاهده مدارک</h6>
-            <p class="mb-0">در کارتابل اجرایی فقط امکان مشاهده وجود دارد و تصمیم تایید/رد صرفا در کارتابل نظارت انجام
-              می‌شود.</p>
           </b-alert>
         </div>
       </div>
@@ -487,8 +544,7 @@
         </b-row>
 
         <!-- Ad Review -->
-        <div class="ad-review"
-          v-if="!selectedAd.deleter || (selectedAd.deleter != 'SUPERVISOR' && selectedAd.deleter != 'CANDIDATE')">
+        <div class="ad-review" v-if="selectedAd.deleter != 'CANDIDATE'">
           <h6 class="mb-3">بررسی تبلیغ</h6>
           <b-form @submit.prevent="reviewAd">
             <b-form-group label="نظر بررسی" label-for="ad-review-comment">
@@ -510,13 +566,7 @@
             </div>
           </b-form>
         </div>
-        <!-- Ad View-only Note -->
-        <div class="ad-review" v-if="selectedAd.status === 'Pending' || !selectedAd.deleter">
-          <b-alert variant="info" show>
-            <h6 class="alert-heading">مشاهده تبلیغ</h6>
-            <p class="mb-0">اقدامات تایید یا رد تبلیغ فقط در کارتابل نظارت انجام می‌شود.</p>
-          </b-alert>
-        </div>
+
         <!-- Previous Reviews -->
         <div v-if="selectedAd.reviews && selectedAd.reviews.length > 0" class="previous-reviews mt-4">
           <h6 class="mb-3">بررسی‌های قبلی</h6>
@@ -524,8 +574,8 @@
             <div class="review-header">
               <strong>{{ review.reviewer }}</strong>
               <small class="text-muted">{{ review.date }}</small>
-              <b-badge :variant="review.status === 'EXECUTIVE_APPROVED' ? 'success' : 'danger'">
-                {{ review.status === 'EXECUTIVE_APPROVED' ? 'تایید' : 'رد' }}
+              <b-badge :variant="review.status === 'SUPERVISION_APPROVED' ? 'success' : 'danger'">
+                {{ review.status === 'SUPERVISION_APPROVED' ? 'تایید' : 'رد' }}
               </b-badge>
             </div>
             <div class="review-comment">{{ review.comment }}</div>
@@ -599,7 +649,9 @@ export default {
         { value: 'all', text: 'همه وضعیت‌ها' },
         { value: 'SUBMITTED', text: 'در انتظار' },
         { value: 'EXECUTIVE_APPROVED', text: 'تایید شده اجرایی' },
-        { value: 'EXECUTIVE_REJECTED', text: 'رد شده اجرایی' }
+        { value: 'EXECUTIVE_REJECTED', text: 'رد شده اجرایی' },
+        { value: 'SUPERVISION_APPROVED', text: 'تایید شده نظارت' },
+        { value: 'SUPERVISION_REJECTED', text: 'رد شده نظارت' }
       ],
       docSortOptions: [
         { value: 'newest', text: 'جدیدترین' },
@@ -611,6 +663,8 @@ export default {
         { value: 'SUBMITTED', text: 'در انتظار' },
         { value: 'EXECUTIVE_APPROVED', text: 'تایید شده اجرایی' },
         { value: 'EXECUTIVE_REJECTED', text: 'رد شده اجرایی' },
+        { value: 'SUPERVISION_APPROVED', text: 'تایید شده نظارت' },
+        { value: 'SUPERVISION_REJECTED', text: 'رد شده نظارت' },
         { value: 'active', text: 'فعال' },
         { value: 'expired', text: 'منقضی' }
       ],
@@ -623,13 +677,6 @@ export default {
       ],
 
       // Table Fields
-      candidateFields: [
-        { key: 'candidate', label: 'کاندیدا', sortable: false },
-        { key: 'status', label: 'وضعیت', sortable: true },
-        { key: 'create_datesh', label: 'تاریخ ثبت', sortable: true },
-        { key: 'documents', label: 'مدارک ارسال‌شده', sortable: false },
-        { key: 'actions', label: 'عملیات', sortable: false }
-      ],
       adFields: [
         { key: 'preview', label: 'پیش‌نمایش', sortable: false },
         { key: 'title', label: 'عنوان', sortable: true },
@@ -692,7 +739,7 @@ export default {
       selectedCandidate: null,
       selectedAd: null,
       selectedDocuments: [],
-
+      documentReviewStates: {},
       // Review Data
       reviewComment: '',
       finalComment: '',
@@ -764,13 +811,13 @@ export default {
     },
 
     pendingCount() {
-      return this.EXECUTIVEListInfo?.filter(c => c.requestStatus === 'SUBMITTED').length;
+      return this.EXECUTIVEListInfo?.filter(c => c.requestStatus === 'SUBMITTED' || c.requestStatus === 'EXECUTIVE_REJECTED' || c.requestStatus === 'EXECUTIVE_APPROVED').length;
       //  this.advertisements.filter(a => a.status === 'SUBMITTED').length;
     },
 
     approvedCount() {
-      return this.EXECUTIVEListInfo?.filter(c => c.requestStatus === 'EXECUTIVE_APPROVED').length;
-      //        this.advertisements.filter(a => a.status === 'EXECUTIVE_APPROVED').length;
+      return this.EXECUTIVEListInfo?.filter(c => c.requestStatus === 'SUPERVISION_APPROVED').length;
+      //        this.advertisements.filter(a => a.status === 'SUPERVISION_APPROVED').length;
     }
   },
   mounted() {
@@ -781,13 +828,15 @@ export default {
   },
   methods: {
     ...mapMutations(["setChangeStateInfo"]),
-    ...mapActions(["getEXECUTIVEList", "ChangeState", "getAdvertisements", "deleteAdv"]),
+    ...mapActions(["getEXECUTIVEList", "ChangeState", "UpdateDocumentReview", "getAdvertisements", "deleteAdv"]),
     // Helper Methods
     getStatusVariant(status) {
       const variants = {
         SUBMITTED: 'warning',
         EXECUTIVE_APPROVED: 'success',
-        EXECUTIVE_REJECTED: 'danger'
+        EXECUTIVE_REJECTED: 'danger',
+        SUPERVISION_APPROVED: 'success',
+        SUPERVISION_REJECTED: 'danger'
       };
       return variants[status] || 'secondary';
     },
@@ -809,10 +858,12 @@ export default {
         SUBMITTED: 'warning',
         EXECUTIVE_APPROVED: 'success',
         EXECUTIVE_REJECTED: 'danger',
+        SUPERVISION_APPROVED: 'success',
+        REJECTED: 'danger',
         active: 'info',
         expired: 'secondary'
       };
-      return !status.deleter ? (variants[status.status] || 'secondary') : variants['EXECUTIVE_REJECTED'];
+      return !status.deleter ? (variants[status.status] || 'secondary') : variants['REJECTED'];
     },
 
     getAdStatusText(status) {
@@ -820,7 +871,6 @@ export default {
         CANDIDATE: 'حذف توسط کاندید',
         SUBMITTED: 'در انتظار',
         EXECUTIVE_APPROVED: 'تایید اجرایی',
-        CANDIDATE: 'حذف کاربر',
         EXECUTIVE_REJECTED: 'رد اجرایی',
         SUPERVISION_APPROVED: 'تایید نظارت',
         SUPERVISION_REJECTED: 'رد نظارت',
@@ -847,6 +897,8 @@ export default {
         degree: 'file-earmark-text',
         photo: 'image',
         no_addiction: 'file-medical',
+        certificate: 'patch-check',
+        legal: 'shield-check',
         id_card: 'credit-card',
         experience: 'briefcase'
       };
@@ -854,14 +906,136 @@ export default {
     },
     getCandidateDocuments(candidate) {
       return [
-        { key: 'user_photo', label: 'تصویر کاربر', path: candidate.user_photo },
-        { key: 'education_doc', label: 'مدرک تحصیلی', path: candidate.education_doc },
-        { key: 'employment_cert', label: 'گواهی عدم اعتیاد', path: candidate.employment_cert }
+        { key: 'user_photo', label: 'تصویر کاربر', path: candidate.user_photo, icon: 'photo' },
+        { key: 'education_doc', label: 'مدرک تحصیلی', path: candidate.education_doc, icon: 'degree' },
+        { key: 'employment_cert', label: 'گواهی اشتغال', path: candidate.employment_cert, icon: 'certificate' },
+        { key: 'soPishine_cert', label: 'گواهی سوءپیشینه', path: candidate.soPishine_cert, icon: 'legal' },
       ].filter(doc => doc.path);
     },
+normalizeReviewState(rawStatus) {
+      if (rawStatus === 'approved' || rawStatus === 'rejected' || rawStatus === 'pending') {
+        return rawStatus;
+      }
+      return 'pending';
+    },
 
-    getCandidateDocumentsSummary(candidate) {
-      return this.getCandidateDocuments(candidate).map(doc => doc.label).join('، ');
+    applyServerDocumentReviews(candidates) {
+      if (!Array.isArray(candidates)) {
+        return;
+      }
+
+      candidates.forEach(candidate => {
+        if (!candidate?.document_reviews) {
+          return;
+        }
+
+        const candidateKey = candidate.national_Id || candidate.id;
+        if (!candidateKey) {
+          return;
+        }
+
+        let parsedReviews = candidate.document_reviews;
+        if (typeof parsedReviews === 'string') {
+          try {
+            parsedReviews = JSON.parse(parsedReviews);
+          } catch (error) {
+            parsedReviews = null;
+          }
+        }
+
+        if (!parsedReviews || typeof parsedReviews !== 'object') {
+          return;
+        }
+
+        if (!this.documentReviewStates[candidateKey]) {
+          this.$set(this.documentReviewStates, candidateKey, {});
+        }
+
+        Object.keys(parsedReviews).forEach(documentKey => {
+          const reviewPayload = parsedReviews[documentKey];
+          const reviewStatus = typeof reviewPayload === 'string'
+            ? reviewPayload
+            : reviewPayload?.status;
+
+          this.$set(
+            this.documentReviewStates[candidateKey],
+            documentKey,
+            this.normalizeReviewState(reviewStatus)
+          );
+        });
+      });
+    },
+    getDocumentReviewVariant(status) {
+      const variants = {
+        pending: 'warning',
+        approved: 'success',
+        rejected: 'danger'
+      };
+
+      return variants[status] || 'secondary';
+    },
+
+    getDocumentReviewText(status) {
+      const texts = {
+        pending: 'در انتظار بررسی',
+        approved: 'تایید شده',
+        rejected: 'رد شده'
+      };
+
+      return texts[status] || 'نامشخص';
+    },
+
+    getDocumentReview(candidate, documentKey) {
+      const candidateKey = candidate.national_Id || candidate.id;
+      return this.documentReviewStates[candidateKey]?.[documentKey] || 'pending';
+    },
+
+    async setDocumentReview(candidate, documentKey, status) {
+      const candidateKey = candidate.national_Id || candidate.id;
+      const previousStatus = this.documentReviewStates[candidateKey]?.[documentKey] || 'pending';
+      const nationalId = this.getCandidateNationalId(candidate);
+
+      if (!nationalId) {
+        this.$bvToast.toast('کد ملی کاندیدا یافت نشد و امکان ثبت نظر مدرک وجود ندارد.', {
+          title: 'خطا',
+          variant: 'danger',
+          autoHideDelay: 3000,
+          solid: true
+        });
+        return;
+      }
+      if (!this.documentReviewStates[candidateKey]) {
+        this.$set(this.documentReviewStates, candidateKey, {});
+      }
+
+      this.$set(this.documentReviewStates[candidateKey], documentKey, status);
+
+      try {
+        const response = await this.UpdateDocumentReview({
+          national_Id: nationalId,
+          documentKey,
+          reviewStatus: status
+        });
+
+        if (!response || response.status !== true) {
+          throw new Error(response?.message || 'ارسال نظر بررسی مدرک ناموفق بود.');
+        }
+
+        this.$bvToast.toast(`مدرک با وضعیت "${this.getDocumentReviewText(status)}" ثبت شد.`, {
+          title: 'ثبت نظر هیأت نظارت',
+          variant: status === 'approved' ? 'success' : 'danger',
+          autoHideDelay: 2500,
+          solid: true
+        });
+      } catch (error) {
+        this.$set(this.documentReviewStates[candidateKey], documentKey, previousStatus);
+        this.$bvToast.toast(error?.message || 'ارسال نظر مدرک به سرور با خطا مواجه شد.', {
+          title: 'خطا',
+          variant: 'danger',
+          autoHideDelay: 3000,
+          solid: true
+        });
+      }
     },
     getActivityIcon(type) {
       const icons = {
@@ -902,8 +1076,14 @@ export default {
     },
 
     // Document Methods
-    viewDocument(doc, name, datepic) {
-      this.selectedDocument = { url: apiUrlrtb + '/' + doc, name: name, datepic: datepic };
+    viewDocument(candidate, documentKey, doc, name, datepic) {
+      this.selectedDocument = {
+        url: apiUrlrtb + '/' + doc,
+        name,
+        datepic,
+        candidate,
+        key: documentKey
+      };
       this.reviewComment = '';
       this.showDocumentModal = true;
     },
@@ -913,17 +1093,72 @@ export default {
     // Candidate Methods
     viewCandidateDetails(candidate) {
       this.selectedCandidate = candidate;
-      this.finalComment = '';
+      this.finalComment = candidate?.reson || '';
       this.showCandidateModal = true;
     },
 
+    getCandidateNationalId(candidate) {
+      return candidate?.national_Id || candidate?.national_id || candidate?.nationalId || '';
+    },
+    async approveCandidate(val) {
+      if (val) {
+        this.selectedCandidate = val;
+      }
 
-    approveCandidate(val) {
-      if (val)
-        this.selectedCandidate = val
-      if (this.selectedCandidate) {
-        this.selectedCandidate.requestStatus = 'EXECUTIVE_APPROVED';
-        this.ChangeState({ national_Id: this.selectedCandidate.national_Id, requestStatus: 'EXECUTIVE_APPROVED', reason: this.finalComment })
+      if (!this.selectedCandidate) {
+        return;
+      }
+
+      const candidate = this.selectedCandidate;
+      const nationalId = this.getCandidateNationalId(candidate);
+      if (!nationalId) {
+        this.$bvToast.toast('کد ملی کاندیدا یافت نشد و امکان ثبت تصمیم وجود ندارد.', {
+          title: 'خطا',
+          variant: 'danger',
+          solid: true
+        });
+        return;
+      }
+      candidate.requestStatus = 'SUPERVISION_APPROVED';
+
+      try {
+        const response = await this.ChangeState({
+          national_Id: nationalId,
+          requestStatus: 'SUPERVISION_APPROVED',
+          reason: this.finalComment
+        });
+
+        if (!response || response.status !== true) {
+          throw new Error(response?.message || 'ثبت تایید مدارک ناموفق بود.');
+        }
+
+        this.$bvToast.toast(`مدارک ${candidate.first_name} ${candidate.last_name} تایید و ثبت شد`, {
+          title: 'ثبت موفق',
+          variant: 'success',
+          solid: true
+        });
+
+        this.recentActivities.unshift({
+          id: Date.now(),
+          type: 'approve',
+          text: `مدارک ${candidate.first_name} ${candidate.last_name} تایید شد`,
+          time: 'همین حالا',
+          user: this.currentUser.first_name + this.currentUser.last_name
+        });
+
+        await this.getEXECUTIVEList();
+        this.calculateStats();
+
+        if (this.showCandidateModal) {
+          this.showCandidateModal = false;
+        }
+      } catch (error) {
+        candidate.requestStatus = 'SUBMITTED';
+        this.$bvToast.toast(error?.message || 'ثبت تایید مدارک با خطا مواجه شد', {
+          title: 'خطا',
+          variant: 'danger',
+          solid: true
+        });
       }
     },
 
@@ -937,12 +1172,24 @@ export default {
         cancelTitle: 'لغو',
         hideHeaderClose: false,
         centered: true
-      }).then(value => {
-        if (value) {
-          this.selectedCandidate = candidate
-          candidate.requestStatus = 'EXECUTIVE_REJECTED';
-          this.ChangeState({ national_Id: candidate.national_Id, requestStatus: 'EXECUTIVE_REJECTED', reason: this.finalComment })
-          // Add to activities
+      }).then(async value => {
+        if (!value) {
+          return;
+        }
+
+        this.selectedCandidate = candidate;
+        candidate.requestStatus = 'SUPERVISION_REJECTED';
+
+        try {
+          const response = await this.ChangeState({
+            national_Id: candidate.national_Id,
+            requestStatus: 'SUPERVISION_REJECTED',
+            reason: this.finalComment
+          });
+
+          if (response?.status === false) {
+            throw new Error(response?.message || 'ثبت رد مدارک ناموفق بود.');
+          }
           this.recentActivities.unshift({
             id: Date.now(),
             type: 'reject',
@@ -950,12 +1197,23 @@ export default {
             time: 'همین حالا',
             user: this.currentUser.first_name + this.currentUser.last_name
           });
-
-
+          this.$bvToast.toast(`رد مدارک ${candidate.first_name} ${candidate.last_name} ثبت شد`, {
+            title: 'ثبت موفق',
+            variant: 'warning',
+            solid: true
+          });
+          await this.getEXECUTIVEList();
           this.calculateStats();
           if (this.showCandidateModal) {
             this.showCandidateModal = false;
           }
+        } catch (error) {
+          candidate.requestStatus = 'SUBMITTED';
+          this.$bvToast.toast(error?.message || 'ثبت رد مدارک با خطا مواجه شد', {
+            title: 'خطا',
+            variant: 'danger',
+            solid: true
+          });
         }
       });
     },
@@ -967,10 +1225,16 @@ export default {
       this.showAdModal = true;
     },
 
+
+    editAd(ad) {
+      // In real app, navigate to edit page
+      this.$router.push(`/ads/edit/${ad.id}`);
+    },
+
     async approveSelectedAd() {
       if (this.selectedAd) {
-        this.selectedAd.status = 'EXECUTIVE_APPROVED';
-        await this.deleteAdv({ code: this.selectedAd.id, reson: this.adReviewComment })
+        this.selectedAd.status = 'SUPERVISION_APPROVED';
+        await this.deleteAdv({ code: this.selectedAd.id, status: this.selectedAd.status, reson: this.adReviewComment })
 
         if (!this.selectedAd.reviews) {
           this.selectedAd.reviews = [];
@@ -980,7 +1244,7 @@ export default {
           id: Date.now(),
           reviewer: this.supervisor.name,
           date: this.getCurrentDate(),
-          status: 'EXECUTIVE_APPROVED',
+          status: 'SUPERVISION_APPROVED',
           comment: this.adReviewComment || 'تبلیغ مناسب تشخیص داده شد'
         });
 
@@ -1006,8 +1270,7 @@ export default {
 
     async rejectSelectedAd() {
       if (this.selectedAd && this.adReviewComment) {
-        this.selectedAd.status = 'EXECUTIVE_REJECTED';
-
+        this.selectedAd.status = 'SUPERVISION_REJECTED';
         await this.deleteAdv({ code: this.selectedAd.id, reson: this.adReviewComment })
         if (!this.selectedAd.reviews) {
           this.selectedAd.reviews = [];
@@ -1017,7 +1280,7 @@ export default {
           id: Date.now(),
           reviewer: this.supervisor.name,
           date: this.getCurrentDate(),
-          status: 'EXECUTIVE_REJECTED',
+          status: 'SUPERVISION_REJECTED',
           comment: this.adReviewComment
         });
 
@@ -1098,12 +1361,12 @@ export default {
     calculateStats() {
       this.stats.totalCandidates = this.EXECUTIVEListInf?.length;
       this.stats.pendingDocuments = this.EXECUTIVEListInf?.filter(c => c.requestStatus === 'SUBMITTED').length;
-      this.stats.approvedCandidates = this.EXECUTIVEListInf?.filter(c => c.requestStatus === 'EXECUTIVE_APPROVED').length;
-      this.stats.rejectedCandidates = this.EXECUTIVEListInf?.filter(c => c.requestStatus === 'EXECUTIVE_REJECTED').length;
+      this.stats.approvedCandidates = this.EXECUTIVEListInf?.filter(c => c.requestStatus === 'SUPERVISION_APPROVED').length;
+      this.stats.rejectedCandidates = this.EXECUTIVEListInf?.filter(c => c.requestStatus === 'SUPERVISION_REJECTED').length;
 
       this.stats.pendingAds = this.advertisements.filter(a => a.status === 'SUBMITTED').length;
-      this.stats.approvedAds = this.advertisements.filter(a => a.status === 'EXECUTIVE_APPROVED').length;
-      this.stats.rejectedAds = this.advertisements.filter(a => a.status === 'EXECUTIVE_REJECTED').length;
+      this.stats.approvedAds = this.advertisements.filter(a => a.status === 'SUPERVISION_APPROVED').length;
+      this.stats.rejectedAds = this.advertisements.filter(a => a.status === 'SUPERVISION_REJECTED').length;
 
       this.updateCharts();
     },
@@ -1237,6 +1500,11 @@ export default {
           console.error("Error loading ads:", error);
         }
       }
+    },EXECUTIVEListInfo: {
+      handler(val) {
+        this.applyServerDocumentReviews(val);
+      },
+      immediate: true
     },
     ChangeStateInfo(val) {
       if (val) {

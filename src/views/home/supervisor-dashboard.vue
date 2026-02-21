@@ -70,93 +70,53 @@
 
               <!-- Documents List -->
               <div v-if="filteredDocuments?.length > 0">
-                <b-row>
-                  <b-col v-for="candidate in filteredDocuments" :key="candidate.id" cols="12" lg="6" class="mb-4">
-                    <b-card class="candidate-card">
-                      <!-- Candidate Header -->
-                      <div class="candidate-header mb-3">
-                        <div class="d-flex align-items-center">
-                          <img :src="`${apiUrlrtb}/${candidate.user_photo}` || '/default-avatar.png'"
-                            class="candidate-avatar mr-3" alt="عکس کاندیدا" />
-                          <div>
-                            <h5 class="mb-1">{{ candidate.first_name }} {{ candidate.last_name }}</h5>
-                            <p class="text-muted mb-1">{{ candidate.org_position_desc }}</p>
-                            <div class="candidate-status">
-                              <b-badge :variant="getStatusVariant(candidate.requestStatus)">
-                                {{ getStatusText(candidate.requestStatus) }}
-                              </b-badge>
-                              <small class="text-muted mr-3">
-                                <b-icon icon="clock" class="ml-1"></b-icon>
-                                {{ candidate.create_datesh }}
-                              </small>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
 
-                      <!-- Documents List -->
-                      <div class="documents-list mb-3">
-                        <h6 class="mb-3">مدارک ارسال شده:</h6>
-                        <div class="document-item">
-                          <div v-for="doc in getCandidateDocuments(candidate)" :key="`${candidate.id}-${doc.key}`"
-                            class="d-flex justify-content-between align-items-center mb-2">
-                            <div class="document-info d-flex align-items-center">
-                              <b-icon :icon="getDocumentIcon(doc.icon)" class="ml-2"></b-icon>
-                              <span>{{ doc.label }}</span>
-                              <b-badge class="mr-2"
-                                :variant="getDocumentReviewVariant(getDocumentReview(candidate, doc.key))">
-                                {{ getDocumentReviewText(getDocumentReview(candidate, doc.key)) }}
-                              </b-badge>
-                            </div>
-                            <div class="document-actions d-flex align-items-center">
-                              <b-button size="sm" variant="outline-primary"
-                                @click="viewDocument(candidate, doc.key, doc.path, doc.label, candidate.datepic)"
-                                class="mr-2">
-                                <b-icon icon="eye"></b-icon>
-                              </b-button>
-                              <b-button size="sm" variant="outline-success" class="mr-2"
-                                @click="setDocumentReview(candidate, doc.key, 'approved')">
-                                <b-icon icon="check-circle"></b-icon>
-                              </b-button>
-                              <b-button size="sm" variant="outline-danger" class="mr-2"
-                                @click="setDocumentReview(candidate, doc.key, 'rejected')">
-                                <b-icon icon="x-circle"></b-icon>
-                              </b-button>
-                              <b-button size="sm" variant="outline-success" :href="`${apiUrlrtb}/${doc.path}`"
-                                target="_blank">
-                                <b-icon icon="download"></b-icon>
-                              </b-button>
-                            </div>
-                          </div>
+                <div class="table-responsive">
+                  <b-table :items="filteredDocuments" :fields="candidateFields" striped hover class="text-right">
+                    <template #cell(candidate)="data">
+                      <div class="d-flex align-items-center">
+                        <img :src="`${apiUrlrtb}/${data.item.user_photo}` || '/default-avatar.png'"
+                          class="candidate-avatar mr-2" alt="عکس کاندیدا" />
+                        <div>
+                          <div class="font-weight-bold">{{ data.item.first_name }} {{ data.item.last_name }}</div>
+                          <small class="text-muted">{{ data.item.org_position_desc || '-' }}</small>
 
                         </div>
                       </div>
 
-                      <!-- Actions -->
-                      <div class="candidate-actions">
-                        <b-button v-if="candidate.requestStatus === 'SUBMITTED'" variant="success" size="sm"
-                          class="mr-2" @click="approveCandidate(candidate)">
-                          <b-icon icon="check-circle" class="ml-1"></b-icon>
-                          تایید
+                    </template>
+
+                    <template #cell(status)="data">
+                      <b-badge :variant="getStatusVariant(data.item.requestStatus)">
+                        {{ getStatusText(data.item.requestStatus) }}
+                      </b-badge>
+                    </template>
+
+                    <template #cell(documents)="data">
+                      {{ getCandidateDocumentsSummary(data.item) }}
+                    </template>
+
+                    <template #cell(actions)="data">
+                      <b-button-group size="sm">
+                        <b-button variant="outline-primary" @click="viewCandidateDetails(data.item)"
+                          title="جزئیات کامل">
+                          <b-icon icon="info-circle"></b-icon>
                         </b-button>
-                        <!-- <b-button
-                          v-if="candidate.requestStatus === 'SUBMITTED'"
-                          variant="danger"
-                          size="sm"
-                          class="mr-2"
-                          @click="rejectCandidate(candidate)"
-                        >
-                          <b-icon icon="x-circle" class="ml-1"></b-icon>
-                          رد صلاحیت
-                        </b-button> -->
-                        <b-button variant="info" size="sm" @click="viewCandidateDetails(candidate)">
-                          <b-icon icon="info-circle" class="ml-1"></b-icon>
-                          جزئیات کامل
+
+                        <b-button v-if="data.item.requestStatus === 'SUBMITTED'" variant="outline-success"
+                          @click="approveCandidate(data.item)" title="تایید درخواست">
+                          <b-icon icon="check-circle"></b-icon>
                         </b-button>
-                      </div>
-                    </b-card>
-                  </b-col>
-                </b-row>
+                        <b-button variant="outline-secondary" v-for="doc in getCandidateDocuments(data.item)"
+                          :key="`${data.item.id}-${doc.key}`"
+                          @click="viewDocument(data.item, doc.key, doc.path, doc.label, data.item.datepic)"
+                          :title="`مشاهده ${doc.label}`">
+                          <b-icon :icon="getDocumentIcon(doc.icon)"></b-icon>
+                        </b-button>
+                      </b-button-group>
+                    </template>
+                  </b-table>
+                </div>
               </div>
 
               <div v-else class="text-center py-5">
@@ -677,6 +637,13 @@ export default {
       ],
 
       // Table Fields
+      candidateFields: [
+        { key: 'candidate', label: 'کاندیدا', sortable: false },
+        { key: 'status', label: 'وضعیت', sortable: true },
+        { key: 'create_datesh', label: 'تاریخ ثبت', sortable: true },
+        { key: 'documents', label: 'مدارک ارسال‌شده', sortable: false },
+        { key: 'actions', label: 'عملیات', sortable: false }
+      ],
       adFields: [
         { key: 'preview', label: 'پیش‌نمایش', sortable: false },
         { key: 'title', label: 'عنوان', sortable: true },
@@ -828,7 +795,7 @@ export default {
   },
   methods: {
     ...mapMutations(["setChangeStateInfo"]),
-    ...mapActions(["getEXECUTIVEList", "ChangeState", "getAdvertisements", "deleteAdv"]),
+    ...mapActions(["getEXECUTIVEList", "ChangeState", "UpdateDocumentReview", "getAdvertisements", "deleteAdv"]),
     // Helper Methods
     getStatusVariant(status) {
       const variants = {
@@ -912,7 +879,62 @@ export default {
         { key: 'soPishine_cert', label: 'گواهی سوءپیشینه', path: candidate.soPishine_cert, icon: 'legal' },
       ].filter(doc => doc.path);
     },
+    normalizeReviewState(rawStatus) {
+      if (rawStatus === 'approved' || rawStatus === 'rejected' || rawStatus === 'pending') {
+        return rawStatus;
+      }
+      return 'pending';
+    },
 
+    applyServerDocumentReviews(candidates) {
+      if (!Array.isArray(candidates)) {
+        return;
+      }
+
+      candidates.forEach(candidate => {
+        if (!candidate?.document_reviews) {
+          return;
+        }
+
+        const candidateKey = candidate.national_Id || candidate.id;
+        if (!candidateKey) {
+          return;
+        }
+
+        let parsedReviews = candidate.document_reviews;
+        if (typeof parsedReviews === 'string') {
+          try {
+            parsedReviews = JSON.parse(parsedReviews);
+          } catch (error) {
+            parsedReviews = null;
+          }
+        }
+
+        if (!parsedReviews || typeof parsedReviews !== 'object') {
+          return;
+        }
+
+        if (!this.documentReviewStates[candidateKey]) {
+          this.$set(this.documentReviewStates, candidateKey, {});
+        }
+
+        Object.keys(parsedReviews).forEach(documentKey => {
+          const reviewPayload = parsedReviews[documentKey];
+          const reviewStatus = typeof reviewPayload === 'string'
+            ? reviewPayload
+            : reviewPayload?.status;
+
+          this.$set(
+            this.documentReviewStates[candidateKey],
+            documentKey,
+            this.normalizeReviewState(reviewStatus)
+          );
+        });
+      });
+    },
+    getCandidateDocumentsSummary(candidate) {
+      return this.getCandidateDocuments(candidate).map(doc => doc.label).join('، ');
+    },
     getDocumentReviewVariant(status) {
       const variants = {
         pending: 'warning',
@@ -938,20 +960,52 @@ export default {
       return this.documentReviewStates[candidateKey]?.[documentKey] || 'pending';
     },
 
-    setDocumentReview(candidate, documentKey, status) {
+    async setDocumentReview(candidate, documentKey, status) {
       const candidateKey = candidate.national_Id || candidate.id;
+      const previousStatus = this.documentReviewStates[candidateKey]?.[documentKey] || 'pending';
+      const nationalId = this.getCandidateNationalId(candidate);
+
+      if (!nationalId) {
+        this.$bvToast.toast('کد ملی کاندیدا یافت نشد و امکان ثبت نظر مدرک وجود ندارد.', {
+          title: 'خطا',
+          variant: 'danger',
+          autoHideDelay: 3000,
+          solid: true
+        });
+        return;
+      }
       if (!this.documentReviewStates[candidateKey]) {
         this.$set(this.documentReviewStates, candidateKey, {});
       }
 
       this.$set(this.documentReviewStates[candidateKey], documentKey, status);
 
-      this.$bvToast.toast(`مدرک با وضعیت "${this.getDocumentReviewText(status)}" ثبت شد.`, {
-        title: 'ثبت نظر هیأت نظارت',
-        variant: status === 'approved' ? 'success' : 'danger',
-        autoHideDelay: 2500,
-        solid: true
-      });
+      try {
+        const response = await this.UpdateDocumentReview({
+          national_Id: nationalId,
+          documentKey,
+          reviewStatus: status
+        });
+
+        if (!response || response.status !== true) {
+          throw new Error(response?.message || 'ارسال نظر بررسی مدرک ناموفق بود.');
+        }
+
+        this.$bvToast.toast(`مدرک با وضعیت "${this.getDocumentReviewText(status)}" ثبت شد.`, {
+          title: 'ثبت نظر هیأت نظارت',
+          variant: status === 'approved' ? 'success' : 'danger',
+          autoHideDelay: 2500,
+          solid: true
+        });
+      } catch (error) {
+        this.$set(this.documentReviewStates[candidateKey], documentKey, previousStatus);
+        this.$bvToast.toast(error?.message || 'ارسال نظر مدرک به سرور با خطا مواجه شد.', {
+          title: 'خطا',
+          variant: 'danger',
+          autoHideDelay: 3000,
+          solid: true
+        });
+      }
     },
     getActivityIcon(type) {
       const icons = {
@@ -1416,6 +1470,11 @@ export default {
           console.error("Error loading ads:", error);
         }
       }
+    }, EXECUTIVEListInfo: {
+      handler(val) {
+        this.applyServerDocumentReviews(val);
+      },
+      immediate: true
     },
     ChangeStateInfo(val) {
       if (val) {

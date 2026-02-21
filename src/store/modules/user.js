@@ -177,6 +177,12 @@ export default {
         commit('clearError');
       }
       return response;
+    }, async UpdateDocumentReview({ commit }, payload) {
+      const response = await apiservice({ name: "UpdateDocumentReview", params: payload }, { commit });
+      if (response?.status) {
+        commit('clearError');
+      }
+      return response;
     }, getstateCandid({ commit }, payload) {
       apiservice({ name: "getstateCandid", params: payload }, { commit })
         .then(response => {
