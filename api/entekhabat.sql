@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 14, 2026 at 10:35 PM
+-- Generation Time: Feb 21, 2026 at 09:27 PM
 -- Server version: 10.4.24-MariaDB
 -- PHP Version: 7.4.29
 
@@ -78,25 +78,35 @@ CREATE TABLE `api_rate_limits` (
 --
 
 INSERT INTO `api_rate_limits` (`id`, `ip`, `route`, `request_count`, `last_request`, `blocked_until`) VALUES
-(37, '::1', 'getstateCandid', 1, '2026-02-14 21:02:15', NULL),
-(38, '::1', 'getConfig', 8, '2026-02-15 00:46:27', NULL),
-(39, '::1', 'getInfoVote', 2, '2026-02-09 03:06:52', NULL),
-(40, '::1', 'AccountLogin', 1, '2026-02-14 19:53:25', NULL),
-(41, '::1', 'getAdvertisements', 1, '2026-02-15 00:05:41', NULL),
+(39, '::1', 'getInfoVote', 1, '2026-02-18 00:11:46', NULL),
+(40, '::1', 'AccountLogin', 1, '2026-02-21 20:55:02', NULL),
+(41, '::1', 'getAdvertisements', 1, '2026-02-20 23:51:20', NULL),
 (42, '::1', 'advertisementsSave', 2, '2026-02-14 20:39:59', NULL),
 (43, '::1', 'deleteAdv', 1, '2026-02-14 21:37:18', NULL),
-(44, '::1', 'getEXECUTIVEList', 2, '2026-02-14 21:37:12', NULL),
+(44, '::1', 'getEXECUTIVEList', 3, '2026-02-21 21:39:28', NULL),
 (45, '::1', 'increaseViewAdd', 2, '2026-02-15 00:03:06', NULL),
-(46, '::1', 'getSystemSchedule', 3, '2026-02-15 00:47:09', NULL),
-(47, '::1', 'saveSystemSchedule', 1, '2026-02-15 00:46:18', NULL);
+(47, '::1', 'saveSystemSchedule', 1, '2026-02-21 20:39:18', NULL),
+(48, '::1', 'getVote', 2, '2026-02-15 20:34:49', NULL),
+(49, '::1', 'createVoteToken', 2, '2026-02-15 20:34:49', NULL),
+(50, '::1', 'getCandidsList', 2, '2026-02-15 20:34:49', NULL),
+(51, '::1', 'getConfig', 1, '2026-02-21 21:39:29', NULL),
+(52, '::1', 'user-status', 1, '2026-02-21 20:47:11', NULL),
+(53, '::1', 'UploadUserDocuments', 1, '2026-02-21 20:47:27', NULL),
+(54, '::1', 'FinalSubmit', 2, '2026-02-21 20:47:38', NULL),
+(55, '::1', 'canselRequestCANDIDATE', 4, '2026-02-18 01:49:02', NULL),
+(57, '::1', 'getSystemSchedule', 4, '2026-02-21 20:47:11', NULL),
+(58, '::1', 'getRegions', 2, '2026-02-21 20:39:22', NULL),
+(59, '::1', 'ChangeState', 2, '2026-02-21 21:29:00', NULL),
+(60, '::1', 'getstateCandid', 1, '2026-02-21 20:55:00', NULL),
+(61, '::1', 'UpdateDocumentReview', 4, '2026-02-21 21:28:54', NULL);
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `config`
+-- Table structure for table `config1`
 --
 
-CREATE TABLE `config` (
+CREATE TABLE `config1` (
   `id` int(11) NOT NULL,
   `startDate` timestamp NULL DEFAULT NULL,
   `EndDate` timestamp NULL DEFAULT NULL,
@@ -105,10 +115,10 @@ CREATE TABLE `config` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
--- Dumping data for table `config`
+-- Dumping data for table `config1`
 --
 
-INSERT INTO `config` (`id`, `startDate`, `EndDate`, `create_date`, `active`) VALUES
+INSERT INTO `config1` (`id`, `startDate`, `EndDate`, `create_date`, `active`) VALUES
 (1, '2026-02-16 04:30:00', '2026-02-17 18:30:00', '2026-02-06 18:07:17', 1);
 
 -- --------------------------------------------------------
@@ -154,15 +164,15 @@ CREATE TABLE `election_schedule_events` (
 --
 
 INSERT INTO `election_schedule_events` (`id`, `event_key`, `event_name`, `start_date`, `end_date`, `sort_order`, `updated_by`, `created_at`, `updated_at`) VALUES
-(1, 'candidate_registration', 'ثبت نام داوطلبان', '1404-11-22 00:00:00', '1404-11-24 00:00:00', 1, '0534921973', '2026-02-15 00:20:50', '2026-02-15 00:20:50'),
+(1, 'candidate_registration', 'ثبت نام داوطلبان', '1404-11-22 00:00:00', '1404-12-03 00:00:00', 1, '0534921973', '2026-02-15 00:20:50', '2026-02-21 20:47:00'),
 (2, 'supervision_review', 'بررسی نتایج در هیات نظارت', NULL, NULL, 2, '0534921973', '2026-02-15 00:20:50', '2026-02-15 00:20:50'),
 (3, 'first_stage_announce', 'اعلام نتایج مرحله اول', NULL, NULL, 3, '0534921973', '2026-02-15 00:20:50', '2026-02-15 00:20:50'),
 (4, 'first_stage_objection', 'اعتراض به نتایج مرحله اول', NULL, NULL, 4, '0534921973', '2026-02-15 00:20:50', '2026-02-15 00:20:50'),
 (5, 'first_stage_final_announce', 'اعلام نتیجه پس از بررسی مرحله اول', NULL, NULL, 5, '0534921973', '2026-02-15 00:20:50', '2026-02-15 00:20:50'),
-(6, 'ads_upload_start', 'شروع بارگداری اقلام تبلیغات', '1404-11-25 02:00:00', '1404-11-28 20:00:00', 6, '0534921973', '2026-02-15 00:20:50', '2026-02-15 00:23:24'),
+(6, 'ads_upload_start', 'شروع بارگذاری اقلام تبلیغات', '1404-11-25 02:00:00', '1404-11-28 20:00:00', 6, '0534921973', '2026-02-15 00:20:50', '2026-02-15 01:33:19'),
 (7, 'ads_review_approve', 'بررسی تبلیغات/تایید', NULL, NULL, 7, '0534921973', '2026-02-15 00:20:50', '2026-02-15 00:20:50'),
-(8, 'campaign_start', 'شروع تبلیغات', NULL, NULL, 8, '0534921973', '2026-02-15 00:20:50', '2026-02-15 00:20:50'),
-(9, 'voting', 'رای گیری', '1404-11-25 23:32:00', '1404-11-26 23:32:00', 9, '0534921973', '2026-02-15 00:20:50', '2026-02-15 00:46:18'),
+(8, 'campaign_start', 'شروع تبلیغات', '1404-11-29 02:30:00', NULL, 8, '0534921973', '2026-02-15 00:20:50', '2026-02-18 02:53:55'),
+(9, 'voting', 'رای گیری', '1404-12-03 08:00:00', '1404-12-07 23:32:00', 9, '0534921973', '2026-02-15 00:20:50', '2026-02-21 20:39:18'),
 (10, 'results_announce', 'اعلام نتایج', NULL, NULL, 10, '0534921973', '2026-02-15 00:20:50', '2026-02-15 00:20:50'),
 (11, 'objections_registration', 'ثبت اعتراضات', NULL, NULL, 11, '0534921973', '2026-02-15 00:20:50', '2026-02-15 00:20:50'),
 (12, 'final_results_announce', 'اعلام نتایج نهایی', NULL, NULL, 12, '0534921973', '2026-02-15 00:20:50', '2026-02-15 00:20:50'),
@@ -201,16 +211,16 @@ CREATE TABLE `final_submissions` (
   `tracking_code` varchar(100) NOT NULL,
   `requestStatus` varchar(30) NOT NULL,
   `reson` text DEFAULT NULL,
-  `create_date` datetime DEFAULT current_timestamp()
+  `create_date` datetime DEFAULT current_timestamp(),
+  `edited_at` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
 -- Dumping data for table `final_submissions`
 --
 
-INSERT INTO `final_submissions` (`id`, `nationalId`, `tracking_code`, `requestStatus`, `reson`, `create_date`) VALUES
-(4, '0534921972', '21A7A722', 'SUPERVISION_APPROVED', '111', '2026-02-06 02:42:26'),
-(6, '0534921973', '', 'SUPERVISION_APPROVED', NULL, '2026-02-08 20:46:21');
+INSERT INTO `final_submissions` (`id`, `nationalId`, `tracking_code`, `requestStatus`, `reson`, `create_date`, `edited_at`) VALUES
+(18, '0534921973', '165E6451', 'SUPERVISION_REJECTED', '11', '2026-02-21 20:47:38', '2026-02-21 21:29:00');
 
 -- --------------------------------------------------------
 
@@ -280,7 +290,33 @@ INSERT INTO `logs` (`id`, `nationalId`, `action`, `create_date`, `description`) 
 (52, '0534921973', 'ثبت رای', '2026-02-08 21:42:46', ' کد 0534921973 به 2 رای داد'),
 (53, '0534921973', 'تغییر وضعیت تبلیغ', '2026-02-14 17:11:12', 'تغییر کد 8 به CANDIDATE'),
 (54, '0534921973', 'تغییر وضعیت تبلیغ', '2026-02-14 18:01:38', 'تغییر کد 9 به CANDIDATE'),
-(55, '0534921973', 'تغییر وضعیت تبلیغ', '2026-02-14 18:07:19', 'تغییر کد 9 به CANDIDATE');
+(55, '0534921973', 'تغییر وضعیت تبلیغ', '2026-02-14 18:07:19', 'تغییر کد 9 به CANDIDATE'),
+(56, '0534921973', 'ثبت کاندید', '2026-02-17 21:28:03', 'تغییر کد 0534921973 ثبت نام کرد'),
+(57, '0534921973', 'حذف کاندید', '2026-02-17 21:36:53', 'حذف کاندید توسط خودش'),
+(58, '0534921973', 'حذف کاندید', '2026-02-17 21:37:16', 'حذف کاندید توسط خودش'),
+(59, '0534921973', 'حذف کاندید', '2026-02-17 21:43:20', 'حذف کاندید توسط خودش'),
+(60, '0534921973', 'حذف کاندید', '2026-02-17 21:47:07', 'حذف کاندید توسط خودش'),
+(61, '0534921973', 'حذف کاندید', '2026-02-17 21:47:54', 'حذف کاندید توسط خودش'),
+(62, '0534921973', 'ثبت کاندید', '2026-02-17 21:50:15', 'تغییر کد 0534921973 ثبت نام کرد'),
+(63, '0534921973', 'حذف کاندید', '2026-02-17 21:50:18', 'حذف کاندید توسط خودش'),
+(64, '0534921973', 'ثبت کاندید', '2026-02-17 21:50:35', 'تغییر کد 0534921973 ثبت نام کرد'),
+(65, '0534921973', 'حذف کاندید', '2026-02-17 21:57:59', 'حذف کاندید توسط خودش'),
+(66, '0534921973', 'ثبت کاندید', '2026-02-17 21:58:37', 'تغییر کد 0534921973 ثبت نام کرد'),
+(67, '0534921973', 'حذف کاندید', '2026-02-17 21:58:42', 'حذف کاندید توسط خودش'),
+(68, '0534921973', 'ثبت کاندید', '2026-02-17 22:00:54', 'تغییر کد 0534921973 ثبت نام کرد'),
+(69, '0534921973', 'ثبت کاندید', '2026-02-17 22:03:09', 'تغییر کد 0534921973 ثبت نام کرد'),
+(70, '0534921973', 'حذف کاندید', '2026-02-17 22:05:47', 'حذف کاندید توسط خودش'),
+(71, '0534921973', 'ثبت کاندید', '2026-02-17 22:06:08', 'تغییر کد 0534921973 ثبت نام کرد'),
+(72, '0534921973', 'تغییر وضعیت', '2026-02-21 13:35:34', 'تغییر کدملی 0534921973 به SUPERVISION_APPROVED'),
+(73, '0534921973', 'ثبت کاندید', '2026-02-21 17:17:38', 'تغییر کد 0534921973 ثبت نام کرد'),
+(74, '0534921973', 'بررسی مدرک', '2026-02-21 17:43:52', 'بررسی user_photo برای 0534921973 با وضعیت approved'),
+(75, '0534921973', 'بررسی مدرک', '2026-02-21 17:49:58', 'بررسی user_photo برای 0534921973 با وضعیت approved'),
+(76, '0534921973', 'بررسی مدرک', '2026-02-21 17:58:24', 'بررسی employment_cert برای 0534921973 با وضعیت rejected'),
+(77, '0534921973', 'بررسی مدرک', '2026-02-21 17:58:30', 'بررسی employment_cert برای 0534921973 با وضعیت approved'),
+(78, '0534921973', 'تغییر وضعیت', '2026-02-21 17:58:34', 'تغییر کدملی 0534921973 به SUPERVISION_APPROVED'),
+(79, '0534921973', 'بررسی مدرک', '2026-02-21 17:58:51', 'بررسی user_photo برای 0534921973 با وضعیت rejected'),
+(80, '0534921973', 'بررسی مدرک', '2026-02-21 17:58:54', 'بررسی user_photo برای 0534921973 با وضعیت approved'),
+(81, '0534921973', 'تغییر وضعیت', '2026-02-21 17:59:00', 'تغییر کدملی 0534921973 به SUPERVISION_REJECTED');
 
 -- --------------------------------------------------------
 
@@ -1177,7 +1213,9 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `national_id`, `first_name`, `last_name`, `father_name`, `gender`, `birth_date`, `persian_birth_date`, `mobile`, `user_type`, `verified`, `employee_key`, `personnel_code`, `org_position_code`, `org_position_desc`, `org_position_type_code`, `org_position_type_desc`, `region_id`, `regionName`, `is_foreigner`, `ip_address`, `created_at`, `updated_at`, `roles`, `education`, `yearsOfService`) VALUES
-(4, '0534921973', 'ميلاد', 'فراهاني', 'صفرعلي', 1, '1987-01-26', '1365/11/06', '09186283451', 3, 0, 'f904d5ac-41b0-4841-b9a7-a38a44febf32', 96304232, 10000541, 'کارشناس بهبودکیفیت و توسعه برنامه های آموزشی نوین وهوشمند سازی مدارس', 4, 'کارشناس', 1000, 'منطقه 14', 0, '2.178.30.132', '2026-02-05 17:23:14', '2026-02-07 16:17:42', 'SUPERVISOR', 'لیسانس', 15);
+(4, '0534921973', 'ميلاد', 'فراهاني', 'صفرعلي', 1, '1987-01-26', '1365/11/06', '09186283451', 3, 0, 'f904d5ac-41b0-4841-b9a7-a38a44febf32', 96304232, 10000541, 'کارشناس بهبودکیفیت و توسعه برنامه های آموزشی نوین وهوشمند سازی مدارس', 4, 'کارشناس', 1000, 'منطقه 14', 0, '2.178.33.68', '2026-02-05 17:23:14', '2026-02-21 17:25:03', 'SUPERVISOR', 'لیسانس', 15),
+(6, '4269875895', 'اعظم', 'امینی', 'حیدر', 1, '1987-01-26', '1365/11/06', '09186283451', 3, 0, 'f904d5ac-41b0-4841-b9a7-a38a44febf32', 96304232, 10000541, 'کارشناس متوسطه', 4, 'کارشناس', 1000, 'منطقه 14', 0, '2.178.33.68', '2026-02-05 17:23:14', '2026-02-21 13:12:41', 'VOTER', 'لیسانس', 15),
+(7, '4269930977', 'صابر', 'اسدی', 'حیدر', 1, '1987-01-26', '1365/11/06', '09186283451', 3, 0, 'f904d5ac-41b0-4841-b9a7-a38a44febf32', 96304232, 10000541, 'معاون فناوری', 4, 'کارشناس', 1000, 'منطقه 14', 0, '2.178.33.68', '2026-02-05 17:23:14', '2026-02-21 13:12:41', 'SUPERVISOR', 'لیسانس', 15);
 
 -- --------------------------------------------------------
 
@@ -1236,18 +1274,21 @@ CREATE TABLE `user_documents` (
   `employment_cert` varchar(255) NOT NULL,
   `soPishine_cert` varchar(255) DEFAULT NULL,
   `ravan_cert` varchar(255) DEFAULT NULL,
+  `supervision_status` varchar(50) DEFAULT NULL,
+  `supervision_reason` text DEFAULT NULL,
+  `supervision_reviewed_by` varchar(20) DEFAULT NULL,
+  `supervision_reviewed_at` datetime DEFAULT NULL,
   `created_at` datetime DEFAULT current_timestamp(),
-  `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `document_reviews` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`document_reviews`))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
 -- Dumping data for table `user_documents`
 --
 
-INSERT INTO `user_documents` (`id`, `nationalId`, `user_photo`, `education_doc`, `employment_cert`, `soPishine_cert`, `ravan_cert`, `created_at`, `updated_at`) VALUES
-(2, '0534921972', 'uploads/user_documents/nid_0534921973/user_photo_20260206_0341_6a5065be.png', 'uploads/user_documents/nid_0534921973/education_doc_20260206_0341_c3444d3c.png', 'uploads/user_documents/nid_0534921973/employment_cert_20260206_0341_75081aa3.png', NULL, NULL, '2026-02-06 03:01:47', '2026-02-06 04:22:02'),
-(6, '0534921971', 'uploads/user_documents/nid_0534921973/user_photo_20260206_0341_6a5065be.png', 'uploads/user_documents/nid_0534921973/education_doc_20260206_0341_c3444d3c.png', 'uploads/user_documents/nid_0534921973/employment_cert_20260206_0341_75081aa3.png', NULL, NULL, '2026-02-06 03:01:47', '2026-02-06 04:22:02'),
-(7, '0534921973', 'uploads/user_documents/nid_0534921973/user_photo_20260208_2042_7c3d0554.jpg', '', 'uploads/user_documents/nid_0534921973/employment_cert_20260208_2042_fd94015f.jpg', 'uploads/user_documents/nid_0534921973/soPishine_cert_20260208_2042_e42fae6f.jpg', 'uploads/user_documents/nid_0534921973/ravan_cert_20260208_2042_f8dcd656.jpg', '2026-02-08 20:37:02', '2026-02-08 20:42:00');
+INSERT INTO `user_documents` (`id`, `nationalId`, `user_photo`, `education_doc`, `employment_cert`, `soPishine_cert`, `ravan_cert`, `supervision_status`, `supervision_reason`, `supervision_reviewed_by`, `supervision_reviewed_at`, `created_at`, `updated_at`, `document_reviews`) VALUES
+(7, '0534921973', 'uploads/user_documents/nid_0534921973/user_photo_20260221_2047_e5411daf.png', '', 'uploads/user_documents/nid_0534921973/employment_cert_20260215_1945_74399572.jpg', 'uploads/user_documents/nid_0534921973/soPishine_cert_20260221_2047_7728c92e.jpg', 'uploads/user_documents/nid_0534921973/ravan_cert_20260221_2047_6d71bded.png', 'SUPERVISION_REJECTED', '11', '0534921973', '2026-02-21 21:29:00', '2026-02-08 20:37:02', '2026-02-21 21:29:00', '{\"user_photo\": {\"status\": \"approved\", \"reviewed_by\": \"0534921973\", \"reviewed_at\": \"2026-02-21 21:28:54\"}, \"employment_cert\": {\"status\": \"approved\", \"reviewed_by\": \"0534921973\", \"reviewed_at\": \"2026-02-21 21:28:30\"}}');
 
 -- --------------------------------------------------------
 
@@ -1427,7 +1468,17 @@ INSERT INTO `voting_tokens` (`id`, `user_id`, `token_hash`, `expires_at`, `used`
 (126, '0534921973', '59ac1b2482954f914cc6c5441a0671a89d47966c8e8f5f295ea81742226881f3', '2026-02-09 01:11:09', 0, NULL, '2026-02-09 01:09:09'),
 (127, '0534921973', 'e90b51e575c569581d2ecf0ab9704a70b499054a4c0a73c5c900804fb174d2c1', '2026-02-09 01:11:22', 0, NULL, '2026-02-09 01:09:22'),
 (128, '0534921973', 'e62503c00d905a60e4f315ab6c7958d9e68edb3734954892be8fff03b8cbb3ef', '2026-02-09 01:14:14', 0, NULL, '2026-02-09 01:12:14'),
-(129, '0534921973', '6bfa911d34c643c8d387ea4b0a0359049e9284fd18848d515bd6dd55335b5913', '2026-02-09 01:14:37', 1, '2026-02-09 01:12:46', '2026-02-09 01:12:37');
+(129, '0534921973', '6bfa911d34c643c8d387ea4b0a0359049e9284fd18848d515bd6dd55335b5913', '2026-02-09 01:14:37', 1, '2026-02-09 01:12:46', '2026-02-09 01:12:37'),
+(130, '0534921973', 'f32f8f9369934dcb1aee2a1726061b30c89773fe8706f1905024dbd357f10620', '2026-02-15 01:24:13', 0, NULL, '2026-02-15 01:22:13'),
+(131, '0534921973', '18873a27d49ae16ac6cfa5476d908bdcae2f0f2b46bab408fc084fc77dbeaf84', '2026-02-15 01:26:38', 0, NULL, '2026-02-15 01:24:38'),
+(132, '0534921973', '2a8b3825fe500fb9f5aced126a0f1e94e7c647738777e8dc7f883fcdaef817b2', '2026-02-15 01:28:41', 0, NULL, '2026-02-15 01:26:41'),
+(133, '0534921973', '3bb5c4c2c111118e01ba1e75f976038357ebd4f3cc6b8485cd7a7866663d27c2', '2026-02-15 01:28:59', 0, NULL, '2026-02-15 01:26:59'),
+(134, '0534921973', '975bed44202d3ec03e2f26c64a4d9562af25027ce6b2bfbfcf27c46da5bee6f5', '2026-02-15 01:31:41', 0, NULL, '2026-02-15 01:29:41'),
+(135, '0534921973', 'd4c74b5f8dc9f60139c036aac12cfef89f5dd80278db50a057c24c258194d932', '2026-02-15 01:33:10', 0, NULL, '2026-02-15 01:31:10'),
+(136, '0534921973', 'd6ef2909c88ee4adf1af0e187a4a2d621a995dbbadbf015801647cbdacfbff58', '2026-02-15 01:33:33', 0, NULL, '2026-02-15 01:31:33'),
+(137, '0534921973', '72dfd12bb0c7aed74778f31a1c420b2f9c311e50744a9f0f9a62df64cb5d3b34', '2026-02-15 01:34:01', 0, NULL, '2026-02-15 01:32:01'),
+(138, '0534921973', 'adda63298af3d0fec8c50dd4ab70e7bc7b4ffbb7d40e7290f9b7e34e80309f9b', '2026-02-15 20:36:46', 0, NULL, '2026-02-15 20:34:46'),
+(139, '0534921973', '8bea9d434269c4e299e51c898b6213eb4ef8de217bcf4b7a363c6f32182f617d', '2026-02-15 20:36:49', 0, NULL, '2026-02-15 20:34:49');
 
 --
 -- Indexes for dumped tables
@@ -1448,9 +1499,9 @@ ALTER TABLE `api_rate_limits`
   ADD KEY `route` (`route`);
 
 --
--- Indexes for table `config`
+-- Indexes for table `config1`
 --
-ALTER TABLE `config`
+ALTER TABLE `config1`
   ADD PRIMARY KEY (`id`);
 
 --
@@ -1564,12 +1615,12 @@ ALTER TABLE `advertisements`
 -- AUTO_INCREMENT for table `api_rate_limits`
 --
 ALTER TABLE `api_rate_limits`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=62;
 
 --
--- AUTO_INCREMENT for table `config`
+-- AUTO_INCREMENT for table `config1`
 --
-ALTER TABLE `config`
+ALTER TABLE `config1`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
@@ -1582,7 +1633,7 @@ ALTER TABLE `election_participants`
 -- AUTO_INCREMENT for table `election_schedule_events`
 --
 ALTER TABLE `election_schedule_events`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=53;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=274;
 
 --
 -- AUTO_INCREMENT for table `feedback`
@@ -1594,13 +1645,13 @@ ALTER TABLE `feedback`
 -- AUTO_INCREMENT for table `final_submissions`
 --
 ALTER TABLE `final_submissions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `logs`
 --
 ALTER TABLE `logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=56;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=82;
 
 --
 -- AUTO_INCREMENT for table `maxvotes`
@@ -1612,7 +1663,7 @@ ALTER TABLE `maxvotes`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `user_addresses`
@@ -1624,7 +1675,7 @@ ALTER TABLE `user_addresses`
 -- AUTO_INCREMENT for table `user_documents`
 --
 ALTER TABLE `user_documents`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `voters`
@@ -1642,7 +1693,7 @@ ALTER TABLE `votes`
 -- AUTO_INCREMENT for table `voting_tokens`
 --
 ALTER TABLE `voting_tokens`
-  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=130;
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=140;
 
 --
 -- Constraints for dumped tables

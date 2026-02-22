@@ -75,7 +75,8 @@ const routes = [
         name: "live-election",
         path: 'live-election',
         component: () => import(/* webpackChunkName: "results" */ "./views/home/live-election"),
-        meta: { loginRequired: true },
+        meta: { loginRequired: true,
+          roles: [UserRole.ADMIN] },
       }, {
         name: "final-election",
         path: 'final-election',

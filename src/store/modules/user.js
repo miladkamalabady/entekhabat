@@ -288,6 +288,17 @@ export default {
       if (response?.status)
         commit('clearError');
       return response;
+    },async getFinalResultsApprovalStatus({ commit }) {
+      const response = await apiservice({ name: "getFinalResultsApprovalStatus" }, { commit });
+      if (response?.status)
+        commit('clearError');
+      return response?.data || null;
+    },
+    async submitFinalResultsApproval({ commit }, payload) {
+      const response = await apiservice({ name: "submitFinalResultsApproval", params: payload }, { commit });
+      if (response?.status)
+        commit('clearError');
+      return response;
     },
 
   }

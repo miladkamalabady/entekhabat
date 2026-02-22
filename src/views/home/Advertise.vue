@@ -1,6 +1,9 @@
 <template>
   <div class="px-2">
     <b-container fluid class="advertisement-wrapper">
+      <b-alert v-if="isAdsLocked" variant="danger" show class="mb-4 text-center">
+        24 ساعت مانده به شروع رای گیری : تبلیغات ممنوع
+      </b-alert>
       <!-- Page Header -->
       <b-card class="mb-4">
         <div class="d-flex justify-content-between align-items-center">
@@ -8,7 +11,7 @@
             <h4 class="mb-0">مدیریت تبلیغات</h4>
             <p class="text-muted mb-0">ایجاد و مدیریت تبلیغات انتخابات</p>
           </div>
-          <b-button variant="primary" @click="showCreateModal = true">
+          <b-button variant="primary" :disabled="isAdsLocked" @click="showCreateModal = true">
             <b-icon icon="plus-circle" class="ml-1"></b-icon>
             ایجاد تبلیغ جدید
           </b-button>
@@ -16,7 +19,7 @@
       </b-card>
 
       <!-- Filters -->
-      <b-card class="mb-4">
+      <b-card class="mb-4" v-if="!isAdsLocked">
         <h6 class="mb-3">فیلترها</h6>
         <b-row>
           <!-- <b-col md="3">
@@ -34,7 +37,7 @@
       </b-card>
 
       <!-- Advertisements List -->
-      <b-card>
+      <b-card v-if="!isAdsLocked">
         <div class="table-responsive">
           <b-table :items="advertisements?.filter(x => x.deleter != 'CANDIDATE')" :fields="fields" :busy="loading"
             striped hover class="text-right">
@@ -92,7 +95,7 @@
 
     <!-- Create/Edit Modal -->
     <b-modal v-model="showCreateModal" :title="isEditing ? 'ویرایش تبلیغ' : 'ایجاد تبلیغ جدید'" size="lg" hide-footer
-      centered scrollable>
+      :no-close-on-backdrop="isAdsLocked" :no-close-on-esc="isAdsLocked" centered scrollable>
       <b-form @submit.prevent="saveAd">
         <b-row>
           <b-col md="6">
@@ -206,19 +209,19 @@
         <div class="mt-3">
           <p class="text-muted mb-3">{{ selectedAd.description || 'توضیحاتی ثبت نشده است.' }}</p>
           <p>
-            <strong>سوابق اجرایی مدیریتی:</strong> {{ selectedAd.managerialRecords || 'سوابقی یافت نشد.' }} 
+            <strong>سوابق اجرایی مدیریتی:</strong> {{ selectedAd.managerialRecords || 'سوابقی یافت نشد.' }}
           </p>
           <p>
-            <strong>سوابق علمی / پژوهشی:</strong> {{ selectedAd.academicRecords || 'سوابقی یافت نشد.' }} 
+            <strong>سوابق علمی / پژوهشی:</strong> {{ selectedAd.academicRecords || 'سوابقی یافت نشد.' }}
           </p>
           <p>
-            <strong>مدارج و افتخارات:</strong> {{ selectedAd.honors || 'مدارجی یافت نشد.' }} 
+            <strong>مدارج و افتخارات:</strong> {{ selectedAd.honors || 'مدارجی یافت نشد.' }}
           </p>
           <p>
-            <strong>برنامه ها:</strong> {{ selectedAd.plans || 'برنامه ای یافت نشد.' }} 
+            <strong>برنامه ها:</strong> {{ selectedAd.plans || 'برنامه ای یافت نشد.' }}
           </p>
           <p>
-            <strong>شعار تبلیغاتی:</strong> {{ selectedAd.slogan || 'شعاری یافت نشد.' }} 
+            <strong>شعار تبلیغاتی:</strong> {{ selectedAd.slogan || 'شعاری یافت نشد.' }}
           </p>
           <div class="d-flex flex-wrap align-items-center justify-content-between border-top pt-3">
             <div class="mb-2 mb-md-0">
@@ -307,14 +310,35 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(["sidebarVisible"])
+    ...mapGetters(["sidebarVisible", "ConfigInfo", "SystemScheduleInfo"]),
+    votingStartDate() {
+      const votingEvent = (this.SystemScheduleInfo || []).find(item => item?.event_key === "voting");
+      if (votingEvent?.start_date) {
+        return this.$moment(votingEvent.start_date, "jYYYY-jMM-jDD HH:mm:ss");
+      }
+
+      if (this.ConfigInfo?.startDate) {
+        return this.$moment(this.ConfigInfo.startDate);
+      }
+
+      return null;
+    },
+    isAdsLocked() {
+      if (!this.votingStartDate || !this.votingStartDate.isValid()) {
+        return false;
+      }
+
+      const lockStart = this.votingStartDate.clone().subtract(24, "hours");
+      return this.$moment().isSameOrAfter(lockStart);
+    }
   },
-  created() {
+  async created() {
+    await this.getSystemSchedule();
     this.loadAdvertisements();
   },
   methods: {
     ...mapMutations(["setsidebarVisible"]),
-    ...mapActions(["advertisementsSave", "getAdvertisements", "deleteAdv"]),
+    ...mapActions(["advertisementsSave", "getAdvertisements", "deleteAdv", "getSystemSchedule"]),
     // Load Advertisements
     async loadAdvertisements() {
       this.loading = true;
@@ -435,6 +459,7 @@ export default {
     },
 
     async deleteAd(id) {
+      if (this.isAdsLocked) return;
       if (!confirm("آیا از حذف این تبلیغ اطمینان دارید؟")) return;
 
       try {
@@ -458,6 +483,14 @@ export default {
     },
 
     async saveAd() {
+      if (this.isAdsLocked) {
+        this.$bvToast.toast("24 ساعت مانده به شروع رای گیری : تبلیغات ممنوع", {
+          title: "محدودیت زمانی",
+          variant: "danger",
+          solid: true
+        });
+        return;
+      }
       this.saving = true;
       try {
         // Simulate API call

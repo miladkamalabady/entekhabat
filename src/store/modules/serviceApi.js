@@ -68,6 +68,12 @@ const global = {
     },getRegions: {
         url: "/getRegions",
         method: 'GET'
+    },getFinalResultsApprovalStatus: {
+        url: "/getFinalResultsApprovalStatus",
+        method: 'GET'
+    },submitFinalResultsApproval: {
+        url: "/submitFinalResultsApproval",
+        method: 'POST'
     }
     
 };

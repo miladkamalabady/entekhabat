@@ -49,9 +49,8 @@
                 <!-- Menu -->
                 <b-row>
                   <b-col v-for="(item, index) in filteredMenu" :key="index" cols="12" sm="4" class="mb-3">
-                    <b-card class="dashboard-card h-100"
-                      :class="{ disabled: (item.electionStatusAll && item.electionStatusAll != electionStatusAll) }"
-                      @click="!(item.electionStatusAll && item.electionStatusAll != electionStatusAll) ? handleClick(item) : ''">
+                    <b-card class="dashboard-card h-100" :class="{ disabled: isMenuDisabled(item) }"
+                      @click="!isMenuDisabled(item) ? handleClick(item) : ''">
                       <div class="icon mb-2">
                         <i :class="item.icon"></i>
                       </div>
@@ -63,6 +62,10 @@
                       <b-badge v-if="item.badge && electionStatusAll == 'active'" variant="warning" class="mt-2">
                         {{ item.badge }}
                       </b-badge>
+                      <b-badge v-if="item.requiresFinalApproval && !isFinalResultAnnouncementActive" variant="secondary"
+                        class="mt-2">
+                        {{ finalApprovalStatusText }}
+                      </b-badge>
                     </b-card>
                   </b-col>
                 </b-row>
@@ -71,6 +74,22 @@
             </b-row>
           </b-container>
         </div>
+        <b-modal id="final-result-activation" v-model="showFinalResultActivation" title="فعال‌سازی اعلام نتایج نهایی"
+          hide-footer centered>
+          <p class="text-muted">اعضای هیأت اجرایی و هیأت نظارت باید هر کدام با رمز خود تایید ثبت کنند.</p>
+          <b-form-group :label="activationRoleLabel" label-for="approval-passcode">
+            <b-form-input id="approval-passcode" v-model="approvalPasscode" type="password"
+              :placeholder="activationRolePlaceholder"></b-form-input>
+          </b-form-group>
+          <small class="d-block mb-3 text-muted">
+            وضعیت تاییدها: اجرایی {{ finalResultApprovals.executive ? '✅' : '⏳' }} |
+            نظارت {{ finalResultApprovals.supervisor ? '✅' : '⏳' }}
+          </small>
+          <div class="d-flex justify-content-end">
+            <b-button variant="outline-secondary" class="ml-2" @click="closeActivationModal">انصراف</b-button>
+            <b-button variant="success" @click="activateFinalResults">تایید و ثبت</b-button>
+          </div>
+        </b-modal>
       </div>
     </b-row>
   </div>
@@ -91,7 +110,9 @@ export default {
     ...mapGetters(["SystemScheduleInfo", "ConfigInfo", "sidebarVisible", "processing", "loginError", "currentUser", "stateCandidInfo", "electionStatusAll", "requestStatus"]),
     filteredMenu() {
       return this.menu.filter(item => {
-        const roleAllowed = item.roles.includes(this.currentUser?.roles[0])
+
+        const roleAllowed = item?.roles?.includes(this.currentUser?.roles[0])
+
 
         const statusAllowed = item.visibleWhen
           ? item.visibleWhen(this.requestStatus)
@@ -101,7 +122,27 @@ export default {
       })
     }, currentStep() {
       return this.STATUS_STEP_MAP[this.requestStatus] ?? 0
+    }, finalApprovalStatusText() {
+      if (this.isFinalResultAnnouncementActive) {
+        return 'فعال شده'
+      }
+
+      if (this.finalResultApprovals.executive && this.finalResultApprovals.supervisor) {
+        return 'در انتظار فعال‌سازی'
+      }
+
+      if (this.finalResultApprovals.executive || this.finalResultApprovals.supervisor) {
+        return 'در انتظار تایید هیأت مقابل'
+      }
+
+      return 'نیازمند تایید با رمز'
     },
+    activationRoleLabel() {
+      return this.pendingApprovalRole === 'EXECUTIVE' ? 'رمز هیأت اجرایی' : 'رمز هیأت نظارت'
+    },
+    activationRolePlaceholder() {
+      return this.pendingApprovalRole === 'EXECUTIVE' ? 'رمز هیأت اجرایی را وارد کنید' : 'رمز هیأت نظارت را وارد کنید'
+    }
 
   }, mounted() {
     if (!this.ConfigInfo && this.currentUser)
@@ -163,7 +204,7 @@ export default {
           title: 'شرکت در انتخابات',
           route: '/User/votingPage',
           icon: 'bi bi-check2-square',
-          roles: ['CANDIDATE', 'VOTER', 'EXECUTIVE', 'SUPERVISOR'],
+          roles: ['CANDIDATE', 'VOTER'],
           electionStatusAll: 'active',
           badge: 'در حال رأی‌گیری'
         },
@@ -171,7 +212,7 @@ export default {
           title: 'مشاهده نتایج مرحله اول',
           route: '/results/live-election',
           icon: 'bi bi-bar-chart',
-          roles: ['VOTER', 'CANDIDATE', 'EXECUTIVE', 'SUPERVISOR'],
+          roles: ['ADMIN'],
           electionStatusAll: 'active',
           badge: 'نمایش زنده'
         },
@@ -179,9 +220,10 @@ export default {
           title: 'مشاهده نتایج',
           route: '/results/final-election',
           icon: 'bi bi-bar-chart',
-          roles: ['VOTER', 'CANDIDATE', 'EXECUTIVE', 'SUPERVISOR'],
+          roles: ['EXECUTIVE','ADMIN','VOTER','CANDIDATE','SUPERVISOR'],
           electionStatusAll: 'ended',
-          badge: 'نمایش نهایی'
+          badge: 'نمایش نهایی',
+          requiresFinalApproval: true
         },
         {
           title: 'زمان بندی سیستم',
@@ -190,12 +232,80 @@ export default {
           roles: ['ADMIN'],
           badge: 'استانی و کشوری'
         }
-      ]
+      ],
+      showFinalResultActivation: false,
+      pendingMenuItem: null,
+      pendingApprovalRole: null,
+      approvalPasscode: '',
+      isFinalResultAnnouncementActive: false,
+      finalResultApprovals: {
+        executive: false,
+        supervisor: false
+      }
     }
   },
   methods: {
     ...mapMutations(["setRequestStatus", "setUser"]),
-    ...mapActions(["getConfig", "canselRequestCANDIDATE", "getSystemSchedule"]),
+    ...mapActions(["getConfig", "canselRequestCANDIDATE", "getSystemSchedule", "submitFinalResultsApproval", "getFinalResultsApprovalStatus"]),
+    isMenuDisabled(item) {
+      if (item.electionStatusAll && item.electionStatusAll != this.electionStatusAll) {
+        return true
+      }
+
+      if (item.requiresFinalApproval && !this.isFinalResultAnnouncementActive) {
+        return !this.currentUser?.roles?.some(role => ['EXECUTIVE', 'SUPERVISOR'].includes(role))
+      }
+
+      return false
+    },
+    async syncFinalResultsStatus(showError = true) {
+      try {
+        const status = await this.getFinalResultsApprovalStatus()
+        if (status) {
+          this.finalResultApprovals = {
+            executive: !!status.executiveApproved,
+            supervisor: !!status.supervisorApproved
+          }
+          this.isFinalResultAnnouncementActive = !!status.isActive
+        }
+      } catch (e) {
+        if (showError) {
+          this.$bvToast.toast('دریافت وضعیت فعال‌سازی از سرور انجام نشد.', {
+            title: 'هشدار',
+            variant: 'warning',
+            solid: true
+          })
+        }
+      }
+    },
+    closeActivationModal() {
+      this.showFinalResultActivation = false
+      this.pendingMenuItem = null
+      this.pendingApprovalRole = null
+      this.approvalPasscode = ''
+    },
+    async openFinalResultActivation(item) {
+      if (!this.currentUser?.roles?.some(role => ['EXECUTIVE', 'SUPERVISOR'].includes(role))) {
+        this.$bvToast.toast('اعلام نتایج نهایی هنوز توسط هیات اجرایی و هیات نظارت فعال نشده است.', {
+          title: 'عدم دسترسی',
+          variant: 'warning',
+          solid: true
+        })
+        return
+      }
+
+      await this.syncFinalResultsStatus(false)
+
+      if (this.isFinalResultAnnouncementActive && item?.route) {
+        this.$router.push(item.route)
+        return
+      }
+
+      const role = this.currentUser?.roles?.find(r => ['EXECUTIVE', 'SUPERVISOR'].includes(r))
+      this.pendingApprovalRole = role
+      this.pendingMenuItem = item
+      this.showFinalResultActivation = true
+    },
     async canselRequest() {
       const check = await this.canWithdrawByElectionTime()
 
@@ -251,10 +361,63 @@ export default {
       this.$router.push(route)
     },
     handleClick(item) {
+      if (item.requiresFinalApproval && !this.isFinalResultAnnouncementActive) {
+        this.openFinalResultActivation(item)
+        return
+      }
+
       if (item.route == '/candidate/request')
         this.setRequestStatus("DRAFT")
       this.$router.push(item.route)
+    },
+    async activateFinalResults() {
+      if (!this.pendingApprovalRole) {
+        return
+      }
+
+      const response = await this.submitFinalResultsApproval({
+        role: this.pendingApprovalRole,
+        passcode: this.approvalPasscode
+      })
+
+      if (!response?.status) {
+        this.$bvToast.toast(response?.message || 'ثبت تایید در سرور انجام نشد.', {
+          title: 'خطا',
+          variant: 'danger',
+          solid: true
+        })
+        return
+      }
+
+      await this.syncFinalResultsStatus(false)
+
+      const successMsg = this.isFinalResultAnnouncementActive
+        ? 'اعلام نتایج نهایی با تایید هیات اجرایی و هیات نظارت فعال شد.'
+        : 'تایید شما ثبت شد. پس از تایید هیأت دیگر، نتایج برای همه کاربران فعال می‌شود.'
+
+      this.$bvToast.toast(successMsg, {
+        title: this.isFinalResultAnnouncementActive ? 'فعال‌سازی موفق' : 'تایید ثبت شد',
+        variant: this.isFinalResultAnnouncementActive ? 'success' : 'info',
+        solid: true
+      })
+
+      this.approvalPasscode = ''
+      this.showFinalResultActivation = false
+
+      if (this.isFinalResultAnnouncementActive && this.pendingMenuItem) {
+        const route = this.pendingMenuItem.route
+        this.pendingMenuItem = null
+        this.pendingApprovalRole = null
+        this.$router.push(route)
+        return
+      }
+
+      this.pendingMenuItem = null
+      this.pendingApprovalRole = null
     }
+  },
+   async created() {
+    await this.syncFinalResultsStatus(true)
   }
 }
 </script>

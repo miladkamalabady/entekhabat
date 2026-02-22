@@ -85,7 +85,11 @@
         <b-icon icon="check-circle" variant="success" font-scale="4"></b-icon>
         <h5 class="mt-3">ثبت نام شما با موفقیت انجام شد!</h5>
         <p class="mt-2">کد رهگیری شما:</p>
-        <h4 class="font-weight-bold">{{ trackingCode }}</h4>
+        <h4 class="font-weight-bold">{{ trackingCode }}
+        <button class="btn btn-sm btn-outline-secondary" @click="copyTrackingCode(trackingCode)">
+        کپی
+      </button>
+      </h4>
         <b-button variant="primary" class="mt-3" @click="closeModal">تایید</b-button>
       </div>
     </b-modal>
@@ -157,6 +161,18 @@ export default {
   methods: {
     ...mapMutations(["setRequestStatus", "setUser"]),
     ...mapActions(["confirmRegister"]),
+    copyTrackingCode(code) {
+      if (!code) return
+
+      navigator.clipboard.writeText(code)
+        .then(() => {
+          // اگر خواستی نوتیفیکیشن بذاری اینجا بزار
+          alert('کد پیگیری کپی شد ✅')
+        })
+        .catch(() => {
+          alert('خطا در کپی کردن ❌')
+        })
+    },
     goBack() {
       this.setRequestStatus("CONDITIONS_ACCEPTED")
       this.$router.push("/candidate/UploadDocuments");

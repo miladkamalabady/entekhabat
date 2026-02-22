@@ -201,14 +201,13 @@
 
             <div class="candidate-card-content">
               <h5 class="candidate-name">{{ candidateCardInfo.name }}</h5>
-              <p class="candidate-slogan">{{ candidateCardInfo.slogan }}</p>
-
-              <div class="card-grid">
-                <div><strong>کد انتخاباتی:</strong> {{ candidateCardInfo.code }}</div>
+              <div class="card-meta-list">
                 <div><strong>حوزه انتخابیه:</strong> {{ candidateCardInfo.constituency }}</div>
                 <div><strong>مدرک تحصیلی:</strong> {{ candidateCardInfo.education }}</div>
                 <div><strong>وضعیت شغلی:</strong> {{ candidateCardInfo.employmentStatus }}</div>
                 <div><strong>سنوات:</strong> {{ candidateCardInfo.yearsOfService }} سال</div>
+                <div><strong>کد انتخاباتی:</strong> {{ candidateCardInfo.code }}</div>
+                <div><strong>شعار انتخاباتی:</strong> {{ candidateCardInfo.slogan }}</div>
               </div>
               <b-col md="6">
                 <div class="candidate-slogan">
@@ -234,7 +233,9 @@
                   <span>{{ selectedAd.plans }}</span>
                 </div>
               </b-col>
-
+              <b-button variant="outline-primary" size="sm" class="mt-2" @click="scrollToRecords">
+                مشاهده سوابق / کلیک
+              </b-button>
               <div class="countdown-box mt-2">
                 <b-icon icon="calendar-event" class="ml-1"></b-icon>
                 {{ daysUntilElectionText }}
@@ -700,7 +701,7 @@ export default {
     buildShareText() {
       if (!this.selectedAd) return "";
 
-      return `کارت تبلیغاتی کاندید\nنام: ${this.candidateCardInfo.name}\nکد انتخاباتی: ${this.candidateCardInfo.code}\nشعار: ${this.candidateCardInfo.slogan}\nحوزه انتخابیه: ${this.candidateCardInfo.constituency}\nمدرک تحصیلی: ${this.candidateCardInfo.education}\nوضعیت: ${this.candidateCardInfo.employmentStatus}\nسنوات: ${this.candidateCardInfo.yearsOfService} سال \n سوابق اجرایی: ${this.candidateCardInfo.managerialRecords}\n سوابق علمی / پژوهشی: ${this.candidateCardInfo.academicRecords}\n مدارج و افتخارات: ${this.candidateCardInfo.honors}\n برنامه ها: ${this.candidateCardInfo.plans}\n${this.daysUntilElectionText}`;
+      return `کارت تبلیغاتی کاندید\nنام: ${this.candidateCardInfo.name}\nحوزه انتخابیه: ${this.candidateCardInfo.constituency}\nکد انتخاباتی: ${this.candidateCardInfo.code}\nشعار انتخاباتی: ${this.candidateCardInfo.slogan}\nمشاهده سوابق: با کلیک روی گزینه «مشاهده سوابق / کلیک»\n${this.daysUntilElectionText}`;
     },
 
     async copyShareText() {
@@ -748,6 +749,12 @@ export default {
 
       if (urls[messenger]) {
         window.open(urls[messenger], "_blank");
+      }
+    },
+    scrollToRecords() {
+      const recordsSection = this.$el.querySelector('.details-card');
+      if (recordsSection) {
+        recordsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
   },
@@ -1024,10 +1031,10 @@ export default {
   margin-bottom: 8px;
 }
 
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(180px, 1fr));
-  gap: 8px;
+.card-meta-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   font-size: 0.9rem;
 }
 
@@ -1089,9 +1096,7 @@ export default {
     height: 220px;
   }
 
-  .card-grid {
-    grid-template-columns: 1fr;
-  }
+
 
   .carousel-image-wrapper {
     height: 200px;
