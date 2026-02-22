@@ -23,8 +23,10 @@ function jalaliScheduleToTimestamp($dateStr)
    3. Query status
 ========================= */
 
-$roles =  $jwtData['roles'];
-if ($roles !== 'CANDIDATE') {
+$sql = "SELECT nationalId  FROM final_submissions WHERE nationalId = '{$nationalId}'";
+
+$res = $db->query($sql);
+if (!$res->num_rows) {
     $db->query("ROLLBACK");
     http_response_code(403);
     echo json_encode([

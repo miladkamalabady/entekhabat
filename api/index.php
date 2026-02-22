@@ -45,6 +45,8 @@ $allowed_routes = [
     'saveSystemSchedule',
     'canselRequestCANDIDATE',
     'getRegions',
+    'getFinalResultsApprovalStatus',
+    'submitFinalResultsApproval',
     'getInfoVote'
 ];
 

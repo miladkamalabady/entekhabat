@@ -43,6 +43,14 @@ $db->query("SET autocommit=0");
 $db->query("START TRANSACTION");
 
 try {
+     usort($events, function ($a, $b) {
+        return intval($a['id'] ?? 0) <=> intval($b['id'] ?? 0);
+    });
+
+    $previousEventName = null;
+    $previousEventKey = null;
+    $previousEndTimestamp = null;
+
     foreach ($events as $event) {
         $eventKey = isset($event['key']) ? trim($event['key']) : '';
         $eventName = isset($event['name']) ? trim($event['name']) : '';
@@ -52,6 +60,25 @@ try {
 
         if ($eventKey === '' || $eventName === '') {
             continue;
+        }
+        $startTimestamp = $startDate ? strtotime($startDate) : null;
+        $endTimestamp = $endDate ? strtotime($endDate) : null;
+
+        if ($startDate && $startTimestamp === false) {
+            throw new Exception("فرمت تاریخ شروع برای رویداد {$eventName} نامعتبر است.");
+        }
+
+        if ($endDate && $endTimestamp === false) {
+            throw new Exception("فرمت تاریخ پایان برای رویداد {$eventName} نامعتبر است.");
+        }
+
+        if ($startTimestamp && $endTimestamp && $startTimestamp > $endTimestamp) {
+            throw new Exception("در رویداد {$eventName} تاریخ شروع نمی‌تواند بعد از تاریخ پایان باشد.");
+        }
+
+        $canOverlapWithPrevious = $previousEventKey === 'candidate_registration' && $eventKey === 'supervision_review';
+        if (!$canOverlapWithPrevious && $previousEndTimestamp && $startTimestamp && $startTimestamp < $previousEndTimestamp) {
+            throw new Exception("تاریخ شروع {$eventName} باید بعد از پایان مرحله قبل ({$previousEventName}) باشد.");
         }
 
         $eventKeySql = $db->escape($eventKey);
@@ -71,6 +98,11 @@ try {
                   updated_by = VALUES(updated_by)";
 
         $db->query($sql);
+        if ($endTimestamp) {
+            $previousEndTimestamp = $endTimestamp;
+            $previousEventName = $eventName;
+            $previousEventKey = $eventKey;
+        }
     }
 
     $db->query("COMMIT");
@@ -81,9 +113,9 @@ try {
     ], JSON_UNESCAPED_UNICODE);
 } catch (Exception $e) {
     $db->query("ROLLBACK");
-    http_response_code(500);
+    http_response_code(400);
     echo json_encode([
         'status' => false,
-        'message' => 'خطا در ذخیره‌سازی زمان‌بندی.'
+        'message' =>  $e->getMessage()
     ], JSON_UNESCAPED_UNICODE);
 }
