@@ -47,7 +47,10 @@ $allowed_routes = [
     'getRegions',
     'getFinalResultsApprovalStatus',
     'submitFinalResultsApproval',
-    'getInfoVote'
+    'getInfoVote',
+    'getObjections',
+    'saveObjection',
+    'updateObjectionStatus'
 ];
 
 // امنیت: فقط routeهای مجاز
@@ -72,4 +75,3 @@ if (file_exists($file_path)) {
         "message" => "API File Not Found: " . $route
     ]);
 }
-?>

@@ -13,14 +13,18 @@ $id = isset($input['code']) ? trim($input['code']) : '';
 $reson = isset($input['reson']) ? trim($input['reson']) : '';
 $status = isset($input['status']) ? trim($input['status']) : '';
 
-$roles =  $jwtData['roles'];
-if ($roles !== 'EXECUTIVE' && $roles !== 'SUPERVISOR' && $roles !== 'CANDIDATE') {
-    http_response_code(403);
-    echo json_encode([
-        'status' => false,
-        'message' => 'شما دسترسی لازم را ندارید'
-    ], JSON_UNESCAPED_UNICODE);
-    exit;
+$sql = "SELECT roles  FROM users WHERE nationalId = '{$nationalId}'";
+$res = $db->query($sql);
+if ($res->num_rows) {
+    $row = $res->fetch_assoc();
+    if ($row['roles'] !== 'EXECUTIVE' && $row['roles'] !== 'SUPERVISOR' && $row['roles'] !== 'CANDIDATE') {
+        http_response_code(403);
+        echo json_encode([
+            'status' => false,
+            'message' => 'شما دسترسی لازم را ندارید'
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
 }
 if ($id === '') {
     http_response_code(400);
@@ -30,7 +34,7 @@ if ($id === '') {
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }
- if ($roles == 'CANDIDATE')
+if ($roles == 'CANDIDATE')
     $sql = "select deleter from advertisements WHERE id = '{$id}'";
 else
     $sql = "select deleter from advertisements WHERE nationalId='{$nationalId}' and id = '{$id}'";
@@ -40,9 +44,9 @@ $c = $roles;
 if ($row['deleter'] == $c)
     $c = NULL;
 if ($status)
-     $sql = "update advertisements set deleter=NULL,reson=NULL,status='active' WHERE id = '{$id}'";
+    $sql = "update advertisements set deleter=NULL,reson=NULL,status='active' WHERE id = '{$id}'";
 else
-$sql = "update advertisements set deleter='{$c}',reson='{$reson}'  WHERE id = '{$id}'";
+    $sql = "update advertisements set deleter='{$c}',reson='{$reson}'  WHERE id = '{$id}'";
 $res = $db->query($sql);
 
 $sql = "INSERT INTO `logs`(`nationalId`, `action`, `description`) VALUES ('{$nationalId}','تغییر وضعیت تبلیغ','تغییر کد {$id} به {$c}')";

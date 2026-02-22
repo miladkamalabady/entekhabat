@@ -20,43 +20,7 @@
 
     <!-- Main Content -->
     <b-container class="complaint-container">
-      <!-- User Info Card -->
-      <b-card class="user-info-card mb-4">
-        <b-row class="align-items-center">
-          <b-col md="3" class="text-center mb-3 mb-md-0">
-            <img
-              :src="userInfo.photo || '/assets/img/avatars/imagen1.png'"
-              class="user-avatar"
-              alt="تصویر کاربر"
-            />
-          </b-col>
-          <b-col md="9">
-            <h4>{{ userInfo.name }}</h4>
-            <div class="user-details">
-              <div class="detail-item">
-                <b-icon icon="card-text" class="ml-1"></b-icon>
-                <strong>کد ملی:</strong>
-                <span>{{ userInfo.nationalCode }}</span>
-              </div>
-              <div class="detail-item">
-                <b-icon icon="phone" class="ml-1"></b-icon>
-                <strong>شماره تماس:</strong>
-                <span>{{ userInfo.phone }}</span>
-              </div>
-              <div class="detail-item">
-                <b-icon icon="envelope" class="ml-1"></b-icon>
-                <strong>ایمیل:</strong>
-                <span>{{ userInfo.email }}</span>
-              </div>
-              <div class="detail-item">
-                <b-icon icon="building" class="ml-1"></b-icon>
-                <strong>مرکز آموزشی:</strong>
-                <span>{{ userInfo.educationalCenter }}</span>
-              </div>
-            </div>
-          </b-col>
-        </b-row>
-      </b-card>
+
 
       <!-- Tabs Navigation -->
       <b-card no-body class="mb-4">
@@ -70,20 +34,11 @@
                 <b-form @submit.prevent="validateBeforeSubmit">
                   <b-row>
                     <b-col md="6">
-                      <b-form-group
-                        label="نوع تصمیم"
-                        label-for="decision-type"
-                        :state="formState.decisionType"
-                        invalid-feedback="لطفا نوع تصمیم را انتخاب کنید"
-                      >
-                        <b-form-select
-                          id="decision-type"
-                          v-model="complaintData.decisionType"
-                          :options="decisionTypeOptions"
-                          required
-                          :state="formState.decisionType"
-                          @change="onDecisionTypeChange"
-                        >
+                      <b-form-group label="نوع تصمیم" label-for="decision-type" :state="formState.decisionType"
+                        invalid-feedback="لطفا نوع تصمیم را انتخاب کنید">
+                        <b-form-select id="decision-type" v-model="complaintData.decisionType"
+                          :options="decisionTypeOptions" required :state="formState.decisionType"
+                          @change="onDecisionTypeChange">
                           <template #first>
                             <b-form-select-option :value="null" disabled>
                               -- لطفا انتخاب کنید --
@@ -94,19 +49,10 @@
                     </b-col>
 
                     <b-col md="6">
-                      <b-form-group
-                        label="شماره تصمیم/پرونده"
-                        label-for="case-number"
-                        :state="formState.caseNumber"
-                        invalid-feedback="لطفا شماره پرونده را وارد کنید"
-                      >
-                        <b-form-input
-                          id="case-number"
-                          v-model="complaintData.caseNumber"
-                          placeholder="مثال: ۱۴۰۲/۱۱/۱۲۰"
-                          required
-                          :state="formState.caseNumber"
-                        ></b-form-input>
+                      <b-form-group label="شماره تصمیم/پرونده" label-for="case-number" :state="formState.caseNumber"
+                        invalid-feedback="لطفا شماره پرونده را وارد کنید">
+                        <b-form-input id="case-number" v-model="complaintData.caseNumber"
+                          placeholder="مثال: ۱۴۰۲/۱۱/۱۲۰" required :state="formState.caseNumber"></b-form-input>
                       </b-form-group>
                     </b-col>
                   </b-row>
@@ -117,26 +63,20 @@
                     <b-row>
                       <b-col md="4">
                         <b-form-group label="نام کاندیدا">
-                          <b-form-input
-                            v-model="complaintData.candidateName"
-                            placeholder="نام کامل کاندیدا"
-                          ></b-form-input>
+                          <b-form-input v-model="complaintData.candidateName"
+                            placeholder="نام کامل کاندیدا"></b-form-input>
                         </b-form-group>
                       </b-col>
                       <b-col md="4">
                         <b-form-group label="منطقه انتخابی">
-                          <b-form-input
-                            v-model="complaintData.candidateRegion"
-                            placeholder="منطقه انتخابی"
-                          ></b-form-input>
+                          <b-form-input v-model="complaintData.candidateRegion"
+                            placeholder="منطقه انتخابی"></b-form-input>
                         </b-form-group>
                       </b-col>
                       <b-col md="4">
                         <b-form-group label="مقام مورد نظر">
-                          <b-form-input
-                            v-model="complaintData.candidatePosition"
-                            placeholder="مقام مورد درخواست"
-                          ></b-form-input>
+                          <b-form-input v-model="complaintData.candidatePosition"
+                            placeholder="مقام مورد درخواست"></b-form-input>
                         </b-form-group>
                       </b-col>
                     </b-row>
@@ -145,54 +85,27 @@
                   <!-- Complaint Details -->
                   <div class="complaint-details mt-4 pt-3 border-top">
                     <h6 class="mb-3">جزئیات اعتراض</h6>
-                    
-                    <b-form-group
-                      label="موضوع اعتراض"
-                      label-for="complaint-subject"
-                      :state="formState.subject"
-                      invalid-feedback="لطفا موضوع اعتراض را وارد کنید"
-                    >
-                      <b-form-input
-                        id="complaint-subject"
-                        v-model="complaintData.subject"
-                        placeholder="موضوع اصلی اعتراض خود را وارد کنید"
-                        required
-                        :state="formState.subject"
-                      ></b-form-input>
+
+                    <b-form-group label="موضوع اعتراض" label-for="complaint-subject" :state="formState.subject"
+                      invalid-feedback="لطفا موضوع اعتراض را وارد کنید">
+                      <b-form-input id="complaint-subject" v-model="complaintData.subject"
+                        placeholder="موضوع اصلی اعتراض خود را وارد کنید" required
+                        :state="formState.subject"></b-form-input>
                     </b-form-group>
 
-                    <b-form-group
-                      label="شرح کامل اعتراض"
-                      label-for="complaint-description"
-                      :state="formState.description"
-                      invalid-feedback="لطفا شرح اعتراض را با جزئیات وارد کنید"
-                    >
-                      <b-form-textarea
-                        id="complaint-description"
-                        v-model="complaintData.description"
-                        placeholder="شرح کامل اعتراض خود را با ذکر دلایل و مستندات وارد کنید"
-                        rows="6"
-                        required
-                        :state="formState.description"
-                        :maxlength="2000"
-                      ></b-form-textarea>
+                    <b-form-group label="شرح کامل اعتراض" label-for="complaint-description"
+                      :state="formState.description" invalid-feedback="لطفا شرح اعتراض را با جزئیات وارد کنید">
+                      <b-form-textarea id="complaint-description" v-model="complaintData.description"
+                        placeholder="شرح کامل اعتراض خود را با ذکر دلایل و مستندات وارد کنید" rows="6" required
+                        :state="formState.description" :maxlength="2000"></b-form-textarea>
                       <small class="text-muted d-block mt-1">
                         {{ complaintData.description.length }} / 2000 کاراکتر
                       </small>
                     </b-form-group>
 
-                    <b-form-group
-                      label="دلایل اصلی اعتراض"
-                      label-for="complaint-reasons"
-                    >
-                      <b-form-tags
-                        v-model="complaintData.reasons"
-                        placeholder="دلیل اعتراض را وارد و Enter بزنید"
-                        tag-variant="primary"
-                        separator=","
-                        add-on-change
-                        :limit="5"
-                      ></b-form-tags>
+                    <b-form-group label="دلایل اصلی اعتراض" label-for="complaint-reasons">
+                      <b-form-tags v-model="complaintData.reasons" placeholder="دلیل اعتراض را وارد و Enter بزنید"
+                        tag-variant="primary" separator="," add-on-change :limit="5"></b-form-tags>
                       <small class="text-muted d-block mt-1">
                         حداکثر ۵ دلیل مجاز است
                       </small>
@@ -201,17 +114,11 @@
                     <!-- Document Upload -->
                     <b-form-group label="ضمیمه مدارک">
                       <div class="document-upload-area">
-                        <b-form-file
-                          v-model="complaintData.documents"
-                          multiple
-                          :file-name-formatter="formatFileNames"
+                        <b-form-file v-model="complaintData.documents" multiple :file-name-formatter="formatFileNames"
                           placeholder="فایل‌های خود را انتخاب کنید یا اینجا رها کنید"
-                          drop-placeholder="فایل‌ها را اینجا رها کنید"
-                          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                          :state="formState.documents"
-                          @input="onDocumentsChange"
-                        ></b-form-file>
-                        
+                          drop-placeholder="فایل‌ها را اینجا رها کنید" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                          :state="formState.documents" @input="onDocumentsChange"></b-form-file>
+
                         <small class="text-muted d-block mt-2">
                           فرمت‌های مجاز: PDF, JPG, PNG, DOC, DOCX | حداکثر حجم هر فایل: ۵ مگابایت
                         </small>
@@ -223,22 +130,14 @@
                             <small>{{ uploadedFiles.length }} فایل</small>
                           </div>
                           <div class="files-list">
-                            <div
-                              v-for="(file, index) in uploadedFiles"
-                              :key="index"
-                              class="file-item"
-                            >
+                            <div v-for="(file, index) in uploadedFiles" :key="index" class="file-item">
                               <div class="file-info">
                                 <b-icon :icon="getFileIcon(file)" class="ml-2"></b-icon>
                                 <span class="file-name">{{ file.name }}</span>
                                 <small class="file-size">{{ formatFileSize(file.size) }}</small>
                               </div>
                               <div class="file-actions">
-                                <b-button
-                                  size="sm"
-                                  variant="outline-danger"
-                                  @click="removeFile(index)"
-                                >
+                                <b-button size="sm" variant="outline-danger" @click="removeFile(index)">
                                   <b-icon icon="trash"></b-icon>
                                 </b-button>
                               </div>
@@ -250,27 +149,17 @@
 
                     <!-- Urgency Level -->
                     <b-form-group label="درجه فوریت">
-                      <b-form-radio-group
-                        v-model="complaintData.urgency"
-                        :options="urgencyOptions"
-                        buttons
-                        button-variant="outline-primary"
-                        size="sm"
-                        name="urgency-buttons"
-                      ></b-form-radio-group>
+                      <b-form-radio-group v-model="complaintData.urgency" :options="urgencyOptions" buttons
+                        button-variant="outline-primary" size="sm" name="urgency-buttons"></b-form-radio-group>
                     </b-form-group>
 
                     <!-- Declaration -->
                     <b-card class="declaration-card mt-4">
-                      <b-form-checkbox
-                        v-model="complaintData.declaration"
-                        :state="formState.declaration"
-                        required
-                      >
+                      <b-form-checkbox v-model="complaintData.declaration" :state="formState.declaration" required>
                         <small>
-                          <strong>تعهدنامه:</strong> 
-                          من متعهد می‌شوم که اطلاعات فوق صحیح و مستند بوده و در صورت اثبات خلاف آن، 
-                          مسئولیت حقوقی و قانونی آن را می‌پذیرم. همچنین موافقت می‌کنم که این اعتراض 
+                          <strong>تعهدنامه:</strong>
+                          من متعهد می‌شوم که اطلاعات فوق صحیح و مستند بوده و در صورت اثبات خلاف آن،
+                          مسئولیت حقوقی و قانونی آن را می‌پذیرم. همچنین موافقت می‌کنم که این اعتراض
                           طبق آیین‌نامه هیأت نظارت بررسی شود.
                         </small>
                       </b-form-checkbox>
@@ -281,23 +170,12 @@
 
                     <!-- Submit Button -->
                     <div class="text-center mt-4">
-                      <b-button
-                        type="submit"
-                        variant="primary"
-                        size="lg"
-                        :disabled="submitting"
-                        class="submit-btn"
-                      >
+                      <b-button type="submit" variant="primary" size="lg" :disabled="submitting" class="submit-btn">
                         <b-icon icon="send-check" class="ml-1"></b-icon>
                         {{ submitting ? 'در حال ارسال...' : 'ثبت اعتراض' }}
                       </b-button>
-                      
-                      <b-button
-                        variant="outline-secondary"
-                        size="lg"
-                        class="mr-3"
-                        @click="resetForm"
-                      >
+
+                      <b-button variant="outline-secondary" size="lg" class="mr-3" @click="resetForm">
                         <b-icon icon="arrow-clockwise" class="ml-1"></b-icon>
                         پاک کردن فرم
                       </b-button>
@@ -314,11 +192,7 @@
               <!-- Complaints List -->
               <div v-if="userComplaints.length > 0">
                 <div class="complaints-list">
-                  <div
-                    v-for="complaint in userComplaints"
-                    :key="complaint.id"
-                    class="complaint-item mb-3"
-                  >
+                  <div v-for="complaint in userComplaints" :key="complaint.id" class="complaint-item mb-3">
                     <b-card>
                       <!-- Complaint Header -->
                       <div class="complaint-header mb-3">
@@ -341,28 +215,31 @@
                           </div>
                           <div class="complaint-actions">
                             <b-button-group size="sm">
-                              <b-button
-                                variant="outline-info"
-                                @click="viewComplaintDetails(complaint)"
-                              >
+                              <b-button variant="outline-info" @click="viewComplaintDetails(complaint)">
                                 <b-icon icon="eye"></b-icon>
                                 مشاهده
                               </b-button>
-                              <b-button
-                                variant="outline-secondary"
-                                v-if="complaint.status === 'pending'"
-                                @click="editComplaint(complaint)"
-                              >
+                              <b-button variant="outline-secondary" v-if="complaint.status === 'pending'"
+                                @click="editComplaint(complaint)">
                                 <b-icon icon="pencil"></b-icon>
                                 ویرایش
                               </b-button>
-                              <b-button
-                                variant="outline-danger"
-                                v-if="complaint.status === 'pending'"
-                                @click="cancelComplaint(complaint)"
-                              >
+                              <b-button variant="outline-danger" v-if="complaint.status === 'pending' && !isReviewer"
+                                @click="cancelComplaint(complaint)">
                                 <b-icon icon="x-circle"></b-icon>
                                 لغو
+                              </b-button>
+                              <b-button variant="outline-success"
+                                v-if="isReviewer && ['pending', 'under_review'].includes(complaint.status)"
+                                @click="reviewComplaint(complaint, 'approved')">
+                                <b-icon icon="check2-circle"></b-icon>
+                                تایید
+                              </b-button>
+                              <b-button variant="outline-danger"
+                                v-if="isReviewer && ['pending', 'under_review'].includes(complaint.status)"
+                                @click="reviewComplaint(complaint, 'rejected')">
+                                <b-icon icon="x-octagon"></b-icon>
+                                رد
                               </b-button>
                             </b-button-group>
                           </div>
@@ -391,13 +268,8 @@
 
                 <!-- Pagination -->
                 <div class="text-center mt-4" v-if="totalPages > 1">
-                  <b-pagination
-                    v-model="currentPage"
-                    :total-rows="totalComplaints"
-                    :per-page="complaintsPerPage"
-                    align="center"
-                    size="sm"
-                  ></b-pagination>
+                  <b-pagination v-model="currentPage" :total-rows="totalComplaints" :per-page="complaintsPerPage"
+                    align="center" size="sm"></b-pagination>
                 </div>
               </div>
 
@@ -415,22 +287,15 @@
             <div class="p-3">
               <b-card>
                 <h5 class="mb-4">پیگیری وضعیت اعتراض</h5>
-                
+
                 <!-- Tracking Form -->
                 <b-form @submit.prevent="trackComplaint" class="tracking-form">
                   <b-row class="align-items-end">
                     <b-col md="8">
-                      <b-form-group
-                        label="شماره پیگیری (کد رهگیری)"
-                        label-for="tracking-code"
-                      >
-                        <b-form-input
-                          id="tracking-code"
-                          v-model="trackingCode"
-                          placeholder="کد ۱۲ رقمی پیگیری خود را وارد کنید"
-                          :state="trackingState"
-                          required
-                        ></b-form-input>
+                      <b-form-group label="شماره پیگیری (کد رهگیری)" label-for="tracking-code">
+                        <b-form-input id="tracking-code" v-model="trackingCode"
+                          placeholder="کد ۱۲ رقمی پیگیری خود را وارد کنید" :state="trackingState"
+                          required></b-form-input>
                         <b-form-invalid-feedback :state="trackingState">
                           کد پیگیری باید ۱۲ رقم باشد
                         </b-form-invalid-feedback>
@@ -440,12 +305,7 @@
                       </b-form-group>
                     </b-col>
                     <b-col md="4">
-                      <b-button
-                        type="submit"
-                        variant="info"
-                        class="w-100"
-                        :disabled="trackingLoading"
-                      >
+                      <b-button type="submit" variant="info" class="w-100" :disabled="trackingLoading">
                         <b-icon icon="search" class="ml-1"></b-icon>
                         {{ trackingLoading ? 'در حال جستجو...' : 'پیگیری' }}
                       </b-button>
@@ -461,12 +321,8 @@
 
                   <!-- Timeline -->
                   <div class="timeline">
-                    <div
-                      v-for="(step, index) in trackingResult.timeline"
-                      :key="index"
-                      class="timeline-step"
-                      :class="{ active: step.active, completed: step.completed }"
-                    >
+                    <div v-for="(step, index) in trackingResult.timeline" :key="index" class="timeline-step"
+                      :class="{ active: step.active, completed: step.completed }">
                       <div class="timeline-icon">
                         <b-icon :icon="step.icon"></b-icon>
                       </div>
@@ -523,15 +379,12 @@
                   </div>
 
                   <!-- Download Documents -->
-                  <div v-if="trackingResult.documents && trackingResult.documents.length > 0" class="documents-section mt-4">
+                  <div v-if="trackingResult.documents && trackingResult.documents.length > 0"
+                    class="documents-section mt-4">
                     <h6 class="mb-3">مدارک و پاسخ‌ها</h6>
                     <b-card>
                       <div class="documents-list">
-                        <div
-                          v-for="doc in trackingResult.documents"
-                          :key="doc.id"
-                          class="document-item"
-                        >
+                        <div v-for="doc in trackingResult.documents" :key="doc.id" class="document-item">
                           <div class="d-flex justify-content-between align-items-center">
                             <div class="document-info">
                               <b-icon :icon="getFileIcon(doc)" class="ml-2"></b-icon>
@@ -540,22 +393,11 @@
                               <small class="text-muted">{{ doc.date }}</small>
                             </div>
                             <div class="document-actions">
-                              <b-button
-                                size="sm"
-                                variant="outline-primary"
-                                :href="doc.url"
-                                target="_blank"
-                              >
+                              <b-button size="sm" variant="outline-primary" :href="doc.url" target="_blank">
                                 <b-icon icon="eye"></b-icon>
                                 مشاهده
                               </b-button>
-                              <b-button
-                                size="sm"
-                                variant="outline-success"
-                                :href="doc.url"
-                                download
-                                class="mr-2"
-                              >
+                              <b-button size="sm" variant="outline-success" :href="doc.url" download class="mr-2">
                                 <b-icon icon="download"></b-icon>
                                 دانلود
                               </b-button>
@@ -571,23 +413,14 @@
                     <h6 class="mb-3">ارسال پیام پیگیری</h6>
                     <b-form @submit.prevent="submitFollowUp">
                       <b-form-group>
-                        <b-form-textarea
-                          v-model="followUpMessage"
-                          rows="3"
-                          placeholder="پیام خود را برای پیگیری بیشتر وارد کنید"
-                          :maxlength="500"
-                        ></b-form-textarea>
+                        <b-form-textarea v-model="followUpMessage" rows="3"
+                          placeholder="پیام خود را برای پیگیری بیشتر وارد کنید" :maxlength="500"></b-form-textarea>
                         <small class="text-muted d-block mt-1">
                           {{ followUpMessage.length }} / 500 کاراکتر
                         </small>
                       </b-form-group>
                       <div class="text-left">
-                        <b-button
-                          type="submit"
-                          variant="primary"
-                          size="sm"
-                          :disabled="!followUpMessage.trim()"
-                        >
+                        <b-button type="submit" variant="primary" size="sm" :disabled="!followUpMessage.trim()">
                           <b-icon icon="send" class="ml-1"></b-icon>
                           ارسال پیام
                         </b-button>
@@ -604,7 +437,7 @@
             <div class="p-3">
               <b-card>
                 <h5 class="mb-4">راهنمای ثبت اعتراض</h5>
-                
+
                 <div class="rules-content">
                   <!-- Introduction -->
                   <div class="rules-section mb-4">
@@ -613,8 +446,8 @@
                       مقدمه
                     </h6>
                     <p>
-                      سیستم اعتراضات هیأت نظارت انتخابات، بستری شفاف و قانونی برای رسیدگی به 
-                      اعتراضات مربوط به تصمیمات هیأت نظارت فراهم می‌کند. این سیستم مطابق با 
+                      سیستم اعتراضات هیأت نظارت انتخابات، بستری شفاف و قانونی برای رسیدگی به
+                      اعتراضات مربوط به تصمیمات هیأت نظارت فراهم می‌کند. این سیستم مطابق با
                       آیین‌نامه داخلی هیأت نظارت و قوانین جاری کشور طراحی شده است.
                     </p>
                   </div>
@@ -744,14 +577,8 @@
     </b-container>
 
     <!-- Complaint Details Modal -->
-    <b-modal
-      v-model="showComplaintModal"
-      :title="`جزئیات اعتراض - ${selectedComplaint?.trackingCode || ''}`"
-      size="lg"
-      hide-footer
-      centered
-      scrollable
-    >
+    <b-modal v-model="showComplaintModal" :title="`جزئیات اعتراض - ${selectedComplaint?.trackingCode || ''}`" size="lg"
+      hide-footer centered scrollable>
       <div v-if="selectedComplaint" class="complaint-details-modal">
         <!-- Complaint Header -->
         <div class="complaint-header mb-4">
@@ -816,12 +643,8 @@
           <div class="reasons mb-4" v-if="selectedComplaint.reasons && selectedComplaint.reasons.length > 0">
             <h6 class="section-title mb-3">دلایل اعتراض</h6>
             <div class="reasons-list">
-              <b-badge
-                v-for="(reason, index) in selectedComplaint.reasons"
-                :key="index"
-                variant="primary"
-                class="mr-2 mb-2"
-              >
+              <b-badge v-for="(reason, index) in selectedComplaint.reasons" :key="index" variant="primary"
+                class="mr-2 mb-2">
                 {{ reason }}
               </b-badge>
             </div>
@@ -831,11 +654,7 @@
           <div class="timeline-section mb-4">
             <h6 class="section-title mb-3">سیر رسیدگی</h6>
             <div class="simple-timeline">
-              <div
-                v-for="(step, index) in selectedComplaint.timeline"
-                :key="index"
-                class="timeline-item"
-              >
+              <div v-for="(step, index) in selectedComplaint.timeline" :key="index" class="timeline-item">
                 <div class="timeline-dot"></div>
                 <div class="timeline-content">
                   <div class="timeline-title">{{ step.title }}</div>
@@ -849,15 +668,12 @@
           </div>
 
           <!-- Documents -->
-          <div class="documents-section mb-4" v-if="selectedComplaint.documents && selectedComplaint.documents.length > 0">
+          <div class="documents-section mb-4"
+            v-if="selectedComplaint.documents && selectedComplaint.documents.length > 0">
             <h6 class="section-title mb-3">مدارک ضمیمه</h6>
             <b-card>
               <div class="documents-list">
-                <div
-                  v-for="doc in selectedComplaint.documents"
-                  :key="doc.id"
-                  class="document-item"
-                >
+                <div v-for="doc in selectedComplaint.documents" :key="doc.id" class="document-item">
                   <div class="d-flex justify-content-between align-items-center">
                     <div class="document-info">
                       <b-icon :icon="getFileIcon(doc)" class="ml-2"></b-icon>
@@ -865,22 +681,11 @@
                       <small class="text-muted mr-2">{{ formatFileSize(doc.size) }}</small>
                     </div>
                     <div class="document-actions">
-                      <b-button
-                        size="sm"
-                        variant="outline-primary"
-                        :href="doc.url"
-                        target="_blank"
-                      >
+                      <b-button size="sm" variant="outline-primary" :href="doc.url" target="_blank">
                         <b-icon icon="eye"></b-icon>
                         مشاهده
                       </b-button>
-                      <b-button
-                        size="sm"
-                        variant="outline-success"
-                        :href="doc.url"
-                        download
-                        class="mr-2"
-                      >
+                      <b-button size="sm" variant="outline-success" :href="doc.url" download class="mr-2">
                         <b-icon icon="download"></b-icon>
                         دانلود
                       </b-button>
@@ -920,14 +725,8 @@
     </b-modal>
 
     <!-- Success Modal -->
-    <b-modal
-      v-model="showSuccessModal"
-      title="ثبت اعتراض با موفقیت انجام شد"
-      hide-footer
-      centered
-      no-close-on-backdrop
-      hide-header-close
-    >
+    <b-modal v-model="showSuccessModal" title="ثبت اعتراض با موفقیت انجام شد" hide-footer centered no-close-on-backdrop
+      hide-header-close>
       <div class="success-modal text-center">
         <div class="success-icon mb-3">
           <b-icon icon="check-circle-fill" font-scale="4" variant="success"></b-icon>
@@ -942,18 +741,11 @@
           <small class="text-muted">این کد را در قسمت پیگیری وارد کنید</small>
         </div>
         <div class="actions">
-          <b-button
-            variant="primary"
-            @click="printComplaint"
-            class="mr-2"
-          >
+          <b-button variant="primary" @click="printComplaint" class="mr-2">
             <b-icon icon="printer" class="ml-1"></b-icon>
             چاپ رسید
           </b-button>
-          <b-button
-            variant="outline-secondary"
-            @click="showSuccessModal = false"
-          >
+          <b-button variant="outline-secondary" @click="showSuccessModal = false">
             بازگشت
           </b-button>
         </div>
@@ -965,16 +757,12 @@
       <b-container>
         <div class="text-center py-3">
           <small class="text-muted">
-            © ۱۴۰۲ - سیستم اعتراضات هیأت نظارت انتخابات صندوق ذخیره فرهنگیان
+            © 1404 - سیستم اعتراضات هیأت نظارت انتخابات صندوق ذخیره فرهنگیان
           </small>
           <div class="footer-links mt-2">
             <a href="#" @click.prevent="downloadGuide" class="ml-3">
               <b-icon icon="download" class="ml-1"></b-icon>
               دانلود راهنما
-            </a>
-            <a href="#" @click.prevent="showFAQ" class="ml-3">
-              <b-icon icon="question-circle" class="ml-1"></b-icon>
-              سوالات متداول
             </a>
             <a href="tel:02188560000" class="ml-3">
               <b-icon icon="telephone" class="ml-1"></b-icon>
@@ -988,6 +776,21 @@
 </template>
 
 <script>
+import { mapActions, mapGetters } from 'vuex'
+
+const createDefaultComplaintData = () => ({
+  decisionType: null,
+  caseNumber: '',
+  candidateName: '',
+  candidateRegion: '',
+  candidatePosition: '',
+  subject: '',
+  description: '',
+  reasons: [],
+  documents: [],
+  urgency: 'normal',
+  declaration: false
+})
 export default {
   name: 'UserComplaint',
   data() {
@@ -995,32 +798,11 @@ export default {
       activeTab: 0,
       submitting: false,
       trackingLoading: false,
-      
-      // User Information
-      userInfo: {
-        name: 'دکتر محمدرضا احمدی',
-        nationalCode: '۰۰۹۴۵۶۷۸۹۰',
-        phone: '۰۹۱۲۳۴۵۶۷۸۹',
-        email: 'm.ahmadi@example.com',
-        educationalCenter: 'دانشگاه تهران - دانشکده علوم تربیتی',
-        photo: '/assets/img/avatars/imagen1.png'
-      },
-      
+
+
       // Complaint Form Data
-      complaintData: {
-        decisionType: null,
-        caseNumber: '',
-        candidateName: '',
-        candidateRegion: '',
-        candidatePosition: '',
-        subject: '',
-        description: '',
-        reasons: [],
-        documents: [],
-        urgency: 'normal',
-        declaration: false
-      },
-      
+      complaintData: createDefaultComplaintData(),
+
       // Form Validation States
       formState: {
         decisionType: null,
@@ -1030,7 +812,7 @@ export default {
         documents: null,
         declaration: null
       },
-      
+
       // Options
       decisionTypeOptions: [
         { value: 'candidate_rejection', text: 'رد صلاحیت کاندیداتوری' },
@@ -1040,30 +822,30 @@ export default {
         { value: 'procedure_violation', text: 'تخلفات آیین‌نامه‌ای' },
         { value: 'other', text: 'سایر موارد' }
       ],
-      
+
       urgencyOptions: [
         { value: 'low', text: 'کم' },
         { value: 'normal', text: 'متوسط' },
         { value: 'high', text: 'زیاد' },
         { value: 'urgent', text: 'فوری' }
       ],
-      
+
       // Uploaded Files
       uploadedFiles: [],
-      
+
       // User Complaints
       userComplaints: [],
       currentPage: 1,
       totalPages: 1,
       totalComplaints: 0,
       complaintsPerPage: 10,
-      
+
       // Tracking
       trackingCode: '',
       trackingResult: null,
       trackingState: null,
       followUpMessage: '',
-      
+
       // Modals
       showComplaintModal: false,
       showSuccessModal: false,
@@ -1072,11 +854,15 @@ export default {
     }
   },
   computed: {
-    showCandidateFields() {
-      return this.complaintData.decisionType === 'candidate_rejection' || 
-             this.complaintData.decisionType === 'document_rejection'
+    ...mapGetters(['currentUser']),
+    isReviewer() {
+      return ['SUPERVISOR', 'EXECUTIVE', 'ADMIN'].includes(this.currentUser?.roles?.[0])
     },
-    
+    showCandidateFields() {
+      return this.complaintData.decisionType === 'candidate_rejection' ||
+        this.complaintData.decisionType === 'document_rejection'
+    },
+
     // Sample data for user complaints (in real app, fetch from API)
     sampleComplaints() {
       return [
@@ -1132,24 +918,30 @@ export default {
       ]
     }
   },
-  mounted() {
-    this.loadUserComplaints()
+  async mounted() {
+    await this.loadUserComplaints()
   },
   methods: {
+    ...mapActions(['getObjections', 'saveObjection', 'updateObjectionStatus']),
+
+    getDefaultComplaintData() {
+      return createDefaultComplaintData()
+    },
     // Form Methods
     onDecisionTypeChange() {
       this.formState.decisionType = this.complaintData.decisionType ? true : false
     },
-    
+
     formatFileNames(files) {
       return files.length === 1 ? files[0].name : `${files.length} فایل انتخاب شده`
     },
-    
+
     onDocumentsChange(files) {
-      this.uploadedFiles = Array.from(files)
-      this.formState.documents = files.length > 0 ? true : null
+      const selectedFiles = files ? Array.from(files) : []
+      this.uploadedFiles = selectedFiles
+      this.formState.documents = selectedFiles.length > 0 ? true : null
     },
-    
+
     removeFile(index) {
       this.uploadedFiles.splice(index, 1)
       // Also remove from complaintData.documents
@@ -1157,14 +949,14 @@ export default {
         this.complaintData.documents.splice(index, 1)
       }
     },
-    
+
     getFileIcon(file) {
       if (file.type) {
         if (file.type.includes('pdf')) return 'file-earmark-pdf'
         if (file.type.includes('image')) return 'file-earmark-image'
         if (file.type.includes('word') || file.type.includes('document')) return 'file-earmark-word'
       }
-      
+
       const extension = file.name.split('.').pop().toLowerCase()
       switch (extension) {
         case 'pdf': return 'file-earmark-pdf'
@@ -1177,7 +969,7 @@ export default {
         default: return 'file-earmark'
       }
     },
-    
+
     formatFileSize(bytes) {
       if (bytes === 0) return '0 بایت'
       const k = 1024
@@ -1185,46 +977,46 @@ export default {
       const i = Math.floor(Math.log(bytes) / Math.log(k))
       return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
     },
-    
+
     validateBeforeSubmit() {
       // Reset validation states
       Object.keys(this.formState).forEach(key => {
         this.formState[key] = null
       })
-      
+
       // Validate required fields
       let isValid = true
-      
+
       if (!this.complaintData.decisionType) {
         this.formState.decisionType = false
         isValid = false
       }
-      
+
       if (!this.complaintData.caseNumber.trim()) {
         this.formState.caseNumber = false
         isValid = false
       }
-      
+
       if (!this.complaintData.subject.trim()) {
         this.formState.subject = false
         isValid = false
       }
-      
+
       if (!this.complaintData.description.trim() || this.complaintData.description.length < 50) {
         this.formState.description = false
         isValid = false
       }
-      
+
       if (this.uploadedFiles.length === 0) {
         this.formState.documents = false
         isValid = false
       }
-      
+
       if (!this.complaintData.declaration) {
         this.formState.declaration = false
         isValid = false
       }
-      
+
       if (isValid) {
         this.submitComplaint()
       } else {
@@ -1235,54 +1027,41 @@ export default {
         })
       }
     },
-    
+
     async submitComplaint() {
       this.submitting = true
-      
+
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 2000))
-        
-        // Generate tracking code
-        this.newTrackingCode = this.generateTrackingCode()
-        
-        // Create new complaint object
-        const newComplaint = {
-          id: Date.now(),
-          trackingCode: this.newTrackingCode,
+        const payload = {
           ...this.complaintData,
-          status: 'pending',
-          submittedDate: this.getCurrentDate(),
-          lastUpdate: this.getCurrentDate(),
-          documentsCount: this.uploadedFiles.length,
-          preview: this.complaintData.description.substring(0, 150) + '...',
           documents: this.uploadedFiles.map(file => ({
-            id: Date.now() + Math.random(),
             name: file.name,
             size: file.size,
-            url: URL.createObjectURL(file),
             type: file.type
           }))
         }
-        
-        // Add to user complaints
-        this.userComplaints.unshift(newComplaint)
-        
-        // Show success modal
+
+        const response = await this.saveObjection(payload)
+
+        if (!response?.status) {
+          throw new Error('save failed')
+        }
+
+        this.newTrackingCode = response?.data?.trackingCode || ''
         this.showSuccessModal = true
-        
+
         // Reset form
         this.resetForm()
-        
+
         // Switch to my complaints tab
         this.activeTab = 1
-        
+        await this.loadUserComplaints()
         this.$bvToast.toast('اعتراض شما با موفقیت ثبت شد', {
           title: 'ثبت موفق',
           variant: 'success',
           solid: true
         })
-        
+
       } catch (error) {
         this.$bvToast.toast('خطا در ثبت اعتراض. لطفا مجددا تلاش کنید', {
           title: 'خطا',
@@ -1293,38 +1072,34 @@ export default {
         this.submitting = false
       }
     },
-    
+
     resetForm() {
-      this.complaintData = {
-        decisionType: null,
-        caseNumber: '',
-        candidateName: '',
-        candidateRegion: '',
-        candidatePosition: '',
-        subject: '',
-        description: '',
-        reasons: [],
-        documents: [],
-        urgency: 'normal',
-        declaration: false
-      }
-      
+      this.complaintData = this.getDefaultComplaintData()
+
       this.uploadedFiles = []
-      
+
       // Reset validation states
       Object.keys(this.formState).forEach(key => {
         this.formState[key] = null
       })
     },
-    
+
     // Complaint List Methods
-    loadUserComplaints() {
-      // In real app, fetch from API
-      this.userComplaints = this.sampleComplaints
+    async loadUserComplaints(filters = {}) {
+      try {
+        const response = await this.getObjections(filters)
+        if (response?.status) {
+          this.userComplaints = response.data || []
+        } else {
+          this.userComplaints = []
+        }
+      } catch (error) {
+        this.userComplaints = []
+      }
       this.totalComplaints = this.userComplaints.length
       this.totalPages = Math.ceil(this.totalComplaints / this.complaintsPerPage)
     },
-    
+
     getComplaintStatusVariant(status) {
       const variants = {
         pending: 'warning',
@@ -1335,7 +1110,7 @@ export default {
       }
       return variants[status] || 'secondary'
     },
-    
+
     getComplaintStatusText(status) {
       const texts = {
         pending: 'در انتظار',
@@ -1346,24 +1121,30 @@ export default {
       }
       return texts[status] || status
     },
-    
+
     viewComplaintDetails(complaint) {
       this.selectedComplaint = complaint
       this.showComplaintModal = true
     },
-    
+
     editComplaint(complaint) {
       // Populate form with complaint data
-      this.complaintData = { ...complaint }
+      this.complaintData = {
+        ...this.getDefaultComplaintData(),
+        ...complaint,
+        reasons: Array.isArray(complaint.reasons) ? complaint.reasons : [],
+        documents: Array.isArray(complaint.documents) ? complaint.documents : []
+      }
+      this.uploadedFiles = [...this.complaintData.documents]
       this.activeTab = 0
-      
+
       this.$bvToast.toast('برای ویرایش اعتراض، تغییرات مورد نظر را اعمال و مجددا ثبت کنید', {
         title: 'ویرایش اعتراض',
         variant: 'info',
         solid: true
       })
     },
-    
+
     cancelComplaint(complaint) {
       this.$bvModal.msgBoxConfirm('آیا از لغو این اعتراض اطمینان دارید؟', {
         title: 'لغو اعتراض',
@@ -1373,42 +1154,59 @@ export default {
         okTitle: 'بله، لغو کن',
         cancelTitle: 'انصراف',
         centered: true
-      }).then(value => {
+      }).then(async value => {
         if (value) {
-          complaint.status = 'cancelled'
-          complaint.lastUpdate = this.getCurrentDate()
-          
-          this.$bvToast.toast('اعتراض با موفقیت لغو شد', {
-            title: 'لغو موفق',
-            variant: 'info',
-            solid: true
-          })
+          const response = await this.updateObjectionStatus({ id: complaint.id, status: 'cancelled' })
+          if (response?.status) {
+            complaint.status = 'cancelled'
+            complaint.lastUpdate = this.getCurrentDate()
+            this.$bvToast.toast('اعتراض با موفقیت لغو شد', {
+              title: 'لغو موفق',
+              variant: 'info',
+              solid: true
+            })
+          }
         }
       })
     },
-    
+    async reviewComplaint(complaint, status) {
+      const response = await this.updateObjectionStatus({ id: complaint.id, status })
+      if (response?.status) {
+        complaint.status = status
+        complaint.lastUpdate = this.getCurrentDate()
+        this.$bvToast.toast('وضعیت اعتراض با موفقیت بروزرسانی شد', {
+          title: 'بروزرسانی موفق',
+          variant: 'success',
+          solid: true
+        })
+      }
+    },
     // Tracking Methods
     async trackComplaint() {
-      if (!this.trackingCode || this.trackingCode.length !== 12) {
+      if (!this.trackingCode || this.trackingCode.trim().length < 8) {
         this.trackingState = false
         return
       }
-      
+
       this.trackingLoading = true
-      
+
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1500))
-        
-        // Mock tracking result
+       const response = await this.getObjections({ trackingCode: this.trackingCode })
+        if (!response?.status || !response?.data?.length) {
+          this.trackingState = false
+          this.trackingResult = null
+          return
+        }
+
+        const item = response.data[0]
         this.trackingResult = {
-          trackingCode: this.trackingCode,
-          subject: 'اعتراض به رد صلاحیت کاندیداتوری',
-          status: 'under_review',
-          submittedDate: '۱۴۰۲/۱۱/۱۰',
-          lastUpdate: '۱۴۰۲/۱۱/۱۲',
-          assignedTo: 'دکتر سید حسن موسوی',
-          estimatedDate: '۱۴۰۲/۱۱/۲۰',
+          trackingCode: item.trackingCode,
+          subject: item.subject,
+          status: item.status,
+          submittedDate: item.submittedDate,
+          lastUpdate: item.lastUpdate,
+          assignedTo: item.responseBy || '-',
+          estimatedDate: '-',
           timeline: [
             {
               title: 'ثبت اعتراض',
@@ -1476,9 +1274,9 @@ export default {
             }
           ]
         }
-        
+
         this.trackingState = true
-        
+
       } catch (error) {
         this.$bvToast.toast('خطا در دریافت اطلاعات پیگیری', {
           title: 'خطا',
@@ -1489,7 +1287,7 @@ export default {
         this.trackingLoading = false
       }
     },
-    
+
     submitFollowUp() {
       if (this.followUpMessage.trim()) {
         // In real app, send to API
@@ -1498,11 +1296,11 @@ export default {
           variant: 'success',
           solid: true
         })
-        
+
         this.followUpMessage = ''
       }
     },
-    
+
     // Utility Methods
     generateTrackingCode() {
       const date = new Date()
@@ -1512,17 +1310,17 @@ export default {
       const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0')
       return `${year}/${month}/${day}${random}`
     },
-    
+
     getCurrentDate() {
       return new Date().toLocaleDateString('fa-IR')
     },
-    
+
     // Modal Methods
     printComplaint() {
       window.print()
       this.showSuccessModal = false
     },
-    
+
     // Footer Methods
     downloadGuide() {
       // In real app, download PDF guide
@@ -1532,7 +1330,7 @@ export default {
         solid: true
       })
     },
-    
+
     showFAQ() {
       this.$router.push('/faq')
     }
@@ -2041,43 +1839,43 @@ export default {
     width: 80px;
     height: 80px;
   }
-  
+
   .complaint-title {
     min-width: 100%;
   }
-  
+
   .complaint-header {
     flex-direction: column;
     gap: 10px;
   }
-  
+
   .complaint-actions {
     width: 100%;
     justify-content: flex-start;
   }
-  
+
   .timeline-step {
     flex-direction: column;
   }
-  
+
   .timeline-icon {
     margin: 0 auto 15px;
   }
-  
+
   .timeline-step::before {
     right: 50%;
     transform: translateX(50%);
   }
-  
+
   .timeline-content {
     margin-right: 0;
   }
-  
+
   .detail-item {
     flex-direction: column;
     align-items: flex-start;
   }
-  
+
   .detail-item strong {
     margin: 5px 0;
   }
@@ -2087,7 +1885,7 @@ export default {
   .user-complaint-page {
     background: white !important;
   }
-  
+
   .complaint-footer,
   .complaint-actions,
   .submit-btn {

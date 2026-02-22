@@ -1,81 +1,90 @@
 const global = {
-   AccountLogin: {
+    AccountLogin: {
         url: "/AccountLogin",
         method: 'GET'
-    },userstatus: {
+    }, userstatus: {
         url: "/user-status",
         method: 'GET'
-    },UploadUserDocuments: {
+    }, UploadUserDocuments: {
         url: "/UploadUserDocuments",
         method: 'POST'
-    },confirmRegister: {
+    }, confirmRegister: {
         url: "/FinalSubmit",
         method: 'POST'
-    },canselRequestCANDIDATE: {
+    }, canselRequestCANDIDATE: {
         url: "/canselRequestCANDIDATE",
         method: 'POST'
-    },getstateCandid: {
+    }, getstateCandid: {
         url: "/getstateCandid",
         method: 'GET'
-    },getEXECUTIVEList: {
+    }, getEXECUTIVEList: {
         url: "/getEXECUTIVEList",
         method: 'GET'
-    },ChangeState: {
+    }, ChangeState: {
         url: "/ChangeState",
         method: 'POST'
-    },UpdateDocumentReview: {
+    }, UpdateDocumentReview: {
         url: "/UpdateDocumentReview",
         method: 'POST'
-    },advertisementsSave: {
+    }, advertisementsSave: {
         url: "/advertisementsSave",
         method: 'POST'
-    },getAdvertisements: {
+    }, getAdvertisements: {
         url: "/getAdvertisements",
         method: 'GET'
-    },increaseViewAdd: {
+    }, increaseViewAdd: {
         url: "/increaseViewAdd",
         method: 'POST'
-    },deleteAdv: {
+    }, deleteAdv: {
         url: "/deleteAdv",
         method: 'POST'
-    },getConfig: {
+    }, getConfig: {
         url: "/getConfig",
         method: 'GET'
-    },getCandidsList: {
+    }, getCandidsList: {
         url: "/getCandidsList",
         method: 'GET'
-    },insertVote: {
+    }, insertVote: {
         url: "/insertVote",
         method: 'POST'
-    },getVote: {
+    }, getVote: {
         url: "/getVote",
         method: 'GET'
-    },getInfoVote: {
+    }, getInfoVote: {
         url: "/getInfoVote",
         method: 'GET'
-    },createVoteToken: {
+    }, createVoteToken: {
         url: "/createVoteToken",
         method: 'POST'
-    },submitFeedback: {
+    }, submitFeedback: {
         url: "/submitFeedback",
         method: 'POST'
-    },getSystemSchedule: {
+    }, getSystemSchedule: {
         url: "/getSystemSchedule",
         method: 'GET'
-    },saveSystemSchedule: {
+    }, saveSystemSchedule: {
         url: "/saveSystemSchedule",
         method: 'POST'
-    },getRegions: {
+    }, getObjections: {
+        url: "/getObjections",
+        method: 'GET'
+    }, saveObjection: {
+        url: "/saveObjection",
+        method: 'POST'
+    }, updateObjectionStatus: {
+        url: "/updateObjectionStatus",
+        method: 'POST'
+    }, getRegions: {
         url: "/getRegions",
         method: 'GET'
-    },getFinalResultsApprovalStatus: {
+    }, getFinalResultsApprovalStatus: {
         url: "/getFinalResultsApprovalStatus",
         method: 'GET'
-    },submitFinalResultsApproval: {
+    }, submitFinalResultsApproval: {
         url: "/submitFinalResultsApproval",
         method: 'POST'
     }
-    
+
 };
 
 export default global;

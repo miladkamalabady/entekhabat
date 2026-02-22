@@ -171,7 +171,7 @@ export default {
           }
         })
     }, async ChangeState({ commit }, payload) {
-       const response = await apiservice({ name: "ChangeState", params: payload }, { commit });
+      const response = await apiservice({ name: "ChangeState", params: payload }, { commit });
       if (response.status) {
         commit('setChangeStateInfo', response.data);
         commit('clearError');
@@ -261,14 +261,14 @@ export default {
       if (response?.status)
         commit('clearError');
       return response;
-    },async submitFeedback({ commit }, payload) {
-      const response = await apiservice({ name: "submitFeedback" , params: payload}, { commit });
+    }, async submitFeedback({ commit }, payload) {
+      const response = await apiservice({ name: "submitFeedback", params: payload }, { commit });
       if (response?.status)
         commit('clearError');
       return response.data;
     }, async getSystemSchedule({ commit }) {
       const response = await apiservice({ name: "getSystemSchedule" }, { commit });
-      if (response?.status){
+      if (response?.status) {
         commit('setSystemScheduleInfo', response.data)
         commit('clearError');
       }
@@ -283,12 +283,12 @@ export default {
       if (response?.status)
         commit('clearError');
       return response;
-    },async getRegions({ commit }) {
+    }, async getRegions({ commit }) {
       const response = await apiservice({ name: "getRegions" }, { commit });
       if (response?.status)
         commit('clearError');
       return response;
-    },async getFinalResultsApprovalStatus({ commit }) {
+    }, async getFinalResultsApprovalStatus({ commit }) {
       const response = await apiservice({ name: "getFinalResultsApprovalStatus" }, { commit });
       if (response?.status)
         commit('clearError');
@@ -296,6 +296,21 @@ export default {
     },
     async submitFinalResultsApproval({ commit }, payload) {
       const response = await apiservice({ name: "submitFinalResultsApproval", params: payload }, { commit });
+      if (response?.status)
+        commit('clearError');
+      return response;
+    }, async getObjections({ commit }, payload) {
+      const response = await apiservice({ name: "getObjections", params: payload || {} }, { commit });
+      if (response?.status)
+        commit('clearError');
+      return response;
+    }, async saveObjection({ commit }, payload) {
+      const response = await apiservice({ name: "saveObjection", params: payload }, { commit });
+      if (response?.status)
+        commit('clearError');
+      return response;
+    }, async updateObjectionStatus({ commit }, payload) {
+      const response = await apiservice({ name: "updateObjectionStatus", params: payload }, { commit });
       if (response?.status)
         commit('clearError');
       return response;
