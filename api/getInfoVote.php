@@ -30,7 +30,7 @@ SELECT
     COUNT(v.id) as vote_count
 FROM final_submissions as f
 JOIN users as u ON u.national_id = f.nationalId
-LEFT JOIN votes as v ON v.candidate_id = f.id
+LEFT JOIN votes as v ON v.candidate_id = u.id
 LEFT JOIN user_documents as d ON d.nationalId = f.nationalId
 WHERE requestStatus='SUPERVISION_APPROVED'
 GROUP BY f.id

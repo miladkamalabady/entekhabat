@@ -98,8 +98,8 @@ $data['madrak'] = 1;
 /* =========================
    3. Check user existence
 ========================= */
-// $nationalId = $db->escape('0534921972');
 $nationalId = $data['nationalID'];
+// $nationalId =4269875895;
 
 
 $check = $db->query("SELECT id,roles,regionName FROM users WHERE national_id = '{$nationalId}'");

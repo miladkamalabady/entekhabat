@@ -7,7 +7,6 @@
           <!-- نمایه کاربر -->
           <div class="text-center ">
 
-            <h6 class="text-dark muirtl-16hg5vz">وزارت آموزش و پرورش</h6>
             <img src="assets/img/szf.0.jpg" style="max-width:100%;height: 50px;" />
 
             <p class="text-dark muirtl-1rehyf">سامانه انتخابات الکترونیک</p>
@@ -136,6 +135,13 @@ export default {
           "type": "3",
           "cate": 2,
           roles: ['ADMIN'],
+        }, {
+          "title": "گزارش لاگ",
+          "link": "logs",
+          "img": "assets/img/ltms.svg",
+          "type": "3",
+          "cate": 2,
+          roles: ['ADMIN']
         }, {
           "title": "پشتیبانی",
           "link": "Contact",

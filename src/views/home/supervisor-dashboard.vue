@@ -408,7 +408,10 @@
         </div>
 
         <!-- Final Decision -->
-        <div class="final-decision" v-if="selectedCandidate.requestStatus === 'EXECUTIVE_APPROVED'">
+        <b-badge :variant="getStatusVariant(selectedCandidate.requestStatus)">
+         وضعیت کنونی: {{ getStatusText(selectedCandidate.requestStatus) }}
+        </b-badge>
+        <div class="final-decision" v-if="selectedCandidate.requestStatus !== 'SUBMITTED'">
           <b-alert variant="warning" show>
             <h6 class="alert-heading">تصمیم</h6>
             <p>پس از بررسی تمام مدارک، تصمیم را در مورد صلاحیت این کاندیدا بگیرید.</p>
@@ -419,19 +422,19 @@
             </b-form-group>
 
             <div class="text-center mt-3">
-              <b-button variant="success" class="mr-3" @click="approveCandidate(selectedCandidate)"
+              <b-button variant="success" v-if="selectedCandidate.requestStatus !== 'SUPERVISION_APPROVED'" class="mr-3" @click="approveCandidate(selectedCandidate)"
                 :disabled="!finalComment">
                 <b-icon icon="check-circle" class="ml-1"></b-icon>
                 تایید صلاحیت
               </b-button>
-              <b-button variant="danger" @click="rejectCandidate(selectedCandidate)" :disabled="!finalComment">
+              <b-button variant="danger" v-if="selectedCandidate.requestStatus !== 'SUPERVISION_REJECTED'" @click="rejectCandidate(selectedCandidate)" :disabled="!finalComment">
                 <b-icon icon="x-circle" class="ml-1"></b-icon>
                 رد صلاحیت
               </b-button>
             </div>
           </b-alert>
         </div>
-        <b-alert v-else variant="info" show>
+        <b-alert v-else-if="selectedCandidate.requestStatus == 'SUBMITTED'" variant="info" show>
           این کاندیدا هنوز از کارتابل اجرایی به کارتابل نظارت منتقل نشده است و امکان تایید یا رد وجود ندارد.
         </b-alert>
       </div>
@@ -721,7 +724,7 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(["currentUser", "EXECUTIVEListInfo", "ChangeStateInfo"]),
+    ...mapGetters(["currentUser", "EXECUTIVEListInfo", "ChangeStateInfo", "SystemScheduleInfo"]),
     filteredDocuments() {
 
       let filtered = this.EXECUTIVEListInfo;
@@ -798,7 +801,68 @@ export default {
   },
   methods: {
     ...mapMutations(["setChangeStateInfo"]),
-    ...mapActions(["getEXECUTIVEList", "ChangeState", "UpdateDocumentReview", "getAdvertisements", "deleteAdv"]),
+    ...mapActions(["getEXECUTIVEList", "ChangeState", "UpdateDocumentReview", "getAdvertisements", "deleteAdv", "getSystemSchedule"]),
+    async ensureSystemSchedule() {
+      if (!Array.isArray(this.SystemScheduleInfo) || !this.SystemScheduleInfo.length) {
+        await this.getSystemSchedule();
+      }
+    },
+
+    async isActionAllowedInSchedule(eventKey, eventTitle) {
+      await this.ensureSystemSchedule();
+
+      const event = this.SystemScheduleInfo?.find(item => item?.event_key === eventKey);
+    
+      
+      if (!event?.start_date || !event?.end_date) {
+        return {
+          ok: false,
+          msg: `بازه زمانی «${eventTitle}» در برنامه زمان‌بندی تنظیم نشده است.`
+        };
+      }
+
+      const start = this.$moment(event.start_date, 'jYYYY-jMM-jDD HH:mm:ss');
+      const end = this.$moment(event.end_date, 'jYYYY-jMM-jDD HH:mm:ss');
+      const now = this.$moment();
+
+      if (!start.isValid() || !end.isValid()) {
+        return {
+          ok: false,
+          msg: `فرمت زمان‌بندی «${eventTitle}» معتبر نیست.`
+        };
+      }
+
+      if (now.isBefore(start)) {
+        return {
+          ok: false,
+          msg: `بازه «${eventTitle}» از تاریخ ${start.format('jYYYY/jMM/jDD ساعت HH:mm')} آغاز می‌شود.`
+        };
+      }
+
+      if (now.isAfter(end)) {
+        return {
+          ok: false,
+          msg: `بازه «${eventTitle}» در تاریخ ${end.format('jYYYY/jMM/jDD ساعت HH:mm')} به پایان رسیده است.`
+        };
+      }
+
+      return { ok: true };
+    },
+
+    async guardScheduleWindow(eventKey, eventTitle) {
+      const check = await this.isActionAllowedInSchedule(eventKey, eventTitle);
+       
+      if (!check.ok) {
+        this.$bvToast.toast(check.msg, {
+          title: 'خارج از بازه مجاز',
+          variant: 'warning',
+          solid: true
+        });
+        return false;
+      }
+
+      return true;
+    },
     // Helper Methods
     getStatusVariant(status) {
       const variants = {
@@ -840,6 +904,7 @@ export default {
       const texts = {
         CANDIDATE: 'حذف توسط کاندید',
         SUBMITTED: 'در انتظار',
+        pending: 'در انتظار',
         EXECUTIVE_APPROVED: 'تایید اجرایی',
         EXECUTIVE_REJECTED: 'رد اجرایی',
         SUPERVISION_APPROVED: 'تایید نظارت',
@@ -1074,6 +1139,11 @@ export default {
       return candidate?.national_Id || candidate?.national_id || candidate?.nationalId || '';
     },
     async approveCandidate(val) {
+      const canApprove = await this.guardScheduleWindow('supervision_review', 'تایید هیات نظارت');
+      
+      if (!canApprove) {
+        return;
+      }
       if (val) {
         this.selectedCandidate = val;
       }
@@ -1205,6 +1275,10 @@ export default {
     },
 
     async approveSelectedAd() {
+      const canReviewAds = await this.guardScheduleWindow('ads_review_approve', 'بررسی تبلیغات/تایید');
+      if (!canReviewAds) {
+        return;
+      }
       if (this.selectedAd) {
         this.selectedAd.status = 'SUPERVISION_APPROVED';
         await this.deleteAdv({ code: this.selectedAd.id, status: this.selectedAd.status, reson: this.adReviewComment })
@@ -1242,6 +1316,10 @@ export default {
     },
 
     async rejectSelectedAd() {
+      const canReviewAds = await this.guardScheduleWindow('ads_review_approve', 'بررسی تبلیغات/تایید');
+      if (!canReviewAds) {
+        return;
+      }
       if (this.selectedAd && this.adReviewComment) {
         this.selectedAd.status = 'SUPERVISION_REJECTED';
         await this.deleteAdv({ code: this.selectedAd.id, reson: this.adReviewComment })

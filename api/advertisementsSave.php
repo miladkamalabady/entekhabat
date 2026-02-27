@@ -70,6 +70,7 @@ $academicRecords = isset($input['academicRecords']) ? trim($input['academicRecor
 $honors = isset($input['honors']) ? trim($input['honors']) : '';
 $plans = isset($input['plans']) ? trim($input['plans']) : '';
 $slogan = isset($input['slogan']) ? trim($input['slogan']) : '';
+$isPaid = isset($input['isPaid']) ? intval($input['isPaid']) : 0;
 
 if ($title === '' || $description === '' || $type === '' || $status === '') {
     $db->query("ROLLBACK");
@@ -80,7 +81,21 @@ if ($title === '' || $description === '' || $type === '' || $status === '') {
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }
+if ($id <= 0) {
+    $existingAdsRes = $db->query("SELECT COUNT(*) AS total FROM advertisements WHERE nationalId='{$nationalId}' and deleter is null");
+    $existingAds = intval($existingAdsRes->fetch_assoc()['total'] ?? 0);
 
+    if ($existingAds >= 1 && $isPaid !== 1) {
+        $db->query("ROLLBACK");
+        http_response_code(402);
+        echo json_encode([
+            'status' => false,
+            'message' => 'ثبت تبلیغ دوم نیازمند پرداخت است.',
+            'requiresPayment' => true
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+}
 $storedImagePath = $imagePath !== '' ? $imagePath : null;
 
 if (isset($_FILES['image']) && $_FILES['image']['error'] !== UPLOAD_ERR_NO_FILE) {
@@ -157,6 +172,7 @@ $titleSql = $db->escape($title);
 $descriptionSql = $db->escape($description);
 $typeSql = $db->escape($type);
 $statusSql = $db->escape($status);
+$statusSql = 'pending';
 $targetLinkSql = $db->escape($targetLink);
 $imageSql = $storedImagePath !== null ? "'" . $db->escape($storedImagePath) . "'" : "NULL";
 $managerialRecords = $db->escape($managerialRecords);

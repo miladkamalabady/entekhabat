@@ -166,12 +166,21 @@
             placeholder="https://example.com"></b-form-input>
         </b-form-group>
 
-        <b-form-group label="وضعیت">
+        <!-- <b-form-group label="وضعیت">
           <b-form-radio-group v-model="form.status" :options="[
             { text: 'فعال', value: 'active' },
             { text: 'غیرفعال', value: 'inactive' }
           ]"></b-form-radio-group>
-        </b-form-group>
+        </b-form-group> -->
+
+        <b-alert v-if="!isEditing && hasExistingAdvertisements" variant="warning" show class="mb-3">
+          ثبت تبلیغ دوم به بعد نیازمند پرداخت است.
+        </b-alert>
+
+        <b-form-checkbox v-if="!isEditing && hasExistingAdvertisements" v-model="form.isPaid" class="mb-3">
+          پرداخت تبلیغ دوم انجام شده است
+        </b-form-checkbox>
+
 
         <div class="d-flex justify-content-end mt-4">
           <b-button variant="outline-secondary" class="ml-2" @click="showCreateModal = false">
@@ -305,7 +314,8 @@ export default {
         academicRecords: "",
         honors: "",
         plans: "",
-        slogan: ""
+        slogan: "",
+        isPaid: false
       }
     };
   },
@@ -330,6 +340,9 @@ export default {
 
       const lockStart = this.votingStartDate.clone().subtract(24, "hours");
       return this.$moment().isSameOrAfter(lockStart);
+    },
+    hasExistingAdvertisements() {
+      return this.advertisements.filter(ad => !ad.deleter).length >= 1;
     }
   },
   async created() {
@@ -407,7 +420,6 @@ export default {
         pending: "warning"
       };
       return !status.deleter ? (variants[status.status] || variants['inactive']) : variants['inactive'];
-      return variants[status] || "secondary";
     },
 
     getTypeText(type) {
@@ -453,7 +465,8 @@ export default {
         academicRecords: ad.academicRecords || "",
         honors: ad.honors || "",
         plans: ad.plans || "",
-        slogan: ad.slogan || ""
+        slogan: ad.slogan || "",
+        isPaid: ad.isPaid || 0
       };
       this.showCreateModal = true;
     },
@@ -499,13 +512,14 @@ export default {
         formData.append("title", this.form.title);
         formData.append("description", this.form.description);
         formData.append("type", this.form.type);
-        formData.append("status", this.form.status);
+        formData.append("status", 'pending');
         formData.append("targetLink", this.form.targetLink || "");
         formData.append("managerialRecords", this.form.managerialRecords || "");
         formData.append("academicRecords", this.form.academicRecords || "");
         formData.append("honors", this.form.honors || "");
         formData.append("plans", this.form.plans || "");
         formData.append("slogan", this.form.slogan || "");
+        formData.append("isPaid", this.form.isPaid ? "1" : "0");
 
         if (this.form.imageFile) {
           formData.append("image", this.form.imageFile);
@@ -525,7 +539,7 @@ export default {
           description: this.form.description,
           type: this.form.type,
           image: response.data?.image || this.form.imagePreview,
-          status: this.form.status,
+          status: 'pending',
           targetLink: this.form.targetLink,
           managerialRecords: this.form.managerialRecords,
           academicRecords: this.form.academicRecords,
@@ -567,7 +581,7 @@ export default {
         this.isEditing = false;
       } catch (error) {
         console.error("Error saving advertisement:", error);
-        this.$bvToast.toast("خطا در ذخیره تبلیغ", {
+         this.$bvToast.toast(error?.message || "خطا در ذخیره تبلیغ", {
           title: "خطا",
           variant: "danger",
           solid: true
@@ -586,12 +600,13 @@ export default {
         imageFile: null,
         imagePreview: null,
         targetLink: "",
-        status: "active",
+        status: "pending",
         managerialRecords: "",
         academicRecords: "",
         honors: "",
         plans: "",
-        slogan: ""
+        slogan: "",
+        isPaid: false
       };
     }
   }

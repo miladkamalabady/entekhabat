@@ -19,7 +19,7 @@
           ></path>
         </svg>
         
-          <div class="text-center muirtl-rmig3n d-flex flex-col mx-auto mb-2  items-center justify-center">
+          <div class="text-center muirtl-rmig3n mx-auto mb-2  items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="-1 -0.968 2 1.968">
               <defs>
                 <linearGradient id="blackGradient135" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -27,7 +27,7 @@
                   <stop offset="100%" stop-color="#34D399"></stop>
                 </linearGradient>
               </defs>
-              <g id="A" fill="url(#blackGradient135)">
+              <g id="A" fill="#000">
                 <path
                   d="m 1,6.5298e-4 c 0,0.2832 -0.1568,0.5432 -0.4072,0.6756 0.3408,-0.4264 0.2712,-1.0484 -0.1552,-1.3896 v 0 c -0.0144,-0.0116 -0.0292,-0.0228 -0.0444,-0.0336 0.3536,0.074 0.6068,0.386 0.6068,0.7476 z">
                 </path>
@@ -41,10 +41,10 @@
                   d="m 0.118,-0.68774702 c -0.0464,-0.0212 -0.0872,-0.0536 -0.118,-0.094 l -0.05,0.7816 L 0,1.000653 0.0776,0.89385298 l 0.0104,-0.2464 0.0108,-0.2564 0.0012,-0.0328 4e-4,-0.0124 0.0024,-0.0532 0.0068,-0.1616 0.0056,-0.1304 0.0016,-0.0376 0.002,-0.048 z">
                 </path>
               </g>
-              <use href="#A" transform="scale(-1 1)" fill="url(#blackGradient135)"></use>
+              <use href="#A" transform="scale(-1 1)" fill="#000"></use>
             </svg>
+            <h6 class="text-dark">وزارت آموزش و پرورش</h6>
           </div>
-        <p class="m-0">سامانه انتخابات الکترونیک</p>
       </div>
     </div>
     <div v-if="showname" style="gap: 1rem; display: flex;align-items: center;">

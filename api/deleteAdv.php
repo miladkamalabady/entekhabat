@@ -13,7 +13,7 @@ $id = isset($input['code']) ? trim($input['code']) : '';
 $reson = isset($input['reson']) ? trim($input['reson']) : '';
 $status = isset($input['status']) ? trim($input['status']) : '';
 
-$sql = "SELECT roles  FROM users WHERE nationalId = '{$nationalId}'";
+$sql = "SELECT roles  FROM users WHERE national_id  = '{$nationalId}'";
 $res = $db->query($sql);
 if ($res->num_rows) {
     $row = $res->fetch_assoc();
@@ -34,7 +34,8 @@ if ($id === '') {
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }
-if ($roles == 'CANDIDATE')
+$roles=$row['roles'];
+if ($roles== 'CANDIDATE')
     $sql = "select deleter from advertisements WHERE id = '{$id}'";
 else
     $sql = "select deleter from advertisements WHERE nationalId='{$nationalId}' and id = '{$id}'";

@@ -870,6 +870,7 @@ export default {
       const texts = {
         CANDIDATE: 'حذف توسط کاندید',
         SUBMITTED: 'در انتظار',
+        pending: 'در انتظار',
         EXECUTIVE_APPROVED: 'تایید اجرایی',
         EXECUTIVE_REJECTED: 'رد اجرایی',
         SUPERVISION_APPROVED: 'تایید نظارت',

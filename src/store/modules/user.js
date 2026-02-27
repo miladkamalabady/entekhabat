@@ -299,6 +299,11 @@ export default {
       if (response?.status)
         commit('clearError');
       return response;
+    }, async getLogs({ commit }, payload) {
+      const response = await apiservice({ name: "getLogs", params: payload || {} }, { commit });
+      if (response?.status)
+        commit('clearError');
+      return response?.data || [];
     }, async getObjections({ commit }, payload) {
       const response = await apiservice({ name: "getObjections", params: payload || {} }, { commit });
       if (response?.status)

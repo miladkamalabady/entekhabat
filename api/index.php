@@ -50,6 +50,7 @@ $allowed_routes = [
     'getInfoVote',
     'getObjections',
     'saveObjection',
+    'getLogs',
     'updateObjectionStatus'
 ];
 

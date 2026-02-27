@@ -1,6 +1,7 @@
 <?php
 require_once 'database.php';
 require_once 'readToken.php';
+require_once 'jdf.php';
 header('Content-Type: application/json; charset=utf-8');
 
 $db->connect();
