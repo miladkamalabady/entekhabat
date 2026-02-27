@@ -103,7 +103,7 @@
                           <b-icon icon="info-circle"></b-icon>
                         </b-button>
 
-                        <b-button v-if="data.item.requestStatus === 'SUBMITTED'" variant="outline-success"
+                        <b-button v-if="data.item.requestStatus === 'EXECUTIVE_APPROVED'" variant="outline-success"
                           @click="approveCandidate(data.item)" title="تایید درخواست">
                           <b-icon icon="check-circle"></b-icon>
                         </b-button>
@@ -408,7 +408,7 @@
         </div>
 
         <!-- Final Decision -->
-        <div class="final-decision">
+        <div class="final-decision" v-if="selectedCandidate.requestStatus === 'EXECUTIVE_APPROVED'">
           <b-alert variant="warning" show>
             <h6 class="alert-heading">تصمیم</h6>
             <p>پس از بررسی تمام مدارک، تصمیم را در مورد صلاحیت این کاندیدا بگیرید.</p>
@@ -431,6 +431,9 @@
             </div>
           </b-alert>
         </div>
+        <b-alert v-else variant="info" show>
+          این کاندیدا هنوز از کارتابل اجرایی به کارتابل نظارت منتقل نشده است و امکان تایید یا رد وجود ندارد.
+        </b-alert>
       </div>
     </b-modal>
 
@@ -607,8 +610,8 @@ export default {
       // Options
       docStatusOptions: [
         { value: 'all', text: 'همه وضعیت‌ها' },
-        { value: 'SUBMITTED', text: 'در انتظار' },
-        { value: 'EXECUTIVE_APPROVED', text: 'تایید شده اجرایی' },
+        { value: 'SUBMITTED', text: 'در کارتابل اجرایی' },
+        { value: 'EXECUTIVE_APPROVED', text: 'در انتظار' },
         { value: 'EXECUTIVE_REJECTED', text: 'رد شده اجرایی' },
         { value: 'SUPERVISION_APPROVED', text: 'تایید شده نظارت' },
         { value: 'SUPERVISION_REJECTED', text: 'رد شده نظارت' }
@@ -810,8 +813,8 @@ export default {
 
     getStatusText(status) {
       const texts = {
-        SUBMITTED: 'در انتظار',
-        EXECUTIVE_APPROVED: 'تایید اجرایی',
+        SUBMITTED: 'در کارتابل اجرایی',
+        EXECUTIVE_APPROVED: 'در انتظار',
         SUPERVISION_APPROVED: 'تایید نظارت',
         SUPERVISION_REJECTED: 'رد نظارت',
         OBJECTION_SUBMITTED: 'اعتراض',
@@ -875,7 +878,7 @@ export default {
       return [
         { key: 'user_photo', label: 'تصویر کاربر', path: candidate.user_photo, icon: 'photo' },
         { key: 'education_doc', label: 'مدرک تحصیلی', path: candidate.education_doc, icon: 'degree' },
-        { key: 'employment_cert', label: 'گواهی اشتغال', path: candidate.employment_cert, icon: 'certificate' },
+        { key: 'ravan_cert', label: 'گواهی سلامت جسمی و روانی', path: candidate.ravan_cert, icon: 'certificate' },
         { key: 'soPishine_cert', label: 'گواهی سوءپیشینه', path: candidate.soPishine_cert, icon: 'legal' },
       ].filter(doc => doc.path);
     },
@@ -1123,7 +1126,7 @@ export default {
           this.showCandidateModal = false;
         }
       } catch (error) {
-        candidate.requestStatus = 'SUBMITTED';
+        candidate.requestStatus = 'EXECUTIVE_APPROVED';
         this.$bvToast.toast(error?.message || 'ثبت تایید مدارک با خطا مواجه شد', {
           title: 'خطا',
           variant: 'danger',
@@ -1178,7 +1181,7 @@ export default {
             this.showCandidateModal = false;
           }
         } catch (error) {
-          candidate.requestStatus = 'SUBMITTED';
+          candidate.requestStatus = 'EXECUTIVE_APPROVED';
           this.$bvToast.toast(error?.message || 'ثبت رد مدارک با خطا مواجه شد', {
             title: 'خطا',
             variant: 'danger',

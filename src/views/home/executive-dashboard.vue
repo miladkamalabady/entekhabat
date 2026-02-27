@@ -97,23 +97,32 @@
 
                     <template #cell(actions)="data">
                       <b-button-group size="sm">
-                        <b-button variant="outline-primary"
+                        <b-button variant="outline-primary" v-if="data.item.user_photo"
                           @click="viewDocument(data.item.user_photo, 'تصویر کاربر', data.item.datepic)"
                           title="مشاهده تصویر کاربر">
                           <b-icon icon="person-badge"></b-icon>
                         </b-button>
-                        <b-button variant="outline-primary"
+                        <b-button variant="outline-primary" v-if="data.item.education_doc"
                           @click="viewDocument(data.item.education_doc, 'تصویر مدرک', data.item.datepic)"
                           title="مشاهده مدرک تحصیلی">
                           <b-icon icon="file-earmark-text"></b-icon>
                         </b-button>
-                        <b-button variant="outline-primary"
-                          @click="viewDocument(data.item.employment_cert, 'گواهی عدم اعتیاد', data.item.datepic)"
-                          title="مشاهده گواهی عدم اعتیاد">
+                        <b-button variant="outline-primary" v-if="data.item.ravan_cert"
+                          @click="viewDocument(data.item.ravan_cert, 'گواهی سلامت جسمی و روانی', data.item.datepic)"
+                          title="مشاهده گواهی سلامت جسمی و روانی">
+                          <b-icon icon="file-medical"></b-icon>
+                        </b-button>
+                        <b-button variant="outline-primary" v-if="data.item.soPishine_cert"
+                          @click="viewDocument(data.item.soPishine_cert, 'عدم سوءپیشینه', data.item.datepic)"
+                          title="عدم سوءپیشینه">
                           <b-icon icon="file-medical"></b-icon>
                         </b-button>
                         <b-button variant="outline-info" @click="viewCandidateDetails(data.item)" title="جزئیات کامل">
                           <b-icon icon="info-circle"></b-icon>
+                        </b-button>
+                        <b-button v-if="data.item.requestStatus === 'SUBMITTED'" variant="outline-success"
+                          @click="approveCandidate(data.item)" title="انتقال به کارتابل نظارت">
+                          <b-icon icon="arrow-left-right"></b-icon>
                         </b-button>
                       </b-button-group>
                     </template>
@@ -409,9 +418,15 @@
             </div>
           </b-alert> -->
           <b-alert variant="info" show>
-            <h6 class="alert-heading">مشاهده مدارک</h6>
-            <p class="mb-0">در کارتابل اجرایی فقط امکان مشاهده وجود دارد و تصمیم تایید/رد صرفا در کارتابل نظارت انجام
-              می‌شود.</p>
+            <h6 class="alert-heading">ارسال به کارتابل نظارت</h6>
+            <p class="mb-2">بعد از بررسی مدارک، کاندیدا را به کارتابل نظارت منتقل کنید تا تصمیم نهایی در نظارت ثبت شود.
+            </p>
+            <div class="text-center">
+              <b-button variant="success" @click="approveCandidate(selectedCandidate)">
+                <b-icon icon="arrow-left-right" class="ml-1"></b-icon>
+                انتقال به کارتابل نظارت
+              </b-button>
+            </div>
           </b-alert>
         </div>
       </div>
@@ -794,8 +809,8 @@ export default {
 
     getStatusText(status) {
       const texts = {
-        SUBMITTED: 'در انتظار',
-        EXECUTIVE_APPROVED: 'تایید اجرایی',
+        SUBMITTED: 'در کارتابل اجرایی',
+        EXECUTIVE_APPROVED: 'ارسال شده به نظارت',
         SUPERVISION_APPROVED: 'تایید نظارت',
         SUPERVISION_REJECTED: 'رد نظارت',
         OBJECTION_SUBMITTED: 'اعتراض',
@@ -856,7 +871,8 @@ export default {
       return [
         { key: 'user_photo', label: 'تصویر کاربر', path: candidate.user_photo },
         { key: 'education_doc', label: 'مدرک تحصیلی', path: candidate.education_doc },
-        { key: 'employment_cert', label: 'گواهی عدم اعتیاد', path: candidate.employment_cert }
+        { key: 'ravan_cert', label: 'گواهی سلامت جسمی و روانی', path: candidate.ravan_cert },
+        { key: 'soPishine_cert', label: 'عدم سوء پیشینه', path: candidate.soPishine_cert }
       ].filter(doc => doc.path);
     },
 
@@ -918,12 +934,35 @@ export default {
     },
 
 
-    approveCandidate(val) {
+    async approveCandidate(val) {
       if (val)
         this.selectedCandidate = val
       if (this.selectedCandidate) {
+        const previousStatus = this.selectedCandidate.requestStatus;
         this.selectedCandidate.requestStatus = 'EXECUTIVE_APPROVED';
-        this.ChangeState({ national_Id: this.selectedCandidate.national_Id, requestStatus: 'EXECUTIVE_APPROVED', reason: this.finalComment })
+        // this.ChangeState({ national_Id: this.selectedCandidate.national_Id, requestStatus: 'EXECUTIVE_APPROVED', reason: this.finalComment })
+        try {
+          const response = await this.ChangeState({ national_Id: this.selectedCandidate.national_Id, requestStatus: 'EXECUTIVE_APPROVED', reason: this.finalComment })
+          if (response?.status === false) {
+            throw new Error(response?.message || 'انتقال کاندیدا به کارتابل نظارت ناموفق بود.');
+          }
+          this.$bvToast.toast(`کاندیدا ${this.selectedCandidate.first_name} ${this.selectedCandidate.last_name} به کارتابل نظارت منتقل شد.`, {
+            title: 'انتقال موفق',
+            variant: 'success',
+            solid: true
+          });
+          await this.getEXECUTIVEList();
+          if (this.showCandidateModal) {
+            this.showCandidateModal = false;
+          }
+        } catch (error) {
+          this.selectedCandidate.requestStatus = previousStatus;
+          this.$bvToast.toast(error?.message || 'انتقال کاندیدا با خطا مواجه شد.', {
+            title: 'خطا',
+            variant: 'danger',
+            solid: true
+          });
+        }
       }
     },
 

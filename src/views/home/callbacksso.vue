@@ -59,11 +59,11 @@ export default {
   async mounted() {
      localStorage.removeItem('user')
     const code = this.$route?.query?.code
-
+const role = this.$route?.query?.role
     if (!code && !this.currentUser) return
 
     if (code) {
-      await this.LoginUserSSO({ code: code })
+      await this.LoginUserSSO({ code: code ,role:role})
     }
 
 
