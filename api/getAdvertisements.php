@@ -26,7 +26,7 @@ $roles=$row['roles'];
 if ($roles === 'CANDIDATE')
     $sql = "SELECT * FROM advertisements where nationalId='{$nationalId}' ORDER BY create_date DESC;";
 else
-    $sql = "SELECT ad.*,u.first_name,u.last_name,u.id as code ,u.regionName ,u.education,u.user_type,u.yearsOfService FROM advertisements as ad join users as u on u.national_id=ad.nationalId ORDER BY create_date DESC;";
+    $sql = "SELECT ad.*,u.first_name,u.last_name,u.id as code ,re.name as regionName ,u.education,u.user_type,u.yearsOfService FROM advertisements as ad   join users as u on u.national_id=ad.nationalId left join region as re on re.id=u.region_id  ORDER BY create_date DESC;";
 $res = $db->query($sql);
 
 $list = [];

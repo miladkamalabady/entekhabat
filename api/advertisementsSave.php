@@ -41,7 +41,7 @@ if($now < $adsStart || $now > $adsEnd){
     http_response_code(403);
     echo json_encode([
         'status'=>false,
-        'message'=>'امکان ارسال تبلیغ خارج از بازه قانونی وجود ندارد.'
+        'message'=>'امکان ارسال تبلیغ خارج از تاریخ بازه قانونی وجود ندارد.'
     ], JSON_UNESCAPED_UNICODE);
     exit;
 }

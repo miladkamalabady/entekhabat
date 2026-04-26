@@ -372,7 +372,7 @@
                 </div>
                 <div class="meta-item">
                   <strong>حوزه انتخابیه:</strong>
-                  {{ getCandidateValue(selectedCandidate, ['constituency', 'electoral_district', 'hoze']) }}
+                  {{ getCandidateValue(selectedCandidate, ['regname']) }} ({{  getCandidateValue(selectedCandidate, ['region_id']) }} )
                 </div>
                 <div class="meta-item">
                   <strong>وضعیت اشتغال:</strong>
@@ -385,7 +385,7 @@
               </div>
               <div class="meta-item">
                 <strong>سنوات:</strong>
-                {{ getCandidateValue(selectedCandidate, ['years_of_service', 'senavat', 'service_years']) }}
+                {{ getCandidateValue(selectedCandidate, ['yearsOfService', 'senavat', 'service_years']) }}
               </div>
               <div class="meta-item">
                 <strong>سال تولد:</strong>
@@ -1095,12 +1095,12 @@ export default {
     },
 
     getEmploymentStatusText(candidate) {
-      const status = this.getCandidateValue(candidate, ['employment_status', 'job_status', 'is_retired']);
+      const status = this.getCandidateValue(candidate, ['user_type']);
 
       if (status === '-') return '-';
       const normalized = `${status}`.toLowerCase();
-      if (['retired', 'بازنشسته', '1', 'true'].includes(normalized)) return 'بازنشسته';
-      if (['employed', 'شاغل', '0', 'false'].includes(normalized)) return 'شاغل';
+      if (['retired', 'بازنشسته', '4', 'true'].includes(normalized)) return 'بازنشسته';
+      if (['employed', 'شاغل', '3', 'false'].includes(normalized)) return 'شاغل';
       return status;
     },
 

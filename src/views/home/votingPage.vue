@@ -124,6 +124,10 @@
                     <b-icon icon="award" class="ml-1"></b-icon>
                     {{ candidate.personnel_code }}
                   </div>
+                  <div class="stat-item">
+                    <b-icon icon="award" class="ml-1"></b-icon>
+                    {{ candidate.id *1404 }}
+                  </div>
                 </div>
 
                 <!-- Action Button -->
@@ -165,10 +169,14 @@
 
                         <div class="selected-details">
                           <div class="text-center">
-                            <span>{{ findCandidate(cid).gender ? 'آقای' : 'خانم' }} {{ findCandidate(cid).first_name }}
+                            <span>{{ findCandidate(cid).gender==1 ? 'آقای' : 'خانم' }} {{ findCandidate(cid).first_name }}
                               {{
                                 findCandidate(cid).last_name }}</span>
                             <hr />
+                          </div>
+                          <div class="detail-item">
+                            <strong>کدانتخاباتی:</strong>
+                            <span>{{ findCandidate(cid).id*1404 }}</span>
                           </div>
                           <div class="detail-item">
                             <strong>تولد:</strong>
@@ -266,7 +274,7 @@
                     </div>
                     <div class="summary-item">
                       <strong>کد کاندیدای انتخاب شده:</strong>
-                      <span v-for="(cid, i) in selectedCandidate" :key="`${i}b`">{{ cid?.candidate_id }}</span>
+                      <span v-for="(cid, i) in selectedCandidate" :key="`${i}b`">{{ cid?.candidate_id*1404 }}</span>
                     </div>
                     <div class="summary-item">
                       <strong>کدملی رأی‌دهنده:</strong>
@@ -354,6 +362,10 @@
                 <b-icon icon="award" class="ml-1"></b-icon>
                 {{ previewCandidateData.personnel_code }}
               </b-badge>
+              <b-badge variant="warning" class="mr-2">
+                <b-icon icon="award" class="ml-1"></b-icon>
+                {{ previewCandidateData.id*1404 }}
+              </b-badge>
             </div>
           </b-col>
         </b-row>
@@ -361,7 +373,7 @@
         <b-tabs content-class="mt-3">
           <b-tab title="منطقه" active>
             <p class="preview-text">{{ previewCandidateData.regionName }} -
-              {{ previewCandidateData.gender ? 'آقا' : 'خانم' }} {{ previewCandidateData?.first_name }}
+              {{ previewCandidateData.gender==1 ? 'آقا' : 'خانم' }} {{ previewCandidateData?.first_name }}
               {{ previewCandidateData?.last_name }}</p>
           </b-tab>
 
@@ -742,7 +754,7 @@ export default {
       let na = ''; let ids = '';
       this.selectedCandidate.forEach(element => {
         na += element.first_name + ' ' + element.last_name + '-'
-        ids += element.candidate_id + '-'
+        ids += (element.candidate_id*1404) + '-'
       });
 
       const receiptContent = `

@@ -168,7 +168,7 @@
 
         <div v-if="selectedAd.first_name" class="detail-item mb-3">
           <strong>منتشر کننده:</strong>
-          <span class="mr-2">{{ selectedAd.first_name }} {{ selectedAd.last_name }}(کد {{ selectedAd.id * 1404
+          <span class="mr-2">{{ selectedAd.first_name }} {{ selectedAd.last_name }}(کد {{ selectedAd.code * 1404
           }})</span>
         </div>
 
@@ -233,9 +233,9 @@
                   <span>{{ selectedAd.plans }}</span>
                 </div>
               </b-col>
-              <b-button variant="outline-primary" size="sm" class="mt-2" @click="scrollToRecords">
+              <!-- <b-button variant="outline-primary" size="sm" class="mt-2" @click="scrollToRecords">
                 مشاهده سوابق / کلیک
-              </b-button>
+              </b-button> -->
               <div class="countdown-box mt-2">
                 <b-icon icon="calendar-event" class="ml-1"></b-icon>
                 {{ daysUntilElectionText }}
@@ -382,6 +382,7 @@ export default {
 
       const now = this.$moment(); // زمان فعلی
 
+return true;
       return now.isSameOrAfter(campaignStart) && now.isBefore(displayEnd);
     },
 
@@ -447,10 +448,11 @@ export default {
       }
 
 
+      console.log(this.selectedAd);
       return {
         name: `${this.selectedAd.first_name || ""} ${this.selectedAd.last_name || ""}`.trim() || this.selectedAd.title || "نامشخص",
         slogan: this.selectedAd.slogan || this.selectedAd.description || "برای آینده‌ای بهتر",
-        code: this.selectedAd.electionCode || (this.selectedAd.id ? String(this.selectedAd.id * 1404) : "-"),
+        code: this.selectedAd.electionCode || (this.selectedAd.id ? String(this.selectedAd.code * 1404) : "-"),
         constituency: this.selectedAd.constituency || this.selectedAd?.regionName || "اعلام نشده",
         education: this.selectedAd.education || this.selectedAd.degree || "اعلام نشده",
         employmentStatus: this.selectedAd.user_type == 4 ? "بازنشسته" : "شاغل",
@@ -525,7 +527,7 @@ export default {
 
       return ads.filter(ad => {
 
-        const rawCode = String(ad.id || "").trim();
+        const rawCode = String(ad.code || "").trim();
         const scaledCode = rawCode && !Number.isNaN(Number(rawCode)) ? String(Number(rawCode) * 1404) : "";
         return rawCode === candidateCode || scaledCode === candidateCode;
       });
@@ -537,6 +539,7 @@ export default {
         this.allAds = this.allAds?.filter(x => !x.deleter)
         this.routeFilteredAds = this.applyRouteCodeFilter(this.allAds);
         this.filteredAds = [...this.routeFilteredAds];
+    
         this.filterAds();
       } catch (error) {
         console.error("Error loading ads:", error);
@@ -596,6 +599,7 @@ export default {
 
     // View Ad Details
     viewAdDetails(ad) {
+      
       this.selectedAd = ad;
       this.showAdModal = true;
 
@@ -739,7 +743,6 @@ export default {
 
     shareToMessenger(messenger) {
       const text = encodeURIComponent(this.buildShareText());
-      console.log(this.selectedAd);
 
       const urls = {
         bale: `https://ble.ir/share?text=${text}&url=${location.href}?code=${this.candidateCardInfo.code}`,

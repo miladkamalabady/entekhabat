@@ -112,8 +112,6 @@ export default {
       return this.menu.filter(item => {
 
         const roleAllowed = item?.roles?.includes(this.currentUser?.roles[0])
-console.log(this.requestStatus);
-
 
         const statusAllowed = item.visibleWhen
           ? item.visibleWhen(this.requestStatus)
@@ -148,6 +146,7 @@ console.log(this.requestStatus);
   }, mounted() {
     if (!this.ConfigInfo && this.currentUser)
       this.getConfig()
+    
   },
   data() {
     return {

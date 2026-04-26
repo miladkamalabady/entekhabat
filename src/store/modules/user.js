@@ -154,7 +154,10 @@ export default {
           }
         })
 
-    }, UploadUserDocuments({ commit }, payload) {
+    }, signOut({ commit }, payload) {
+     localStorage.removeItem('user')
+
+    },UploadUserDocuments({ commit }, payload) {
       apiservice({ name: "UploadUserDocuments", params: payload }, { commit })
         .then(response => {
           if (response.status) {
