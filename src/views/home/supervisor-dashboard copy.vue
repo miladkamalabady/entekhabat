@@ -9,7 +9,7 @@
               <b-icon icon="shield-check"></b-icon>
             </div>
             <div>
-              <h2 class="mb-1">هیأت اجرایی انتخابات</h2>
+              <h2 class="mb-1">هیأت نظارت انتخابات</h2>
               <p class="text-muted mb-0">مدیریت و تایید مدارک کاندیداها و تبلیغات</p>
             </div>
           </div>
@@ -402,9 +402,9 @@
             </b-col>
             <b-col md="8">
               <h4>{{ selectedCandidate.first_name }} {{ selectedCandidate.last_name }}</h4>
-              <p class="text-muted">{{ getCandidateValue(selectedCandidate, ['constituency', 'electoral_district',
+              <!-- <p class="text-muted">{{ getCandidateValue(selectedCandidate, ['constituency', 'electoral_district',
                 'hoze'])
-              }}</p>
+              }}</p> -->
               <div class="candidate-meta">
                 <div class="meta-item">
                   <strong>نام و نام خانوادگی داوطلب:</strong>
@@ -625,7 +625,7 @@ export default {
       isMobile,
       activeTab: 0,
       supervisor: {
-        role: 'عضو هیأت اجرایی',
+        role: 'کارشناس نظارت',
         department: 'کمیسیون نظارت بر انتخابات'
       },
 

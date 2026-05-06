@@ -48,13 +48,13 @@
                       </b-form-group>
                     </b-col>
 
-                    <b-col md="6">
+                    <!-- <b-col md="6">
                       <b-form-group label="شماره تصمیم/پرونده" label-for="case-number" :state="formState.caseNumber"
                         invalid-feedback="لطفا شماره پرونده را وارد کنید">
                         <b-form-input id="case-number" v-model="complaintData.caseNumber"
                           placeholder="مثال: ۱۴۰۲/۱۱/۱۲۰" required :state="formState.caseNumber"></b-form-input>
                       </b-form-group>
-                    </b-col>
+                    </b-col> -->
                   </b-row>
 
                   <!-- Candidate Info (if applicable) -->
@@ -84,7 +84,7 @@
 
                   <!-- Complaint Details -->
                   <div class="complaint-details mt-4 pt-3 border-top">
-                    <h6 class="mb-3">جزئیات اعتراض</h6>
+                    <!-- <h6 class="mb-3">جزئیات اعتراض</h6> -->
 
                     <b-form-group label="موضوع اعتراض" label-for="complaint-subject" :state="formState.subject"
                       invalid-feedback="لطفا موضوع اعتراض را وارد کنید">
@@ -94,7 +94,7 @@
                     </b-form-group>
 
                     <b-form-group label="شرح کامل اعتراض" label-for="complaint-description"
-                      :state="formState.description" invalid-feedback="لطفا شرح اعتراض را با جزئیات وارد کنید">
+                      :state="formState.description" invalid-feedback="لطفا شرح اعتراض را حداقل 50 کاراکتر وارد کنید">
                       <b-form-textarea id="complaint-description" v-model="complaintData.description"
                         placeholder="شرح کامل اعتراض خود را با ذکر دلایل و مستندات وارد کنید" rows="6" required
                         :state="formState.description" :maxlength="2000"></b-form-textarea>
@@ -148,10 +148,10 @@
                     </b-form-group>
 
                     <!-- Urgency Level -->
-                    <b-form-group label="درجه فوریت">
+                    <!-- <b-form-group label="درجه فوریت">
                       <b-form-radio-group v-model="complaintData.urgency" :options="urgencyOptions" buttons
                         button-variant="outline-primary" size="sm" name="urgency-buttons"></b-form-radio-group>
-                    </b-form-group>
+                    </b-form-group> -->
 
                     <!-- Declaration -->
                     <b-card class="declaration-card mt-4">
@@ -318,7 +318,6 @@
                   <div class="tracking-header">
                     <h6 class="mb-3">وضعیت اعتراض</h6>
                   </div>
-
                   <!-- Timeline -->
                   <div class="timeline">
                     <div v-for="(step, index) in trackingResult.timeline" :key="index" class="timeline-step"
@@ -365,14 +364,14 @@
                             <strong>آخرین به‌روزرسانی:</strong>
                             <span>{{ trackingResult.lastUpdate }}</span>
                           </div>
-                          <div class="detail-row" v-if="trackingResult.assignedTo">
+                          <!-- <div class="detail-row" v-if="trackingResult.assignedTo">
                             <strong>کارشناس رسیدگی:</strong>
                             <span>{{ trackingResult.assignedTo }}</span>
                           </div>
                           <div class="detail-row" v-if="trackingResult.estimatedDate">
                             <strong>تخمین زمان پاسخ:</strong>
                             <span>{{ trackingResult.estimatedDate }}</span>
-                          </div>
+                          </div> -->
                         </div>
                       </div>
                     </b-card>
@@ -544,7 +543,7 @@
                   </div>
 
                   <!-- Contact Info -->
-                  <div class="rules-section">
+                  <div class="rules-section" v-if="false">
                     <h6 class="section-title">
                       <b-icon icon="telephone" class="ml-2"></b-icon>
                       راه‌های ارتباطی
@@ -611,7 +610,7 @@
               <b-col md="6">
                 <div class="info-item">
                   <strong>نوع تصمیم:</strong>
-                  <span>{{ selectedComplaint.decisionType }}</span>
+                  <span>{{ decisionTypeOptions.filter(x=>x.value==selectedComplaint.decisionType)[0].text }}</span>
                 </div>
                 <div class="info-item">
                   <strong>شماره پرونده:</strong>
@@ -619,10 +618,10 @@
                 </div>
               </b-col>
               <b-col md="6">
-                <div class="info-item">
+                <!-- <div class="info-item">
                   <strong>درجه فوریت:</strong>
                   <span>{{ selectedComplaint.urgency }}</span>
-                </div>
+                </div> -->
                 <div class="info-item">
                   <strong>تعداد مدارک:</strong>
                   <span>{{ selectedComplaint.documentsCount }}</span>
@@ -759,7 +758,7 @@
           <small class="text-muted">
             © 1404 - سیستم اعتراضات هیأت نظارت انتخابات صندوق ذخیره فرهنگیان
           </small>
-          <div class="footer-links mt-2">
+          <!-- <div class="footer-links mt-2">
             <a href="#" @click.prevent="downloadGuide" class="ml-3">
               <b-icon icon="download" class="ml-1"></b-icon>
               دانلود راهنما
@@ -768,7 +767,7 @@
               <b-icon icon="telephone" class="ml-1"></b-icon>
               پشتیبانی
             </a>
-          </div>
+          </div> -->
         </div>
       </b-container>
     </footer>
@@ -859,6 +858,7 @@ export default {
       return ['SUPERVISOR', 'EXECUTIVE', 'ADMIN'].includes(this.currentUser?.roles?.[0])
     },
     showCandidateFields() {
+      return false
       return this.complaintData.decisionType === 'candidate_rejection' ||
         this.complaintData.decisionType === 'document_rejection'
     },
@@ -984,6 +984,7 @@ export default {
         this.formState[key] = null
       })
 
+      
       // Validate required fields
       let isValid = true
 
@@ -992,10 +993,10 @@ export default {
         isValid = false
       }
 
-      if (!this.complaintData.caseNumber.trim()) {
-        this.formState.caseNumber = false
-        isValid = false
-      }
+      // if (!this.complaintData.caseNumber.trim()) {
+      //   this.formState.caseNumber = false
+      //   isValid = false
+      // }
 
       if (!this.complaintData.subject.trim()) {
         this.formState.subject = false
@@ -1007,10 +1008,10 @@ export default {
         isValid = false
       }
 
-      if (this.uploadedFiles.length === 0) {
-        this.formState.documents = false
-        isValid = false
-      }
+      // if (this.uploadedFiles.length === 0) {
+      //   this.formState.documents = false
+      //   isValid = false
+      // }
 
       if (!this.complaintData.declaration) {
         this.formState.declaration = false
@@ -1210,23 +1211,15 @@ export default {
           timeline: [
             {
               title: 'ثبت اعتراض',
-              date: '۱۴۰۲/۱۱/۱۰',
+              date: item.submittedDate,
               description: 'اعتراض توسط کاربر ثبت شد',
               completed: true,
               active: false,
               icon: 'clipboard-check'
             },
             {
-              title: 'بررسی اولیه',
-              date: '۱۴۰۲/۱۱/۱۱',
-              description: 'مدارک مورد بررسی قرار گرفت',
-              completed: true,
-              active: false,
-              icon: 'search'
-            },
-            {
               title: 'ارجاع به کارشناس',
-              date: '۱۴۰۲/۱۱/۱۲',
+              date: item.submittedDate,
               description: 'به کارشناس مربوطه ارجاع داده شد',
               completed: true,
               active: false,
@@ -1234,7 +1227,7 @@ export default {
             },
             {
               title: 'بررسی تخصصی',
-              date: '۱۴۰۲/۱۱/۱۵',
+              date: item.submittedDate,
               description: 'در حال بررسی تخصصی',
               completed: false,
               active: true,
@@ -1242,7 +1235,7 @@ export default {
             },
             {
               title: 'صدور رأی',
-              date: '۱۴۰۲/۱۱/۱۸',
+              // date: '۱۴۰۲/۱۱/۱۸',
               description: 'در انتظار صدور رأی',
               completed: false,
               active: false,
@@ -1250,29 +1243,29 @@ export default {
             },
             {
               title: 'اعلام نتیجه',
-              date: '۱۴۰۲/۱۱/۲۰',
+              // date: '۱۴۰۲/۱۱/۲۰',
               description: 'اعلام نتیجه نهایی',
               completed: false,
               active: false,
               icon: 'megaphone'
             }
           ],
-          documents: [
-            {
-              id: 1,
-              name: 'فرم اعتراض.pdf',
-              type: 'فرم اصلی',
-              date: '۱۴۰۲/۱۱/۱۰',
-              url: '#'
-            },
-            {
-              id: 2,
-              name: 'پاسخ کارشناس.pdf',
-              type: 'گزارش بررسی',
-              date: '۱۴۰۲/۱۱/۱۲',
-              url: '#'
-            }
-          ]
+          // documents: [
+          //   {
+          //     id: 1,
+          //     name: 'فرم اعتراض.pdf',
+          //     type: 'فرم اصلی',
+          //     date: '۱۴۰۲/۱۱/۱۰',
+          //     url: '#'
+          //   },
+          //   {
+          //     id: 2,
+          //     name: 'پاسخ کارشناس.pdf',
+          //     type: 'گزارش بررسی',
+          //     date: '۱۴۰۲/۱۱/۱۲',
+          //     url: '#'
+          //   }
+          // ]
         }
 
         this.trackingState = true

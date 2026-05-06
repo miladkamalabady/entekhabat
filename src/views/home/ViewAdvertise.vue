@@ -382,7 +382,7 @@ export default {
 
       const now = this.$moment(); // زمان فعلی
 
-return true;
+// return true;
       return now.isSameOrAfter(campaignStart) && now.isBefore(displayEnd);
     },
 

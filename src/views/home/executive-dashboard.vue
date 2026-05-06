@@ -97,17 +97,17 @@
 
                     <template #cell(actions)="data">
                       <b-button-group size="sm">
-                        <b-button variant="outline-primary" v-if="data.item.user_photo"
+                        <!-- <b-button variant="outline-primary" v-if="data.item.user_photo"
                           @click="viewDocument(data.item.user_photo, 'تصویر کاربر', data.item.datepic)"
-                          title="مشاهده تصویر کاربر">
+                          title="مشاهده مدارک کاربر">
                           <b-icon icon="person-badge"></b-icon>
-                        </b-button>
-                        <b-button variant="outline-primary" v-if="data.item.education_doc"
+                        </b-button> -->
+                        <!-- <b-button variant="outline-primary" v-if="data.item.education_doc"
                           @click="viewDocument(data.item.education_doc, 'تصویر مدرک', data.item.datepic)"
                           title="مشاهده مدرک تحصیلی">
                           <b-icon icon="file-earmark-text"></b-icon>
-                        </b-button>
-                        <b-button variant="outline-primary" v-if="data.item.ravan_cert"
+                        </b-button> -->
+                        <!-- <b-button variant="outline-primary" v-if="data.item.ravan_cert"
                           @click="viewDocument(data.item.ravan_cert, 'گواهی سلامت جسمی و روانی', data.item.datepic)"
                           title="مشاهده گواهی سلامت جسمی و روانی">
                           <b-icon icon="file-medical"></b-icon>
@@ -116,7 +116,7 @@
                           @click="viewDocument(data.item.soPishine_cert, 'عدم سوءپیشینه', data.item.datepic)"
                           title="عدم سوءپیشینه">
                           <b-icon icon="file-medical"></b-icon>
-                        </b-button>
+                        </b-button> -->
                         <b-button variant="outline-info" @click="viewCandidateDetails(data.item)" title="جزئیات کامل">
                           <b-icon icon="info-circle"></b-icon>
                         </b-button>
@@ -351,11 +351,11 @@
         <!-- Basic Info -->
         <div class="basic-info mb-4">
           <b-row class="align-items-center">
-            <b-col md="4" class="text-center">
+            <!-- <b-col md="4" class="text-center">
               <img :src="`${apiUrlrtb}/${selectedCandidate.user_photo}` || '/default-avatar.png'"
                 class="candidate-photo" alt="عکس کاندیدا" />
-            </b-col>
-            <b-col md="8">
+            </b-col> -->
+            <b-col md="12">
               <h4>{{ selectedCandidate.first_name }} {{ selectedCandidate.last_name }}</h4>
               <p class="text-muted">{{ getCandidateValue(selectedCandidate, ['constituency', 'electoral_district',
                 'hoze'])
@@ -367,7 +367,8 @@
                 </div>
                 <div class="meta-item">
                   <strong>حوزه انتخابیه:</strong>
-                  {{ getCandidateValue(selectedCandidate, ['regname']) }} ({{  getCandidateValue(selectedCandidate, ['region_id']) }} )
+                  {{ getCandidateValue(selectedCandidate, ['regname']) }} ({{ getCandidateValue(selectedCandidate,
+                    ['region_id']) }} )
                 </div>
                 <div class="meta-item">
                   <strong>وضعیت اشتغال:</strong>
@@ -390,6 +391,28 @@
                   {{ getCandidateValue(selectedCandidate, ['education_level', 'education', 'degree']) }}
                 </div>
               </div>
+            </b-col>
+            <b-col>
+              <div class="table-responsive">
+                <div class="document-details mt-4" v-for="review in getCandidateDocuments(selectedCandidate)"
+                  :key="review.key">
+                  <b-row>
+                    <b-col md="6">
+                      <div v-if="isImageFile(review.path)" class="image-viewer text-center">
+                        <img :src="apiUrlrtb + '/' +review.path" class="img-fluid " style="max-width:200px"
+                          :alt="review.path" />
+                      </div>
+                    </b-col>
+                    <b-col md="6">
+                      <div class="detail-item">
+                        <strong>نام فایل:</strong>
+                        <span>{{ review.label }}</span>
+                      </div>
+                    </b-col>
+                  </b-row>
+                </div>
+              </div>
+
             </b-col>
           </b-row>
         </div>
@@ -485,25 +508,24 @@
           </b-col>
           <b-col md="6">
             <div class="info-item">
-              <strong>وضعیت:</strong>
-              <b-badge :variant="getAdStatusVariant(selectedAd)">
-                {{ getAdStatusText(selectedAd) }}
-              </b-badge>
-            </div>
-            <div class="info-item">
               <strong>ایجاد کننده:</strong>
               <span>{{ selectedAd.first_name }} {{ selectedAd.last_name }}</span>
             </div>
+            <div class="info-item">
+              <strong>منطقه کاندید:</strong>
+              <span>{{ selectedAd.regionName }}</span>
+            </div>
+          </b-col>
+          <b-col md="6">
             <div class="info-item">
               <strong>تاریخ ایجاد:</strong>
               <span>{{ selectedAd.create_atsh }}</span>
             </div>
           </b-col>
         </b-row>
-
         <!-- Ad Review -->
         <div class="ad-review"
-          v-if="!selectedAd.deleter || (selectedAd.deleter != 'SUPERVISOR' && selectedAd.deleter != 'CANDIDATE')">
+          v-if="false && (!selectedAd.deleter || (selectedAd.deleter != 'SUPERVISOR' && selectedAd.deleter != 'CANDIDATE'))">
           <h6 class="mb-3">بررسی تبلیغ</h6>
           <b-form @submit.prevent="reviewAd">
             <b-form-group label="نظر بررسی" label-for="ad-review-comment">
@@ -528,7 +550,7 @@
         <!-- Ad View-only Note -->
         <div class="ad-review" v-if="selectedAd.status === 'Pending' || !selectedAd.deleter">
           <b-alert variant="info" show>
-            <h6 class="alert-heading">مشاهده تبلیغ</h6>
+            <!-- <h6 class="alert-heading">مشاهده تبلیغ</h6> -->
             <p class="mb-0">اقدامات تایید یا رد تبلیغ فقط در کارتابل نظارت انجام می‌شود.</p>
           </b-alert>
         </div>
@@ -590,7 +612,7 @@ export default {
       isMobile,
       activeTab: 0,
       supervisor: {
-        role: 'عضو هیأت اجرایی',
+        role: 'کارشناس اجرایی',
         department: 'کمیسیون نظارت بر انتخابات'
       },
 
@@ -832,7 +854,6 @@ export default {
 
     getAdStatusText(status) {
       const texts = {
-        CANDIDATE: 'حذف توسط کاندید',
         SUBMITTED: 'در انتظار',
         pending: 'در انتظار',
         EXECUTIVE_APPROVED: 'تایید اجرایی',
@@ -844,6 +865,7 @@ export default {
         active: 'فعال',
         expired: 'منقضی'
       };
+      
       return !status.deleter ? (texts[status.status] || status.status) : status.deleter == 'SUPERVISOR' ? texts['SUPERVISION_REJECTED'] : status.deleter == 'CANDIDATE' ? texts['CANDIDATE'] : texts['EXECUTIVE_REJECTED'];
     },
 

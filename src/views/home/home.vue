@@ -77,14 +77,18 @@
         <b-modal id="final-result-activation" v-model="showFinalResultActivation" title="فعال‌سازی اعلام نتایج نهایی"
           hide-footer centered>
           <p class="text-muted">اعضای هیأت اجرایی و هیأت نظارت باید هر کدام با رمز خود تایید ثبت کنند.</p>
-          <b-form-group :label="activationRoleLabel" label-for="approval-passcode">
-            <b-form-input id="approval-passcode" v-model="approvalPasscode" type="password"
-              :placeholder="activationRolePlaceholder"></b-form-input>
+          <b-form-group label="رمز هیأت اجرایی" label-for="approval-passcode">
+            <b-form-input id="approval-passcode" v-model="approvalPasscode1" type="password"
+              placeholder="رمز هیأت اجرایی را وارد کنید"></b-form-input>
           </b-form-group>
-          <small class="d-block mb-3 text-muted">
+          <b-form-group label="رمز هیأت نظارت" label-for="approval-passcode">
+            <b-form-input id="approval-passcode" v-model="approvalPasscode2" type="password"
+              placeholder="رمز هیأت نظارت را وارد کنید"></b-form-input>
+          </b-form-group>
+          <!-- <small class="d-block mb-3 text-muted">
             وضعیت تاییدها: اجرایی {{ finalResultApprovals.executive ? '✅' : '⏳' }} |
             نظارت {{ finalResultApprovals.supervisor ? '✅' : '⏳' }}
-          </small>
+          </small> -->
           <div class="d-flex justify-content-end">
             <b-button variant="outline-secondary" class="ml-2" @click="closeActivationModal">انصراف</b-button>
             <b-button variant="success" @click="activateFinalResults">تایید و ثبت</b-button>
@@ -136,12 +140,6 @@ export default {
 
       return 'نیازمند تایید با رمز'
     },
-    activationRoleLabel() {
-      return this.pendingApprovalRole === 'EXECUTIVE' ? 'رمز هیأت اجرایی' : 'رمز هیأت نظارت'
-    },
-    activationRolePlaceholder() {
-      return this.pendingApprovalRole === 'EXECUTIVE' ? 'رمز هیأت اجرایی را وارد کنید' : 'رمز هیأت نظارت را وارد کنید'
-    }
 
   }, mounted() {
     if (!this.ConfigInfo && this.currentUser)
@@ -236,7 +234,8 @@ export default {
       showFinalResultActivation: false,
       pendingMenuItem: null,
       pendingApprovalRole: null,
-      approvalPasscode: '',
+      approvalPasscode1: '',
+      approvalPasscode2: '',
       isFinalResultAnnouncementActive: false,
       finalResultApprovals: {
         executive: false,
@@ -282,7 +281,8 @@ export default {
       this.showFinalResultActivation = false
       this.pendingMenuItem = null
       this.pendingApprovalRole = null
-      this.approvalPasscode = ''
+      this.approvalPasscode1 = ''
+      this.approvalPasscode2 = ''
     },
     async openFinalResultActivation(item) {
       if (!this.currentUser?.roles?.some(role => ['EXECUTIVE', 'SUPERVISOR'].includes(role))) {
@@ -377,7 +377,8 @@ export default {
 
       const response = await this.submitFinalResultsApproval({
         role: this.pendingApprovalRole,
-        passcode: this.approvalPasscode
+        passcode1: this.approvalPasscode1,
+        passcode2: this.approvalPasscode2
       })
 
       if (!response?.status) {

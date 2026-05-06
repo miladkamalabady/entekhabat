@@ -9,7 +9,7 @@
               <b-icon icon="shield-check"></b-icon>
             </div>
             <div>
-              <h2 class="mb-1">هیأت اجرایی انتخابات</h2>
+              <h2 class="mb-1">هیأت نظارت انتخابات</h2>
               <p class="text-muted mb-0">مدیریت و تایید مدارک کاندیداها و تبلیغات</p>
             </div>
           </div>
@@ -107,12 +107,12 @@
                           @click="approveCandidate(data.item)" title="تایید درخواست">
                           <b-icon icon="check-circle"></b-icon>
                         </b-button>
-                        <b-button variant="outline-secondary" v-for="doc in getCandidateDocuments(data.item)"
+                        <!-- <b-button variant="outline-secondary" v-for="doc in getCandidateDocuments(data.item)"
                           :key="`${data.item.id}-${doc.key}`"
                           @click="viewDocument(data.item, doc.key, doc.path, doc.label, data.item.datepic)"
                           :title="`مشاهده ${doc.label}`">
                           <b-icon :icon="getDocumentIcon(doc.icon)"></b-icon>
-                        </b-button>
+                        </b-button> -->
                       </b-button-group>
                     </template>
                   </b-table>
@@ -356,15 +356,15 @@
         <!-- Basic Info -->
         <div class="basic-info mb-4">
           <b-row class="align-items-center">
-            <b-col md="4" class="text-center">
+            <!-- <b-col md="4" class="text-center">
               <img :src="`${apiUrlrtb}/${selectedCandidate.user_photo}` || '/default-avatar.png'"
                 class="candidate-photo" alt="عکس کاندیدا" />
-            </b-col>
-            <b-col md="8">
+            </b-col> -->
+            <b-col md="12">
               <h4>{{ selectedCandidate.first_name }} {{ selectedCandidate.last_name }}</h4>
-              <p class="text-muted">{{ getCandidateValue(selectedCandidate, ['constituency', 'electoral_district',
+              <!-- <p class="text-muted">{{ getCandidateValue(selectedCandidate, ['constituency', 'electoral_district',
                 'hoze'])
-              }}</p>
+              }}</p> -->
               <div class="candidate-meta">
                 <div class="meta-item">
                   <strong>نام و نام خانوادگی داوطلب:</strong>
@@ -395,6 +395,27 @@
                 <strong>مدرک تحصیلی:</strong>
                 {{ getCandidateValue(selectedCandidate, ['education_level', 'education', 'degree']) }}
               </div>
+              
+              <div class="table-responsive">
+                <div class="document-details mt-4" v-for="review in getCandidateDocuments(selectedCandidate)"
+                  :key="review.key">
+                  <b-row>
+                    <b-col md="6">
+                      <div v-if="isImageFile(review.path)" class="image-viewer text-center">
+                        <img :src="apiUrlrtb + '/' +review.path" class="img-fluid " style="max-width:200px"
+                          :alt="review.path" />
+                      </div>
+                    </b-col>
+                    <b-col md="6">
+                      <div class="detail-item">
+                        <strong>نام فایل:</strong>
+                        <span>{{ review.label }}</span>
+                      </div>
+                    </b-col>
+                  </b-row>
+                </div>
+              </div>
+
               <div class="meta-item" v-if="selectedCandidate.reson">
                 <b-icon icon="chat-left-text" class="ml-1"></b-icon>
                 نظر نهایی: {{ selectedCandidate.reson }}
@@ -413,8 +434,8 @@
         </b-badge>
         <div class="final-decision" v-if="selectedCandidate.requestStatus !== 'SUBMITTED'">
           <b-alert variant="warning" show>
-            <h6 class="alert-heading">تصمیم</h6>
-            <p>پس از بررسی تمام مدارک، تصمیم را در مورد صلاحیت این کاندیدا بگیرید.</p>
+            <!-- <h6 class="alert-heading">تصمیم</h6> -->
+            <!-- <p>پس از بررسی تمام مدارک، تصمیم را در مورد صلاحیت این کاندیدا بگیرید.</p> -->
 
             <b-form-group label="نظر هیأت نظارت" label-for="final-comment">
               <b-form-textarea id="final-comment" v-model="finalComment" rows="2"
@@ -501,6 +522,12 @@
             <div class="info-item">
               <strong>ایجاد کننده:</strong>
               <span>{{ selectedAd.first_name }} {{ selectedAd.last_name }}</span>
+            </div>
+          </b-col>
+          <b-col md="6">
+            <div class="info-item">
+              <strong>منطقه:</strong>
+              <span>{{ selectedAd.regionName }}</span>
             </div>
             <div class="info-item">
               <strong>تاریخ ایجاد:</strong>
@@ -591,7 +618,7 @@ export default {
       isMobile,
       activeTab: 0,
       supervisor: {
-        role: 'عضو هیأت اجرایی',
+        role: 'عضو هیأت نظارت',
         department: 'کمیسیون نظارت بر انتخابات'
       },
 

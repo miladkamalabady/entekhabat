@@ -82,7 +82,7 @@ commit.commit('setProcessing', true)
         commit.commit('setError', err)
         
         // if (location.href == 'https://election.teacherassisant.ir/')
-        location.replace("/unauthorized");
+        // location.replace("/unauthorized");
       }
       else if (!error.response?.status) {
         commit.commit('clearError')

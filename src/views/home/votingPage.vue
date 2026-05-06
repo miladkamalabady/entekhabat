@@ -40,10 +40,10 @@
       <b-card>
         <div class="d-flex justify-content-between align-items-center mb-3">
           <h5 class="mb-0">روند رأی‌گیری</h5>
-          <div class="time-remaining">
+          <!-- <div class="time-remaining">
             <b-icon icon="clock" class="ml-1"></b-icon>
             زمان باقیمانده: {{ timeRemaining }}
-          </div>
+          </div> -->
         </div>
 
         <b-progress height="8px" class="mb-2">
@@ -99,9 +99,9 @@
               <b-icon icon="arrow-left" class="ml-1"></b-icon>
               ادامه به انتخاب نهایی
             </b-button>
-            <b-button variant="outline-secondary" class="mr-3" @click="prevStep">
+            <!-- <b-button variant="outline-secondary" class="mr-3" @click="prevStep">
               بازگشت
-            </b-button>
+            </b-button> -->
           </div>
           <b-row>
             <b-col v-for="candidate in filteredCandidates" :key="candidate.id" cols="12" md="4" lg="3" class="mb-4">
@@ -178,18 +178,18 @@
                             <strong>کدانتخاباتی:</strong>
                             <span>{{ findCandidate(cid).id*1404 }}</span>
                           </div>
-                          <div class="detail-item">
+                          <!-- <div class="detail-item">
                             <strong>تولد:</strong>
                             <span>{{ findCandidate(cid).persian_birth_date }}</span>
-                          </div>
+                          </div> -->
                           <div class="detail-item">
                             <strong>کدکاندید:</strong>
                             <span>{{ findCandidate(cid).tracking_code }}</span>
                           </div>
-                          <div class="detail-item">
+                          <!-- <div class="detail-item">
                             <strong>پرسنلی:</strong>
                             <span>{{ findCandidate(cid).personnel_code }}</span>
-                          </div>
+                          </div> -->
                           <div class="detail-item">
                             <strong>منطقه:</strong>
                             <span>{{ findCandidate(cid).regionName }}</span>
@@ -290,7 +290,8 @@
                 <b-icon icon="download" class="ml-1"></b-icon>
                 دریافت رسید
               </b-button>
-              <b-button variant="outline-info" class="mr-3" @click="viewResults">
+              
+              <b-button v-if=" electionStatusAll === 'ended'" variant="outline-info" class="mr-3" @click="viewResults">
                 <b-icon icon="bar-chart" class="ml-1"></b-icon>
                 مشاهده نتایج
               </b-button>
@@ -354,28 +355,29 @@
           <b-col md="8">
             <h5>{{ previewCandidateData.org_position_desc }}</h5>
             <div class="preview-stats">
-              <b-badge variant="info" class="mr-2">
+              <!-- <b-badge variant="info" class="mr-2">
                 <b-icon icon="briefcase" class="ml-1"></b-icon>
                 {{ previewCandidateData.persian_birth_date }}
               </b-badge>
               <b-badge variant="success" class="mr-2">
                 <b-icon icon="award" class="ml-1"></b-icon>
                 {{ previewCandidateData.personnel_code }}
-              </b-badge>
+              </b-badge> -->
               <b-badge variant="warning" class="mr-2">
                 <b-icon icon="award" class="ml-1"></b-icon>
-                {{ previewCandidateData.id*1404 }}
+                کد کاندید: {{ previewCandidateData.id*1404 }}
               </b-badge>
             </div>
           </b-col>
         </b-row>
 
         <b-tabs content-class="mt-3">
-          <b-tab title="منطقه" active>
+          <!-- <b-tab title="منطقه" active> -->
             <p class="preview-text">{{ previewCandidateData.regionName }} -
               {{ previewCandidateData.gender==1 ? 'آقا' : 'خانم' }} {{ previewCandidateData?.first_name }}
               {{ previewCandidateData?.last_name }}</p>
-          </b-tab>
+              
+          <!-- </b-tab> -->
 
           <!-- <b-tab title="سوابق کاری">
             <ul class="preview-list">
@@ -452,7 +454,7 @@
     </b-container>
 
     <!-- Timer Warning -->
-    <div v-if="showTimeWarning" class="timer-warning">
+    <!-- <div v-if="showTimeWarning" class="timer-warning">
       <b-alert variant="warning" show class="mb-0 text-center">
         <b-icon icon="exclamation-triangle-fill" class="ml-1"></b-icon>
         زمان باقیمانده تا پایان انتخابات: {{ timeRemaining }}
@@ -460,7 +462,7 @@
           فهمیدم
         </b-button>
       </b-alert>
-    </div>
+    </div> -->
   </div>
 </template>
 
@@ -643,6 +645,9 @@ export default {
         this.currentStep--;
         this.progress = this.currentStep * 25;
       }
+      if (this.currentStep ==3) 
+      console.log(this.currentStep );
+      
     },
 
     startCooldownTimer() {

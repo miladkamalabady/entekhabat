@@ -116,8 +116,8 @@
       <!-- Main Dashboard -->
       <b-row class="mb-4">
         <!-- Candidates Ranking -->
-        <b-col lg="8" class="mb-4">
-          <b-card class="ranking-card">
+        <b-col lg="12" class="mb-4" v-if="electionStatusAll !== 'active'">
+          <b-card class="ranking-card" >
             <div class="d-flex justify-content-between align-items-center mb-4">
               <h5 class="mb-0">رتبه‌بندی کاندیداها</h5>
               <div class="ranking-actions">
@@ -180,7 +180,7 @@
         </b-col>
 
         <!-- Voting Progress by Region -->
-        <b-col lg="4" class="mb-4">
+        <b-col lg="12" class="mb-4">
           <b-card class="region-card">
             <h5 class="mb-4">مشارکت بر اساس استان</h5>
 
