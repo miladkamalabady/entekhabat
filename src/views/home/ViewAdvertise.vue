@@ -107,6 +107,7 @@
 
               <!-- Ad Content -->
               <h5 class="ad-title">{{ ad.title }}</h5>
+              <p class="ad-description">{{ ad.first_name }} {{ ad.last_name }} ({{ ad.codeentekhabati }})</p>
               <p class="ad-description text-muted">
                 {{ truncateText(ad.description, 100) }}
               </p>
@@ -168,7 +169,7 @@
 
         <div v-if="selectedAd.first_name" class="detail-item mb-3">
           <strong>منتشر کننده:</strong>
-          <span class="mr-2">{{ selectedAd.first_name }} {{ selectedAd.last_name }}(کد {{ selectedAd.code * 1404
+          <span class="mr-2">{{ selectedAd.first_name }} {{ selectedAd.last_name }}(کد {{ selectedAd.codeentekhabati
           }})</span>
         </div>
 
@@ -439,7 +440,7 @@ export default {
         return {
           name: "-",
           slogan: "-",
-          code: "-",
+          codeentekhabati: "-",
           constituency: "-",
           education: "-",
           employmentStatus: "-",
@@ -447,12 +448,10 @@ export default {
         };
       }
 
-
-      console.log(this.selectedAd);
       return {
         name: `${this.selectedAd.first_name || ""} ${this.selectedAd.last_name || ""}`.trim() || this.selectedAd.title || "نامشخص",
         slogan: this.selectedAd.slogan || this.selectedAd.description || "برای آینده‌ای بهتر",
-        code: this.selectedAd.electionCode || (this.selectedAd.id ? String(this.selectedAd.code * 1404) : "-"),
+        code: this.selectedAd.electionCode || (this.selectedAd.id ? String(this.selectedAd.codeentekhabati) : "-"),
         constituency: this.selectedAd.constituency || this.selectedAd?.regionName || "اعلام نشده",
         education: this.selectedAd.education || this.selectedAd.degree || "اعلام نشده",
         employmentStatus: this.selectedAd.user_type == 4 ? "بازنشسته" : "شاغل",
@@ -527,8 +526,8 @@ export default {
 
       return ads.filter(ad => {
 
-        const rawCode = String(ad.code || "").trim();
-        const scaledCode = rawCode && !Number.isNaN(Number(rawCode)) ? String(Number(rawCode) * 1404) : "";
+        const rawCode = String(ad.codeentekhabati || "").trim();
+        const scaledCode = rawCode && !Number.isNaN(Number(rawCode)) ? String(Number(rawCode)) : "";
         return rawCode === candidateCode || scaledCode === candidateCode;
       });
     },
@@ -704,7 +703,6 @@ export default {
     },
     buildShareText() {
       if (!this.selectedAd) return "";
-
       return `کارت تبلیغاتی کاندید\nنام: ${this.candidateCardInfo.name}\nحوزه انتخابیه: ${this.candidateCardInfo.constituency}\nکد انتخاباتی: ${this.candidateCardInfo.code}\nشعار انتخاباتی: ${this.candidateCardInfo.slogan}\nمشاهده سوابق: با کلیک روی گزینه «مشاهده سوابق / کلیک»\n${this.daysUntilElectionText}`;
     },
 

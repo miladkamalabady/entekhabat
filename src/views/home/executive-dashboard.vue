@@ -77,7 +77,7 @@
                         <img :src="`${apiUrlrtb}/${data.item.user_photo}` || '/default-avatar.png'"
                           class="candidate-avatar mr-2" alt="عکس کاندیدا" />
                         <div>
-                          <div class="font-weight-bold">{{ data.item.first_name }} {{ data.item.last_name }}</div>
+                          <div class="font-weight-bold">{{ data.item.first_name }} {{ data.item.last_name }} ({{ data.item.codeentekhabati }})</div>
                           <small class="text-muted">{{ data.item.org_position_desc || '-' }}</small>
 
                         </div>
@@ -194,7 +194,7 @@
 
                   <!-- Status Column -->
                   <template #cell(createdBy)="data">
-                    {{ data.item.first_name }} {{ data.item.last_name }} ({{ data.item.code }})
+                    {{ data.item.first_name }} {{ data.item.last_name }} ({{ data.item.codeentekhabati }})
                   </template>
                   <!-- Actions Column -->
                   <template #cell(actions)="data">

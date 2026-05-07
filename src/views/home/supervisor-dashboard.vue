@@ -78,7 +78,7 @@
                         <img :src="`${apiUrlrtb}/${data.item.user_photo}` || '/default-avatar.png'"
                           class="candidate-avatar mr-2" alt="عکس کاندیدا" />
                         <div>
-                          <div class="font-weight-bold">{{ data.item.first_name }} {{ data.item.last_name }}</div>
+                          <div class="font-weight-bold">{{ data.item.first_name }} {{ data.item.last_name }} ({{ data.item.codeentekhabati }})</div>
                           <small class="text-muted">{{ data.item.org_position_desc || '-' }}</small>
 
                         </div>
@@ -181,7 +181,8 @@
                     </b-badge>
                   </template>
                   <template #cell(createdBy)="data">
-                    {{ data.item.first_name }} {{ data.item.last_name }} ({{ data.item.code }})
+                    {{ data.item.first_name }} {{ data.item.last_name }} ({{ data.item.codeentekhabati }})<br/>
+                    {{ data.item.nationalId }}
                   </template>
                   <!-- Actions Column -->
                   <template #cell(actions)="data">
@@ -682,6 +683,7 @@ export default {
         { key: 'title', label: 'عنوان', sortable: true },
         { key: 'type', label: 'نوع', sortable: true },
         { key: 'status', label: 'وضعیت', sortable: true },
+        { key: 'regionName', label: 'منطقه', sortable: true },
         { key: 'createdBy', label: 'ایجاد کننده', sortable: true },
         { key: 'actions', label: 'عملیات', sortable: false }
       ],

@@ -105,7 +105,7 @@
           </div>
           <b-row>
             <b-col v-for="candidate in filteredCandidates" :key="candidate.id" cols="12" md="4" lg="3" class="mb-4">
-              <b-card class="candidate-card h-100" :class="{ 'selected': selectedCandidates?.includes(candidate.id) }"
+              <b-card class="candidate-card h-100" :class="{ 'selected': selectedCandidates?.includes(candidate.codeentekhabati) }"
                 @click="previewCandidate(candidate)">
                 <!-- Candidate Image -->
                 <div class="candidate-image-container mb-3">
@@ -115,18 +115,18 @@
                 </div>
                 <!-- Candidate Info -->
                 <h5 class="candidate-name">{{ candidate.first_name }} {{ candidate.last_name }}</h5>
-                <p class="candidate-position" :class="{ 'text-muted': !selectedCandidates?.includes(candidate.id) }">{{
+                <p class="candidate-position" :class="{ 'text-muted': !selectedCandidates?.includes(candidate.codeentekhabati) }">{{
                   candidate.org_position_desc }}</p>
 
                 <!-- Candidate Stats -->
-                <div class="candidate-stats" :class="{ 'text-muted': !selectedCandidates?.includes(candidate.id) }">
+                <div class="candidate-stats" :class="{ 'text-muted': !selectedCandidates?.includes(candidate.codeentekhabati) }">
                   <div class="stat-item">
                     <b-icon icon="award" class="ml-1"></b-icon>
                     {{ candidate.personnel_code }}
                   </div>
                   <div class="stat-item">
                     <b-icon icon="award" class="ml-1"></b-icon>
-                    {{ candidate.id *1404 }}
+                    {{ candidate.codeentekhabati }}
                   </div>
                 </div>
 
@@ -176,7 +176,7 @@
                           </div>
                           <div class="detail-item">
                             <strong>کدانتخاباتی:</strong>
-                            <span>{{ findCandidate(cid).id*1404 }}</span>
+                            <span>{{ findCandidate(cid).codeentekhabati }}</span>
                           </div>
                           <!-- <div class="detail-item">
                             <strong>تولد:</strong>
@@ -274,7 +274,7 @@
                     </div>
                     <div class="summary-item">
                       <strong>کد کاندیدای انتخاب شده:</strong>
-                      <span v-for="(cid, i) in selectedCandidate" :key="`${i}b`">{{ cid?.candidate_id*1404 }}</span>
+                      <span v-for="(cid, i) in selectedCandidate" :key="`${i}b`">{{ cid?.codeentekhabati }}</span>
                     </div>
                     <div class="summary-item">
                       <strong>کدملی رأی‌دهنده:</strong>
@@ -365,7 +365,7 @@
               </b-badge> -->
               <b-badge variant="warning" class="mr-2">
                 <b-icon icon="award" class="ml-1"></b-icon>
-                کد کاندید: {{ previewCandidateData.id*1404 }}
+                کد کاندید: {{ previewCandidateData.codeentekhabati }}
               </b-badge>
             </div>
           </b-col>
@@ -630,7 +630,7 @@ export default {
       this.nextStep();
     },
     findCandidate(id) {
-      return this.candidates.find(c => c.id == id) || {};
+      return this.candidates.find(c => c.codeentekhabati == id) || {};
     },
     // Step Navigation
     nextStep() {
@@ -665,7 +665,7 @@ export default {
     },
     toggleCandidate(candidate) {
 
-      const id = candidate.id;
+      const id = candidate.codeentekhabati;
       // اگر قبلاً انتخاب شده → حذف
       if (this.selectedCandidates.includes(id)) {
         this.selectedCandidates =
@@ -759,7 +759,7 @@ export default {
       let na = ''; let ids = '';
       this.selectedCandidate.forEach(element => {
         na += element.first_name + ' ' + element.last_name + '-'
-        ids += (element.candidate_id*1404) + '-'
+        ids += (element.codeentekhabati) + '-'
       });
 
       const receiptContent = `
