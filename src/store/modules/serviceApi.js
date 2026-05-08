@@ -32,7 +32,13 @@ const global = {
     }, getAdvertisements: {
         url: "/getAdvertisements",
         method: 'GET'
-    }, increaseViewAdd: {
+    },getUsers: {
+        url: "/getUsers",
+        method: 'GET'
+    }, updateUser: {
+        url: "/updateUser",
+        method: 'POST'
+    },increaseViewAdd: {
         url: "/increaseViewAdd",
         method: 'POST'
     }, deleteAdv: {

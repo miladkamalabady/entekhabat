@@ -64,6 +64,14 @@ const routes = [
           // roles: [UserRole.SUPERVISOR]
         }
       },{
+        name: "UsersManagment",
+        path: 'UsersManagment',
+        component: () => import(/* webpackChunkName: "UsersManagment" */ "./views/home/UsersManagment"),
+        meta: {
+          loginRequired: true,
+          // roles: [UserRole.SUPERVISOR]
+        }
+      },{
         name: "logs",
         path: 'logs',
         component: () => import(/* webpackChunkName: "supervisor" */ "./views/home/logs"),

@@ -217,7 +217,19 @@ export default {
         commit('clearError');
       }
       return response.data;
-    }, async increaseViewAdd({ commit }, payload) {
+    }, async getUsers({ commit }, payload) {
+      const response = await apiservice({ name: "getUsers", params: payload }, { commit });
+      if (response?.status) {
+        commit('clearError');
+      }
+      return response.data;
+    }, async updateUser({ commit }, payload) {
+      const response = await apiservice({ name: "updateUser", params: payload }, { commit });
+      if (response?.status) {
+        commit('clearError');
+      }
+      return response.data;
+    },async increaseViewAdd({ commit }, payload) {
       const response = await apiservice({ name: "increaseViewAdd", params: payload }, { commit });
       if (response?.status) {
         commit('clearError');
