@@ -89,7 +89,10 @@ const global = {
     }, submitFinalResultsApproval: {
         url: "/submitFinalResultsApproval",
         method: 'POST'
-    }, getLogs: {
+    }, setFinalResultsApproval: {
+        url: "/setFinalResultsApproval",
+        method: 'POST'
+    },getLogs: {
         url: "/getLogs",
         method: 'GET'
     }

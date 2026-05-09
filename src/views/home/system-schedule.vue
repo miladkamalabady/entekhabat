@@ -11,7 +11,7 @@
     </b-card>
 
     <b-card class="shadow-sm border-0">
-      <b-row class="mb-3 align-items-end">
+      <!-- <b-row class="mb-3 align-items-end" >
         <b-col cols="12" lg="8">
           <label class="d-block font-weight-bold mb-2">استان‌های هدف</label>
           <b-form-select v-model="selectedProvinceIds" :options="provinceOptions" multiple :disabled="!canEditSchedule"
@@ -20,7 +20,7 @@
             با انتخاب یک یا چند استان، زمان‌بندی رویدادها فقط برای همان استان‌ها اعمال می‌شود.
           </small>
         </b-col>
-      </b-row>
+      </b-row> -->
       <b-table :items="events" :fields="fields" responsive striped hover class="text-right align-middle">
         <template #cell(index)="data">
           <strong>{{ data.index + 1 }}</strong>

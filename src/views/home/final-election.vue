@@ -33,6 +33,12 @@
                 <h4 class="mb-3">خلاصه نتایج انتخابات</h4>
                 <b-list-group class="summary-stats">
                   <b-list-group-item class="d-flex justify-content-between align-items-center">
+                    <span>کل واجدین شرایط</span>
+                    <b-badge variant="primary" pill>
+                      {{ formatNumber(finalResults.totalVoters) }} 
+                    </b-badge>
+                  </b-list-group-item>
+                  <b-list-group-item class="d-flex justify-content-between align-items-center">
                     <span>کل آرای مأخوذه</span>
                     <b-badge variant="primary" pill>
                       {{ formatNumber(finalResults.totalVotes) }} رأی
@@ -206,6 +212,7 @@
           </b-table>
         </div>
 
+
         <!-- Chart View -->
         <div v-else class="chart-container">
           <div class="chart-wrapper">
@@ -236,8 +243,20 @@
             </b-col>
           </b-row>
         </div>
-      </b-card>
 
+      </b-card>
+      <b-card v-if="!this.isActive">
+        <div class="align-items-center mb-4">
+          <h4>تایید انتشار</h4>
+          <b-form-file v-model="document" 
+                          placeholder="صورتجلسه را انتخاب کنید یا اینجا رها کنید"
+                          drop-placeholder="فایل‌ها را اینجا رها کنید" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                          ></b-form-file>
+          <b-button variant="success" @click="activateFinalResults">تایید و انتشار</b-button>
+        </div>
+
+      </b-card>
+<hr/>
       <!-- Detailed Analysis -->
       <b-row class="mb-5">
         <b-col lg="6" class="mb-4">
@@ -347,6 +366,8 @@ export default {
   name: "ElectionFinalResults",
   data() {
     return {
+      isActive:false,
+      document:null,
       apiUrlrtb,
       electionDate: '۱۴۰۲/۱۱/۱۵',
       viewMode: 'table',
@@ -373,7 +394,7 @@ export default {
       // Winner Data
       winner: {
         id: 1,
-        name: 'دکتر محمدرضا احمدی',
+        name: '',
         position: 'استاد دانشگاه - علوم تربیتی',
         photo: 'assets/img/avatars/image1.png?text=دکتر+احمدی',
         votes: 45680,
@@ -442,6 +463,10 @@ export default {
     }
     await this.loadFinalResults();
     this.generateShareLink();
+
+    const response = await this.getFinalResultsApprovalStatus()
+     this.isActive=response.isActive
+      
   },
   beforeUnmount() {
     // Clean up chart instances to prevent memory leaks
@@ -456,8 +481,16 @@ export default {
     }
   },
   methods: {
-    ...mapActions(["getConfig", "getInfoVote"]),
+    ...mapActions(["getConfig", "getInfoVote","getFinalResultsApprovalStatus","setFinalResultsApproval"]),
     // Formatting
+    async activateFinalResults(){
+      const response = await this.setFinalResultsApproval()
+      if(response.status)
+      {
+        const response1 = await this.getFinalResultsApprovalStatus()
+     this.isActive=response1.isActive
+      }      
+    },
     formatNumber(num) {
       return new Intl.NumberFormat('fa-IR').format(num);
     },
@@ -466,6 +499,7 @@ export default {
       this.infoVote = data;
 
       const totalVotes = Number(data?.totalVotes) || 0;
+      const totalVoters = Number(data?.totalVoters) || 0;
       const listCandidates = data?.listCan || [];
 
       const colors = ['#3F51B5', '#4CAF50', '#FF9800', '#9C27B0', '#2196F3', '#E91E63', '#795548', '#607D8B'];
@@ -513,6 +547,7 @@ export default {
 
       this.finalResults = {
         ...this.finalResults,
+        totalVoters,
         totalVotes,
         participationRate: Number(data?.voterParticipation) || 0,
         totalCandidates: Number(data?.Candidates) || this.candidates.length,

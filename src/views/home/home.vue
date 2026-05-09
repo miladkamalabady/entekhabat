@@ -45,6 +45,15 @@
                       ثبت اعتراض
                     </b-button>
                   </b-alert>
+                  <b-alert v-else-if="requestStatus === 'SUPERVISION_APPROVED' && stateCandidInfo?.reson" variant="success" show>
+                    درخواست شما تایید شده است
+                    <div v-if="stateCandidInfo?.reson" class="mt-2">
+                      نظر نهایی هیأت نظارت: {{ stateCandidInfo.reson }}
+                    </div>
+                    <div v-if="stateCandidInfo?.edited_at_sh" class="mt-1">
+                      تاریخ آخرین ویرایش: {{ stateCandidInfo.edited_at_sh }}
+                    </div>
+                  </b-alert>
                 </div>
                 <!-- Menu -->
                 <b-row>
@@ -138,7 +147,7 @@ export default {
         return 'در انتظار تایید هیأت مقابل'
       }
 
-      return 'نیازمند تایید با رمز'
+      return 'نیازمند تایید'
     },
 
   }, mounted() {
@@ -265,7 +274,7 @@ export default {
             executive: !!status.executiveApproved,
             supervisor: !!status.supervisorApproved
           }
-          this.isFinalResultAnnouncementActive = !!status.isActive
+          this.isFinalResultAnnouncementActive = (!!status.isActive || (this.finalResultApprovals.executive && this.finalResultApprovals.supervisor) && this.currentUser?.roles?.some(role => ['EXECUTIVE', 'SUPERVISOR'].includes(role)))
         }
       } catch (e) {
         if (showError) {

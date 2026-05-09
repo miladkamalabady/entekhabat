@@ -148,7 +148,7 @@ export default {
           "img": "assets/img/ltms.svg",
           "type": "3",
           "cate": 2,
-          roles: ['SUPERVISOR']
+          roles: ['CANDIDATE','SUPERVISOR']
         },
 
       ],
