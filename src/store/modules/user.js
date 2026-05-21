@@ -157,8 +157,8 @@ export default {
     }, signOut({ commit }, payload) {
      localStorage.removeItem('user')
 
-    },UploadUserDocuments({ commit }, payload) {
-      apiservice({ name: "UploadUserDocuments", params: payload }, { commit })
+    },async UploadUserDocuments({ commit }, payload) {
+      await apiservice({ name: "UploadUserDocuments", params: payload }, { commit })
         .then(response => {
           if (response.status) {
             commit('setUploadUserDocumentsInfo', response.data)

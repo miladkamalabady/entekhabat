@@ -382,7 +382,6 @@ export default {
       const displayEnd = this.$moment.min(legalWindowEnd, votingCutoff);
 
       const now = this.$moment(); // زمان فعلی
-
 // return true;
       return now.isSameOrAfter(campaignStart) && now.isBefore(displayEnd);
     },
@@ -390,6 +389,7 @@ export default {
     adsWindowMessage() {
       const campaignEvent = (this.scheduleRows || []).find(e => e.event_key === 'campaign_start');
       const votingEvent = (this.scheduleRows || []).find(e => e.event_key === 'voting');
+
 
       if (!campaignEvent?.start_date || !votingEvent?.start_date) {
         return 'بازه قانونی تبلیغات هنوز تنظیم نشده است.';

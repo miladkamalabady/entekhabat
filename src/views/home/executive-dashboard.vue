@@ -77,7 +77,8 @@
                         <img :src="`${apiUrlrtb}/${data.item.user_photo}` || '/default-avatar.png'"
                           class="candidate-avatar mr-2" alt="عکس کاندیدا" />
                         <div>
-                          <div class="font-weight-bold">{{ data.item.first_name }} {{ data.item.last_name }} ({{ data.item.codeentekhabati }})</div>
+                          <div class="font-weight-bold">{{ data.item.first_name }} {{ data.item.last_name }} ({{
+                            data.item.codeentekhabati }})</div>
                           <small class="text-muted">{{ data.item.org_position_desc || '-' }}</small>
 
                         </div>
@@ -399,7 +400,7 @@
                   <b-row>
                     <b-col md="6">
                       <div v-if="isImageFile(review.path)" class="image-viewer text-center">
-                        <img :src="apiUrlrtb + '/' +review.path" class="img-fluid " style="max-width:200px"
+                        <img :src="apiUrlrtb + '/' + review.path" class="img-fluid " style="max-width:200px"
                           :alt="review.path" />
                       </div>
                     </b-col>
@@ -419,9 +420,10 @@
 
         <!-- View-only Note -->
         <div v-if="selectedCandidate.requestStatus === 'SUBMITTED'" class="final-decision">
-          <!-- <b-alert variant="warning" show>
+          <b-alert variant="warning" show>
             <h6 class="alert-heading">تصمیم نهایی</h6>
-            <p>پس از بررسی تمام مدارک، تصمیم نهایی را در مورد صلاحیت این کاندیدا بگیرید.</p>
+            <p class="mb-2">بعد از بررسی مدارک، کاندیدا را به کارتابل نظارت منتقل کنید تا تصمیم نهایی در نظارت ثبت شود.
+            </p>
 
             <b-form-group label="نظر نهایی" label-for="final-comment">
               <b-form-textarea id="final-comment" v-model="finalComment" rows="2"
@@ -429,25 +431,13 @@
             </b-form-group>
 
             <div class="text-center mt-3">
-              <b-button variant="success" class="mr-3" @click="approveCandidate(selectedCandidate)"
-                :disabled="!finalComment">
-                <b-icon icon="check-circle" class="ml-1"></b-icon>
-                تایید صلاحیت
-              </b-button>
-              <b-button variant="danger" @click="rejectCandidate(selectedCandidate)" :disabled="!finalComment">
-                <b-icon icon="x-circle" class="ml-1"></b-icon>
-                رد صلاحیت
-              </b-button>
-            </div>
-          </b-alert> -->
-          <b-alert variant="info" show>
-            <h6 class="alert-heading">ارسال به کارتابل نظارت</h6>
-            <p class="mb-2">بعد از بررسی مدارک، کاندیدا را به کارتابل نظارت منتقل کنید تا تصمیم نهایی در نظارت ثبت شود.
-            </p>
-            <div class="text-center">
               <b-button variant="success" @click="approveCandidate(selectedCandidate)">
                 <b-icon icon="arrow-left-right" class="ml-1"></b-icon>
                 انتقال به کارتابل نظارت
+              </b-button>
+              <b-button variant="danger" @click="rejectCandidate(selectedCandidate)" :disabled="!finalComment">
+                <b-icon icon="x-circle" class="ml-1"></b-icon>
+                رد مدارک
               </b-button>
             </div>
           </b-alert>
@@ -865,7 +855,7 @@ export default {
         active: 'فعال',
         expired: 'منقضی'
       };
-      
+
       return !status.deleter ? (texts[status.status] || status.status) : status.deleter == 'SUPERVISOR' ? texts['SUPERVISION_REJECTED'] : status.deleter == 'CANDIDATE' ? texts['CANDIDATE'] : texts['EXECUTIVE_REJECTED'];
     },
 
@@ -990,8 +980,8 @@ export default {
     },
 
     rejectCandidate(candidate) {
-      this.$bvModal.msgBoxConfirm('آیا از رد صلاحیت این کاندیدا اطمینان دارید؟', {
-        title: 'تایید رد صلاحیت',
+      this.$bvModal.msgBoxConfirm('آیا از رد مدارک این کاندیدا اطمینان دارید؟', {
+        title: 'تایید رد مدارک',
         size: 'md',
         buttonSize: 'sm',
         okVariant: 'danger',

@@ -30,7 +30,9 @@
             </b-colxx>
             <b-colxx xxs="12" xs="4">
               <document-upload title="برخورداری از سلامت جسمی و روانی کامل " :file.sync="files.ravan" />
-              <label class="small text-justify">برخورداری از سلامت جسمی و روانی کامل (نداشتن اعتیاد به مواد مخدر یا روان گردان و هرگونه سابقه بیماری یا نقص عضوی که مانع از انجام وظایف نمایندگی اعضا در هیئت امنا باشد.) </label>
+              <label class="small text-justify">برخورداری از سلامت جسمی و روانی کامل (نداشتن اعتیاد به مواد مخدر یا روان
+                گردان و هرگونه سابقه بیماری یا نقص عضوی که مانع از انجام وظایف نمایندگی اعضا در هیئت امنا باشد.)
+              </label>
             </b-colxx>
           </b-row>
           <!-- Actions -->
@@ -115,7 +117,7 @@ export default {
         // formData.append("employment_cert", this.files.noAddiction.raw);
         formData.append("soPishine_cert", this.files.soPishine.raw);
         formData.append("ravan_cert", this.files.ravan.raw);
-        this.UploadUserDocuments(formData);
+        await this.UploadUserDocuments(formData);
 
 
       } catch (error) {
@@ -129,8 +131,9 @@ export default {
   watch: {
     UploadUserDocumentsInfo(val) {
       if (val) {
-        this.setCandidateFiles({ ...this.files});
+        this.setCandidateFiles({ ...this.files });
         this.setRequestStatus("DOCUMENTS_UPLOADED");
+        this.submitting = false;
         this.$router.push("/candidate/Confirmation");
       }
     }

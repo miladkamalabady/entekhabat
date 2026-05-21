@@ -56,12 +56,12 @@
                       {{ finalResults.totalCandidates }} نفر
                     </b-badge>
                   </b-list-group-item>
-                  <b-list-group-item class="d-flex justify-content-between align-items-center">
+                  <!-- <b-list-group-item class="d-flex justify-content-between align-items-center">
                     <span>آرای باطله</span>
                     <b-badge variant="secondary" pill>
                       {{ formatNumber(finalResults.invalidVotes) }} رأی
                     </b-badge>
-                  </b-list-group-item>
+                  </b-list-group-item> -->
                 </b-list-group>
               </b-col>
               <b-col md="4" class="text-center">
