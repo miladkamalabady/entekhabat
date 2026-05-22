@@ -14,7 +14,7 @@
                 <!-- Header -->
                 <div class="mb-4" v-if="ConfigInfo">
                   <h5 class="mb-2 text-primary-org">
-                    سامانه انتخابات صندوق ذخیره فرهنگیان
+                    سامانه انتخابات نمایندگان اعضای فرهنگی در هیأت امنای موسسه صندوق ذخیره فرهنگیان
                   </h5>
 
                   <ElectionStatusTimer :config-info="ConfigInfo" />
@@ -24,12 +24,25 @@
                     :steps="stepperSteps" :current-step="currentStep" :disabled="processing" />
                   <!-- درخواست ثبت شده -->
                   <b-alert
-                    v-if="currentUser?.roles.includes('CANDIDATE') && (requestStatus === 'SUBMITTED' || requestStatus === 'EXECUTIVE_APPROVED' || requestStatus === 'EXECUTIVE_REJECTED')"
+                    v-if="currentUser?.roles.includes('CANDIDATE') && (requestStatus === 'SUBMITTED' || requestStatus === 'EXECUTIVE_APPROVED' )"
                     variant="warning" show>
                     ⏳ درخواست شما ثبت شده و در حال بررسی توسط مراجع است
                     <br />
                     <b-button variant="outline-danger" class="mt-2" @click="canselRequest()">
                       انصراف
+                    </b-button>
+                  </b-alert>
+                  <b-alert v-else-if="requestStatus === 'EXECUTIVE_REJECTED'" variant="warning" show>
+                    ❌ مدارک شما تایید نشده است
+                    <div v-if="stateCandidInfo?.reson" class="mt-2">
+                      نظر هیأت اجرایی: {{ stateCandidInfo.reson }}
+                    </div>
+                    <div v-if="stateCandidInfo?.edited_at_sh" class="mt-1">
+                      تاریخ آخرین ویرایش: {{ stateCandidInfo.edited_at_sh }}
+                    </div>
+                    <br />
+                    <b-button variant="outline-info" class="mt-2" @click="submitAgain()">
+                      ثبت مجدد
                     </b-button>
                   </b-alert>
                   <b-alert v-else-if="requestStatus === 'SUPERVISION_REJECTED'" variant="danger" show>
@@ -213,6 +226,7 @@ export default {
           icon: 'bi bi-check2-square',
           roles: ['CANDIDATE', 'VOTER'],
           electionStatusAll: 'active',
+          visibleWhen: electionStatusAll => electionStatusAll === 'active',
           badge: 'در حال رأی‌گیری'
         },
         {
@@ -230,6 +244,7 @@ export default {
           roles: ['EXECUTIVE','ADMIN','VOTER','CANDIDATE','SUPERVISOR'],
           electionStatusAll: 'ended',
           badge: 'نمایش نهایی',
+          visibleWhen: requiresFinalApproval => requiresFinalApproval === true,
           requiresFinalApproval: true
         },
         {
@@ -255,6 +270,10 @@ export default {
   methods: {
     ...mapMutations(["setRequestStatus", "setUser"]),
     ...mapActions(["getConfig", "canselRequestCANDIDATE", "getSystemSchedule", "submitFinalResultsApproval", "getFinalResultsApprovalStatus"]),
+    submitAgain(){
+      this.canselRequest()
+      // this.$router.push("/candidate/request")
+    },
     isMenuDisabled(item) {
       if (item.electionStatusAll && item.electionStatusAll != this.electionStatusAll) {
         return true
@@ -320,7 +339,7 @@ export default {
 
       if (!check.ok) {
         await this.$bvModal.msgBoxOk(check.msg, {
-          title: 'امکان انصراف وجود ندارد',
+          title: 'امکان انصراف/بارگذاری مجدد وجود ندارد',
           centered: true,
           okVariant: 'danger'
         })

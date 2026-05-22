@@ -111,8 +111,8 @@
           </b-col> -->
         </b-row>
 
-        <b-form-group label="متن تبلیغ" label-for="ad-description">
-          <b-form-textarea id="ad-description" v-model="form.description" rows="4" placeholder="متن تبلیغ را وارد کنید"
+        <b-form-group label="زندگی نامه(بیگورافی) مختصر" label-for="ad-description">
+          <b-form-textarea id="ad-description" v-model="form.description" rows="4" placeholder="بیوگرافی خود را وارد کنید"
             required></b-form-textarea>
         </b-form-group>
 
@@ -139,7 +139,7 @@
             </b-form-group>
           </b-col>
           <b-col md="6">
-            <b-form-group label="برنامه ها" label-for="ad-plans">
+            <b-form-group label="برنامه های نمایندگی" label-for="ad-plans">
               <b-form-textarea id="ad-plans" v-model="form.plans" rows="3"
                 placeholder="برنامه ها را وارد کنید"></b-form-textarea>
             </b-form-group>

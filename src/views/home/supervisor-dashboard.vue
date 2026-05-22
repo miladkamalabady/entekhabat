@@ -17,7 +17,7 @@
         <b-col cols="12" md="4" class="text-left text-md-right">
           <div class="supervisor-info">
             <div class="supervisor-name">{{ currentUser.full_name }}</div>
-            <div class="supervisor-role">{{ supervisor.role }}</div>
+            <div class="supervisor-role">{{ supervisor.role }} - {{ currentUser.regionName }} ({{ currentUser?.regionId }})</div>
             <div class="supervisor-stats">
               <b-badge variant="info" class="mr-2">
                 {{ pendingCount }} در انتظار
@@ -43,6 +43,18 @@
                   <b-col md="4">
                     <b-form-group label="فیلتر بر اساس وضعیت">
                       <b-form-select v-model="docFilters.status" :options="docStatusOptions"
+                        @change="filterDocuments"></b-form-select>
+                    </b-form-group>
+                  </b-col>
+                  <b-col md="4">
+                    <b-form-group label="فیلتر بر اساس جنسیت">
+                      <b-form-select v-model="docFilters.gender" :options="genderStatusOptions"
+                        @change="filterDocuments"></b-form-select>
+                    </b-form-group>
+                  </b-col>
+                  <b-col md="4">
+                    <b-form-group label="فیلتر بر اساس شاغل">
+                      <b-form-select v-model="docFilters.shaghel" :options="shaghelStatusOptions"
                         @change="filterDocuments"></b-form-select>
                     </b-form-group>
                   </b-col>
@@ -440,7 +452,7 @@
 
             <b-form-group label="نظر هیأت نظارت" label-for="final-comment">
               <b-form-textarea id="final-comment" v-model="finalComment" rows="2"
-                placeholder="نظر هیأت را وارد کنید..."></b-form-textarea>
+                placeholder="خلاصه نظر هیأت را وارد کنید..."></b-form-textarea>
             </b-form-group>
 
             <div class="text-center mt-3">
@@ -630,6 +642,8 @@ export default {
       docFilters: {
         status: 'all',
         search: '',
+        gender:'all',
+        shaghel:'all',
         sortBy: 'newest'
       },
       adFilters: {
@@ -646,6 +660,14 @@ export default {
         { value: 'EXECUTIVE_REJECTED', text: 'رد شده اجرایی' },
         { value: 'SUPERVISION_APPROVED', text: 'تایید شده نظارت' },
         { value: 'SUPERVISION_REJECTED', text: 'رد شده نظارت' }
+      ],genderStatusOptions: [
+        { value: 'all', text: 'همه' },
+        { value: '1', text: 'آقا' },
+        { value: '2', text: 'خانم' },
+      ],shaghelStatusOptions: [
+        { value: 'all', text: 'همه' },
+        { value: '3', text: 'شاغل' },
+        { value: '4', text: 'بازنشسته' },
       ],
       docSortOptions: [
         { value: 'newest', text: 'جدیدترین' },
@@ -760,6 +782,12 @@ export default {
       // Filter by status
       if (this.docFilters.status !== 'all') {
         filtered = filtered.filter(candidate => candidate.requestStatus === this.docFilters.status);
+      }
+      if (this.docFilters.gender !== 'all') {
+        filtered = filtered.filter(candidate => candidate.gender === this.docFilters.gender);
+      }
+      if (this.docFilters.shaghel !== 'all') {
+        filtered = filtered.filter(candidate => candidate.user_type === this.docFilters.shaghel);
       }
       // Filter by search
       if (this.docFilters.search) {
@@ -1235,12 +1263,12 @@ export default {
     },
 
     rejectCandidate(candidate) {
-      this.$bvModal.msgBoxConfirm('آیا از رد صلاحیت این کاندیدا اطمینان دارید؟', {
-        title: 'تایید رد صلاحیت',
+      this.$bvModal.msgBoxConfirm('آیا از عدم احراز این کاندیدا اطمینان دارید؟', {
+        title: 'تایید عدم احراز',
         size: 'md',
         buttonSize: 'sm',
         okVariant: 'danger',
-        okTitle: 'بله، رد کن',
+        okTitle: 'بله',
         cancelTitle: 'لغو',
         hideHeaderClose: false,
         centered: true

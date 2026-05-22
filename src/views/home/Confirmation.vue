@@ -28,7 +28,7 @@
           </b-row>
 
           <!-- مدرک تحصیلی -->
-          <b-row class="align-items-center mb-2" v-if="currentUser?.userType == 4">
+          <b-row class="align-items-center mb-2" >
             <b-col cols="4"><strong>مدرک تحصیلی:</strong></b-col>
             <b-col>
               <img v-if="files.degree?.preview" :src="files.degree.preview" class="thumbnail" />
@@ -121,7 +121,7 @@ export default {
   computed: {
     ...mapGetters(["confirmRegisterInfo", "candidateFiles", "currentUser"]),
     canConfirm() {
-      return this.files.photo && (this.currentUser?.userType != 4 || this.files.degree) && this.files.soPishine && this.files.ravan;
+      return this.files.photo &&  this.files.degree && this.files.soPishine && this.files.ravan;
     },
     progress() {
       return 100;

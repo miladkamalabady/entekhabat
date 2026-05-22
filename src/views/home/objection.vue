@@ -30,12 +30,12 @@
             <div class="p-3">
               <!-- Decision Info -->
               <b-card class="mb-4">
-                <h5 class="mb-3">مشخصات تصمیم مورد اعتراض</h5>
+                <h5 class="mb-3">اعتراض به عدم احراز صلاحیت</h5>
                 <b-form @submit.prevent="validateBeforeSubmit">
                   <b-row>
                     <b-col md="6">
-                      <b-form-group label="نوع تصمیم" label-for="decision-type" :state="formState.decisionType"
-                        invalid-feedback="لطفا نوع تصمیم را انتخاب کنید">
+                      <b-form-group label="مخاطب" label-for="decision-type" :state="formState.decisionType"
+                        invalid-feedback="لطفا مخاطب را انتخاب کنید">
                         <b-form-select id="decision-type" v-model="complaintData.decisionType"
                           :options="decisionTypeOptions" required :state="formState.decisionType"
                           @change="onDecisionTypeChange">
@@ -86,12 +86,12 @@
                   <div class="complaint-details mt-4 pt-3 border-top">
                     <!-- <h6 class="mb-3">جزئیات اعتراض</h6> -->
 
-                    <b-form-group label="موضوع اعتراض" label-for="complaint-subject" :state="formState.subject"
+                    <!-- <b-form-group label="موضوع اعتراض" label-for="complaint-subject" :state="formState.subject"
                       invalid-feedback="لطفا موضوع اعتراض را وارد کنید">
                       <b-form-input id="complaint-subject" v-model="complaintData.subject"
                         placeholder="موضوع اصلی اعتراض خود را وارد کنید" required
                         :state="formState.subject"></b-form-input>
-                    </b-form-group>
+                    </b-form-group> -->
 
                     <b-form-group label="شرح کامل اعتراض" label-for="complaint-description"
                       :state="formState.description" invalid-feedback="لطفا شرح اعتراض را حداقل 50 کاراکتر وارد کنید">
@@ -103,16 +103,16 @@
                       </small>
                     </b-form-group>
 
-                    <b-form-group label="دلایل اصلی اعتراض" label-for="complaint-reasons">
+                    <!-- <b-form-group label="دلایل اصلی اعتراض" label-for="complaint-reasons">
                       <b-form-tags v-model="complaintData.reasons" placeholder="دلیل اعتراض را وارد و Enter بزنید"
                         tag-variant="primary" separator="," add-on-change :limit="5"></b-form-tags>
                       <small class="text-muted d-block mt-1">
                         حداکثر ۵ دلیل مجاز است
                       </small>
-                    </b-form-group>
+                    </b-form-group> -->
 
                     <!-- Document Upload -->
-                    <b-form-group label="ضمیمه مدارک">
+                    <b-form-group label="بارگذاری مستندات و مدارک اثباتی">
                       <div class="document-upload-area">
                         <b-form-file v-model="complaintData.documents" multiple :file-name-formatter="formatFileNames"
                           placeholder="فایل‌های خود را انتخاب کنید یا اینجا رها کنید"
@@ -609,12 +609,8 @@
             <b-row>
               <b-col md="6">
                 <div class="info-item">
-                  <strong>نوع تصمیم:</strong>
+                  <strong>مخاطب:</strong>
                   <span>{{ decisionTypeOptions.filter(x=>x.value==selectedComplaint.decisionType)[0].text }}</span>
-                </div>
-                <div class="info-item">
-                  <strong>شماره پرونده:</strong>
-                  <span>{{ selectedComplaint.caseNumber }}</span>
                 </div>
               </b-col>
               <b-col md="6">
@@ -783,7 +779,7 @@ const createDefaultComplaintData = () => ({
   candidateName: '',
   candidateRegion: '',
   candidatePosition: '',
-  subject: '',
+  subject: '-',
   description: '',
   reasons: [],
   documents: [],
@@ -814,11 +810,8 @@ export default {
 
       // Options
       decisionTypeOptions: [
-        { value: 'candidate_rejection', text: 'رد صلاحیت کاندیداتوری' },
-        { value: 'document_rejection', text: 'رد مدارک' },
-        { value: 'advertisement_rejection', text: 'رد تبلیغات' },
-        { value: 'voting_irregularity', text: 'تخلفات انتخاباتی' },
-        { value: 'procedure_violation', text: 'تخلفات آیین‌نامه‌ای' },
+        { value: 'candidate_rejection', text: 'هیأت نظارت استان' },
+        { value: 'document_rejection', text: 'هیأت مرکزی نظارت' },
         { value: 'other', text: 'سایر موارد' }
       ],
 
@@ -888,33 +881,6 @@ export default {
             { title: 'بررسی اولیه', date: '۱۴۰۲/۱۱/۱۱', description: 'مدارک مورد بررسی قرار گرفت' }
           ]
         },
-        {
-          id: 2,
-          trackingCode: '۱۴۰۲/۱۱/۰۹۹۸',
-          subject: 'اعتراض به رد تبلیغات انتخاباتی',
-          status: 'under_review',
-          submittedDate: '۱۴۰۲/۱۱/۰۵',
-          lastUpdate: '۱۴۰۲/۱۱/۰۹',
-          preview: 'تبلیغات انتخاباتی مطابق با آیین‌نامه بوده و دلیلی برای رد آن وجود ندارد...',
-          documentsCount: 2,
-          decisionType: 'advertisement_rejection',
-          caseNumber: '۱۴۰۲/۱۱/۱۱۵'
-        },
-        {
-          id: 3,
-          trackingCode: '۱۴۰۲/۱۱/۰۸۹۵',
-          subject: 'اعتراض به تخلفات انتخاباتی',
-          status: 'approved',
-          submittedDate: '۱۴۰۲/۱۰/۲۸',
-          lastUpdate: '۱۴۰۲/۱۱/۰۸',
-          preview: 'بررسی اعتراض تکمیل و درخواست شما پذیرفته شد...',
-          documentsCount: 5,
-          decisionType: 'voting_irregularity',
-          caseNumber: '۱۴۰۲/۱۱/۱۱۰',
-          response: 'با توجه به مدارک ارائه شده، اعتراض شما وارد تشخیص داده شد. دستورات لازم برای رسیدگی صادر گردید.',
-          responseDate: '۱۴۰۲/۱۱/۰۸',
-          responseOfficer: 'دکتر سید حسن موسوی'
-        }
       ]
     }
   },
@@ -998,20 +964,20 @@ export default {
       //   isValid = false
       // }
 
-      if (!this.complaintData.subject.trim()) {
-        this.formState.subject = false
-        isValid = false
-      }
+      // if (!this.complaintData.subject.trim()) {
+      //   this.formState.subject = false
+      //   isValid = false
+      // }
 
       if (!this.complaintData.description.trim() || this.complaintData.description.length < 50) {
         this.formState.description = false
         isValid = false
       }
 
-      // if (this.uploadedFiles.length === 0) {
-      //   this.formState.documents = false
-      //   isValid = false
-      // }
+      if (this.uploadedFiles.length === 0) {
+        this.formState.documents = false
+        isValid = false
+      }
 
       if (!this.complaintData.declaration) {
         this.formState.declaration = false
@@ -1202,7 +1168,8 @@ export default {
         const item = response.data[0]
         this.trackingResult = {
           trackingCode: item.trackingCode,
-          subject: item.subject,
+          // subject: item.subject,
+          subject: "-",
           status: item.status,
           submittedDate: item.submittedDate,
           lastUpdate: item.lastUpdate,

@@ -21,7 +21,7 @@
           با کد ملی <strong>{{ currentUser.national_id }}</strong>
           و کد پرسنلی <strong>{{ currentUser.personnel_code }}</strong>
           با آخرین پست <strong>{{ currentUser.orgPositionDesc }}</strong>
-          متقاضی ثبت‌نام در انتخابات می‌باشم.
+          متقاضی ثبت‌نام در انتخابات در حوزه انتخابیه {{ currentUser.orgPositionDesc }} می‌باشم و اذعان می‌نمایم قبلا در این سامانه اعلام داوطلبی ننموده‌ام.
         </b-form-checkbox>
 
         <hr />
@@ -143,31 +143,25 @@ export default {
       conditions: [
         {
           key: 'membership',
-          label: 'استعلام عضویت فعال در صندوق ذخیره فرهنگیان',
+          label: 'استعلام عضویت در صندوق ذخیره فرهنگیان',
           state: 'checking',
           reason: ''
         },
         {
           key: 'duration',
-          label: 'حداقل یک سال سابقه عضویت',
-          state: 'checking',
-          reason: ''
-        },
-        {
-          key: 'degree',
-          label: 'مدرک تحصیلی حداقل کارشناسی',
+          label: 'دارا بودن حداقل یک سال تمام سابقه عضویت در صندوق',
           state: 'checking',
           reason: ''
         },
         {
           key: 'region',
-          label: 'شناسایی منطقه کاربر',
+          label: 'پرسشنامه داوطلبی عکس‌دار',
           state: 'checking',
           reason: ''
         },
         {
           key: 'notRegistered',
-          label: 'عدم ثبت‌نام قبلی',
+          label: 'تکمیل و امضای فرم تعهد ویژه التزام به شفافیت و عدم تعارض منافع',
           state: 'checking',
           reason: ''
         }

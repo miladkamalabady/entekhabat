@@ -53,11 +53,11 @@
         <div class="progress-steps">
           <div class="step" :class="{ active: currentStep >= 1, completed: currentStep > 1 }">
             <span class="step-number">1</span>
-            <span class="step-label">مشاهده کاندیداها</span>
+            <span class="step-label">مشاهده فهرست داوطلبان حوزه انتخابیه</span>
           </div>
           <div class="step" :class="{ active: currentStep >= 2, completed: currentStep > 2 }">
             <span class="step-number">2</span>
-            <span class="step-label">انتخاب کاندیدا</span>
+            <span class="step-label">برگ رای</span>
           </div>
           <div class="step" :class="{ active: currentStep >= 3, completed: currentStep > 3 }">
             <span class="step-number">3</span>
@@ -74,10 +74,10 @@
       <div v-if="currentStep === 1 && electionStatusAll === 'active'" class="step-container">
         <b-card>
           <div class="text-center mb-4">
-            <h4>لیست کاندیداهای انتخابات</h4>
-            <p v-if="maxVotes" class="text-muted">لطفاً اطلاعات کاندیداها را مطالعه کنید<br />
-              تعداد حداکثر کاندید انتخابی در حوزه <u class="text-success">{{ currentUser?.regionName }}</u> تعداد <u
-                class="text-success">{{ maxVotes }}</u> کاندید می‌باشد</p>
+            <h4>فهرست داوطلبان انتخابات در حوزه انتخابیه {{ currentUser?.regionName }}</h4>
+            <p v-if="maxVotes" class="text-muted">لطفاً اطلاعات را مطالعه کنید<br />
+              تعداد حداکثر داوطلب انتخابی در حوزه <u class="text-success">{{ currentUser?.regionName }}</u> تعداد <u
+                class="text-success">{{ maxVotes }}</u> نفر می‌باشد</p>
           </div>
 
           <div class="candidates-filter mb-4">
@@ -153,9 +153,9 @@
             <div class="confirmation-section mt-1">
               <b-alert variant="warning" show class="text-center">
                 <h5 class="alert-heading">بازبینی و تأیید نهایی رأی</h5>
-                <p class="mb-3"> شما افراد زیر را برای عضویت در هیئت مدیره صندوق ذخیره فرهنگیان انتخاب کرده‌اید. لطفاً
-                  لیست را
-                  با دقت بررسی نمایید. پس از ثبت، امکان تغییر رأی وجود نخواهد داشت. </p>
+                <p class="mb-3"> شما افراد زیر را برای عضویت در هیأت امنا صندوق ذخیره فرهنگیان انتخاب کرده‌اید. لطفاً
+                  فهرست انتخابی را
+                  با دقت بررسی نمایید. پس از ثبت نهایی، امکان تغییر رأی وجود نخواهد داشت. </p>
 
                 <!-- لیست انتخاب‌ها -->
                 <div class="selected-review-box mb-4">
@@ -247,18 +247,19 @@
               <b-icon icon="check-circle-fill"></b-icon>
             </div>
             <h3 class="mt-4 mb-3">رأی شما با موفقیت ثبت شد!</h3>
-            <p class="lead mb-4">از مشارکت شما در انتخابات صندوق ذخیره فرهنگیان سپاسگزاریم.</p>
+            <p class="lead mb-4">از مشارکت شما در این انتخابات سپاسگزاریم.</p>
 
             <div class="vote-summary">
               <b-card class="summary-card">
                 <b-row>
                   <b-col md="6">
+                    
                     <div class="summary-item">
-                      <strong>شماره پیگیری:</strong>
-                      <span class="tracking-number">{{ voteTrackingCode }}</span>
+                      <strong>کدملی رأی‌دهنده:</strong>
+                      <span>{{ currentUser?.national_id }}</span>
                     </div>
                     <div class="summary-item">
-                      <strong>تاریخ رأی‌گیری:</strong>
+                      <strong>زمان رأی‌گیری:</strong>
                       <span>{{ voteDate }}</span>
                     </div>
                     <div class="summary-item">
@@ -268,17 +269,17 @@
                   </b-col>
                   <b-col md="6">
                     <div class="summary-item">
-                      <strong>کاندیدای انتخاب شده:</strong>
+                      <strong>داوطلب/داوطلبان انتخاب شده:</strong>
                       <span v-for="(cid, i) in selectedCandidate" :key="`${i}a`">{{ cid?.first_name }} {{ cid?.last_name
                       }}<br /></span>
                     </div>
                     <div class="summary-item">
-                      <strong>کد کاندیدای انتخاب شده:</strong>
+                      <strong>کد داوطلب/داوطلبان انتخاب شده:</strong>
                       <span v-for="(cid, i) in selectedCandidate" :key="`${i}b`">{{ cid?.codeentekhabati }}</span>
                     </div>
                     <div class="summary-item">
-                      <strong>کدملی رأی‌دهنده:</strong>
-                      <span>{{ currentUser?.national_id }}</span>
+                      <strong>شماره پیگیری:</strong>
+                      <span class="tracking-number">{{ voteTrackingCode }}</span>
                     </div>
                   </b-col>
                 </b-row>

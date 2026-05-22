@@ -17,7 +17,7 @@
         <b-col cols="12" md="4" class="text-left text-md-right">
           <div class="supervisor-info">
             <div class="supervisor-name">{{ currentUser.full_name }}</div>
-            <div class="supervisor-role">{{ supervisor.role }}</div>
+            <div class="supervisor-role">{{ supervisor.role }} - {{ currentUser.regionName }} ({{ currentUser?.regionId }})</div>
             <div class="supervisor-stats">
               <b-badge variant="info" class="mr-2">
                 {{ pendingCount }} در انتظار
@@ -47,6 +47,18 @@
                     </b-form-group>
                   </b-col>
                   <b-col md="4">
+                    <b-form-group label="فیلتر بر اساس جنسیت">
+                      <b-form-select v-model="docFilters.gender" :options="genderStatusOptions"
+                        @change="filterDocuments"></b-form-select>
+                    </b-form-group>
+                  </b-col>
+                  <b-col md="4">
+                    <b-form-group label="فیلتر بر اساس شاغل">
+                      <b-form-select v-model="docFilters.shaghel" :options="shaghelStatusOptions"
+                        @change="filterDocuments"></b-form-select>
+                    </b-form-group>
+                  </b-col>
+                  <b-col md="4">
                     <b-form-group label="جستجو نام کاندیدا">
                       <b-input-group>
                         <template #prepend>
@@ -59,6 +71,7 @@
                       </b-input-group>
                     </b-form-group>
                   </b-col>
+                  
                   <b-col md="4">
                     <b-form-group label="مرتب‌سازی">
                       <b-form-select v-model="docFilters.sortBy" :options="docSortOptions"
@@ -419,13 +432,14 @@
         </div>
 
         <!-- View-only Note -->
-        <div v-if="selectedCandidate.requestStatus === 'SUBMITTED'" class="final-decision">
+        <div v-if="selectedCandidate.requestStatus === 'SUBMITTED' || selectedCandidate.requestStatus === 'EXECUTIVE_REJECTED'" class="final-decision">
           <b-alert variant="warning" show>
-            <h6 class="alert-heading">تصمیم نهایی</h6>
-            <p class="mb-2">بعد از بررسی مدارک، کاندیدا را به کارتابل نظارت منتقل کنید تا تصمیم نهایی در نظارت ثبت شود.
+            <h6 class="alert-heading">بررسی مدارک</h6>
+            <p v-if="selectedCandidate.requestStatus === 'SUBMITTED'" class="mb-2">بعد از بررسی مدارک، در صورت تایید کاندید را به کارتابل نظارت منتقل کنید.
             </p>
+            <p v-else class="mb-2">شما قبلا مدارک این کاندید را رد کرده اید!</p>
 
-            <b-form-group label="نظر نهایی" label-for="final-comment">
+            <b-form-group label-for="final-comment">
               <b-form-textarea id="final-comment" v-model="finalComment" rows="2"
                 placeholder="نظر نهایی را وارد کنید..."></b-form-textarea>
             </b-form-group>
@@ -435,9 +449,9 @@
                 <b-icon icon="arrow-left-right" class="ml-1"></b-icon>
                 انتقال به کارتابل نظارت
               </b-button>
-              <b-button variant="danger" @click="rejectCandidate(selectedCandidate)" :disabled="!finalComment">
+              <b-button  variant="danger" @click="rejectCandidate(selectedCandidate)" :disabled="!finalComment">
                 <b-icon icon="x-circle" class="ml-1"></b-icon>
-                رد مدارک
+              {{ selectedCandidate.requestStatus === 'SUBMITTED' ? 'رد مدارک' :'تصحیح پیام و رد مدارک'}}
               </b-button>
             </div>
           </b-alert>
@@ -589,7 +603,7 @@
 </template>
 
 <script>
-import { apiUrlrtb } from '../../constants/config'
+import { apiUrlrtb, currentUser } from '../../constants/config'
 
 import Chart from 'chart.js';
 import { isMobile } from "../../utils";
@@ -612,6 +626,8 @@ export default {
       // Filters
       docFilters: {
         status: 'all',
+        gender:'all',
+        shaghel:'all',
         search: '',
         sortBy: 'newest'
       },
@@ -627,6 +643,14 @@ export default {
         { value: 'SUBMITTED', text: 'در انتظار' },
         { value: 'EXECUTIVE_APPROVED', text: 'تایید شده اجرایی' },
         { value: 'EXECUTIVE_REJECTED', text: 'رد شده اجرایی' }
+      ],genderStatusOptions: [
+        { value: 'all', text: 'همه' },
+        { value: '1', text: 'آقا' },
+        { value: '2', text: 'خانم' },
+      ],shaghelStatusOptions: [
+        { value: 'all', text: 'همه' },
+        { value: '3', text: 'شاغل' },
+        { value: '4', text: 'بازنشسته' },
       ],
       docSortOptions: [
         { value: 'newest', text: 'جدیدترین' },
@@ -738,6 +762,12 @@ export default {
       // Filter by status
       if (this.docFilters.status !== 'all') {
         filtered = filtered.filter(candidate => candidate.requestStatus === this.docFilters.status);
+      }
+      if (this.docFilters.gender !== 'all') {
+        filtered = filtered.filter(candidate => candidate.gender === this.docFilters.gender);
+      }
+      if (this.docFilters.shaghel !== 'all') {
+        filtered = filtered.filter(candidate => candidate.user_type === this.docFilters.shaghel);
       }
       // Filter by search
       if (this.docFilters.search) {

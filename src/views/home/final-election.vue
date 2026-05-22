@@ -134,7 +134,7 @@
         <div class="victory-message text-center mt-4">
           <b-alert variant="success" show class="d-inline-block">
             <h5 class="alert-heading mb-2">پیروزی با {{ winner.name.split(' ')[1] }}!</h5>
-            <p class="mb-0">با کسب {{ winner.percentage }}% از آراء به عنوان عضو جدید هیئت مدیره صندوق ذخیره فرهنگیان
+            <p class="mb-0">با کسب {{ winner.percentage }}% از آراء به عنوان عضو جدید صندوق ذخیره فرهنگیان
               انتخاب شدند.</p>
           </b-alert>
         </div>

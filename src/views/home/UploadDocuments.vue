@@ -19,7 +19,7 @@
             <b-colxx xxs="12" xs="4">
               <document-upload title="عکس پرسنلی" :file.sync="files.photo" />
             </b-colxx>
-            <b-colxx xxs="12" xs="4" v-if="currentUser?.userType == 4">
+            <b-colxx xxs="12" xs="4" >
               <document-upload title="مدرک تحصیلی" :file.sync="files.degree" />
             </b-colxx>
             <!-- <b-colxx xxs="12" xs="4">
@@ -29,7 +29,7 @@
               <document-upload title="گواهی عدم سوپیشینه" :file.sync="files.soPishine" />
             </b-colxx>
             <b-colxx xxs="12" xs="4">
-              <document-upload title="برخورداری از سلامت جسمی و روانی کامل " :file.sync="files.ravan" />
+              <document-upload title="گواهی برخورداری از سلامت جسمی و روانی کامل " :file.sync="files.ravan" />
               <label class="small text-justify">برخورداری از سلامت جسمی و روانی کامل (نداشتن اعتیاد به مواد مخدر یا روان
                 گردان و هرگونه سابقه بیماری یا نقص عضوی که مانع از انجام وظایف نمایندگی اعضا در هیئت امنا باشد.)
               </label>
@@ -63,9 +63,7 @@ export default {
     ...mapGetters(["UploadUserDocumentsInfo", "currentUser"]),
     canSubmit() {
       const requiredFields = Object.keys(this.files).filter(key => {
-        if (key === 'degree' && this.currentUser?.userType != 4) {
-          return false;
-        }
+        
         return true;
       });
 
@@ -112,7 +110,6 @@ export default {
       try {
         const formData = new FormData();
         formData.append("user_photo", this.files.photo.raw);
-        if (this.currentUser?.userType == 4)
           formData.append("education_doc", this.files.degree.raw);
         // formData.append("employment_cert", this.files.noAddiction.raw);
         formData.append("soPishine_cert", this.files.soPishine.raw);
