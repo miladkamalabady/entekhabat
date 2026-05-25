@@ -17,8 +17,7 @@
         <b-col cols="12" md="4" class="text-left text-md-right">
           <div class="supervisor-info">
             <div class="supervisor-name">{{ currentUser.full_name }}</div>
-            <div class="supervisor-role">{{ supervisor.role }} - {{ currentUser.regionName }} ({{ currentUser?.regionId
-            }})</div>
+            <div class="supervisor-role">{{ supervisor.role }} - {{ currentUser.regionName }} ({{ currentUser?.regionId }})</div>
             <div class="supervisor-stats">
               <b-badge variant="info" class="mr-2">
                 {{ pendingCount }} در انتظار
@@ -91,8 +90,7 @@
                         <img :src="`${apiUrlrtb}/${data.item.user_photo}` || '/default-avatar.png'"
                           class="candidate-avatar mr-2" alt="عکس کاندیدا" />
                         <div>
-                          <div class="font-weight-bold">{{ data.item.first_name }} {{ data.item.last_name }} ({{
-                            data.item.codeentekhabati }})</div>
+                          <div class="font-weight-bold">{{ data.item.first_name }} {{ data.item.last_name }} ({{ data.item.codeentekhabati }})</div>
                           <small class="text-muted">{{ data.item.org_position_desc || '-' }}</small>
 
                         </div>
@@ -195,7 +193,7 @@
                     </b-badge>
                   </template>
                   <template #cell(createdBy)="data">
-                    {{ data.item.first_name }} {{ data.item.last_name }} ({{ data.item.codeentekhabati }})<br />
+                    {{ data.item.first_name }} {{ data.item.last_name }} ({{ data.item.codeentekhabati }})<br/>
                     {{ data.item.nationalId }}
                   </template>
                   <!-- Actions Column -->
@@ -211,7 +209,7 @@
             </div>
           </b-tab>
 
-          <b-tab title="آمار و گزارشات">
+          <b-tab title="آمار و گزارشات" v-if="false">
             <div class="p-3">
               <!-- Statistics Cards -->
               <b-row class="mb-4">
@@ -293,106 +291,6 @@
               </b-card>
             </div>
           </b-tab>
-
-          <!-- تب اعتراضات - جدید -->
-          <b-tab title="اعتراضات">
-            <div class="p-3">
-              <!-- فیلترها -->
-              <b-card class="mb-4">
-                <b-row>
-                  <b-col md="4">
-                    <b-form-group label="فیلتر بر اساس وضعیت">
-                      <b-form-select v-model="objectionFilters.status" :options="objectionStatusOptions"
-                        @change="loadObjections"></b-form-select>
-                    </b-form-group>
-                  </b-col>
-                  <b-col md="4">
-                    <b-form-group label="جستجو">
-                      <b-input-group>
-                        <template #prepend>
-                          <b-input-group-text>
-                            <b-icon icon="search"></b-icon>
-                          </b-input-group-text>
-                        </template>
-                        <b-form-input v-model="objectionFilters.search" placeholder="جستجو در کد پیگیری یا نام..."
-                          @input="loadObjections"></b-form-input>
-                      </b-input-group>
-                    </b-form-group>
-                  </b-col>
-                </b-row>
-              </b-card>
-
-              <!-- لیست اعتراضات -->
-              <div v-if="objectionsList.length > 0">
-                <div class="table-responsive">
-                  <b-table :items="objectionsList" :fields="objectionFields" striped hover class="text-right"
-                    style="overflow: scroll;">
-
-                    <!-- ستون اطلاعات اعتراض -->
-                    <template #cell(info)="data">
-                      <div>
-                        <div class="font-weight-bold">{{ data.item.subject || 'اعتراض' }}</div>
-                        <small class="text-muted">کد پیگیری: {{ data.item.trackingCode }}</small>
-                        <div class="mt-1">
-                          <small class="text-muted">تاریخ ثبت: {{ data.item.submittedDate }}</small>
-                        </div>
-                      </div>
-                    </template>
-
-                    <!-- ستون شرح اعتراض -->
-                    <template #cell(description)="data">
-                      <div class="objection-preview">
-                        {{ data.item.description?.substring(0, 20) }}...
-                        <b-button variant="link" size="sm" @click="viewObjectionDetails(data.item)" class="p-0 mr-1">
-                          مشاهده کامل
-                        </b-button>
-                      </div>
-                    </template>
-
-                    <!-- ستون مدارک -->
-                    <template #cell(documents)="data">
-                      <div class="documents-badge">
-                        <b-badge variant="info" class="mr-1">
-                          <b-icon icon="file-earmark"></b-icon>
-                          {{ data.item.documentsCount || 0 }} فایل
-                        </b-badge>
-                      </div>
-                    </template>
-
-                    <!-- ستون وضعیت -->
-                    <template #cell(status)="data">
-                      <b-badge :variant="getObjectionStatusVariant(data.item.status)">
-                        {{ getObjectionStatusText(data.item.status) }}
-                      </b-badge>
-                    </template>
-
-                    <!-- ستون عملیات -->
-                    <template #cell(actions)="data">
-                      <b-button-group size="sm">
-                        <b-button variant="outline-info" @click="viewObjectionDetails(data.item)" title="مشاهده جزئیات">
-                          <b-icon icon="eye"></b-icon>
-                        </b-button>
-                        <b-button v-if="data.item.status === 'pending'" variant="outline-success"
-                          @click="approveObjection(data.item)" title="تایید اعتراض">
-                          <b-icon icon="check-circle"></b-icon>
-                        </b-button>
-                        <b-button v-if="data.item.status === 'pending'" variant="outline-danger"
-                          @click="rejectObjection(data.item)" title="رد اعتراض">
-                          <b-icon icon="x-circle"></b-icon>
-                        </b-button>
-                      </b-button-group>
-                    </template>
-                  </b-table>
-                </div>
-              </div>
-
-              <div v-else class="text-center py-5">
-                <b-icon icon="inbox" font-scale="4" variant="secondary"></b-icon>
-                <h5 class="mt-3">هیچ اعتراضی یافت نشد</h5>
-                <p class="text-muted">هیچ اعتراضی با فیلترهای انتخاب شده وجود ندارد.</p>
-              </div>
-            </div>
-          </b-tab>
         </b-tabs>
       </b-card>
     </b-container>
@@ -464,147 +362,115 @@
     </b-modal>
 
     <!-- Candidate Details Modal -->
-    <!-- Candidate Details Modal - نسخه اصلاحی با چک‌لیست شروط -->
     <b-modal v-model="showCandidateModal"
-      :title="`بررسی صلاحیت - ${selectedCandidate?.first_name} ${selectedCandidate?.last_name}`" size="lg" hide-footer
-      centered scrollable dialog-class="candidate-review-modal">
-
-      <div v-if="selectedCandidate" class="candidate-details-review">
-
-        <!-- اطلاعات پایه کاندیدا -->
-        <div class="candidate-info-header">
-          <div class="candidate-avatar-sm">
-            <img :src="`${apiUrlrtb}/${selectedCandidate.user_photo}`" v-if="selectedCandidate.user_photo" />
-            <b-icon icon="person-circle" v-else font-scale="3"></b-icon>
-          </div>
-          <div class="candidate-info-text">
-            <h4>{{ selectedCandidate.first_name }} {{ selectedCandidate.last_name }}</h4>
-            <div class="info-row">
-              <span>کد انتخاباتی:</span>
-              <strong>{{ selectedCandidate.codeentekhabati }}</strong>
-            </div>
-            <div class="info-row">
-              <span>حوزه انتخابیه:</span>
-              <strong>{{ selectedCandidate.regname || selectedCandidate.regionName }}</strong>
-            </div>
-            <div class="info-row">
-              <span>سمت:</span>
-              <strong>{{ selectedCandidate.org_position_desc }}</strong>
-            </div>
-          </div>
-        </div>
-
-        <hr />
-
-        <!-- نمایش خلاصه مدارک (فقط مشاهده) -->
-        <div class="documents-summary-view">
-          <h6 class="section-title">📎 مدارک ارسال شده (تایید شده توسط هیأت اجرایی)</h6>
-          <div class="docs-thumbnails">
-            <div v-for="doc in getCandidateDocuments(selectedCandidate)" :key="doc.key" class="doc-thumb-item"
-              @click="viewDocument(selectedCandidate, doc.key, doc.path, doc.label, selectedCandidate.create_datesh)">
-              <img v-if="isImageFile(doc.path)" :src="apiUrlrtb + '/' + doc.path" class="thumb-img" />
-              <div v-else class="thumb-placeholder">
-                <b-icon icon="file-earmark"></b-icon>
-              </div>
-              <span class="thumb-label">{{ doc.label }}</span>
-            </div>
-            <div v-if="getCandidateDocuments(selectedCandidate).length === 0" class="text-muted">
-              مدرکی ارسال نشده است
-            </div>
-          </div>
-        </div>
-
-        <hr />
-
-        <!-- چک‌لیست شروط برای تایید صلاحیت -->
-        <div class="conditions-checklist">
-          <h6 class="section-title">⚖️ شروط احراز صلاحیت</h6>
-          <p class="section-desc">لطفاً هر شرط را به صورت جداگانه بررسی و تایید یا رد نمایید.</p>
-
-          <div class="conditions-list">
-            <div v-for="condition in conditionsList" :key="condition.key" class="condition-item"
-              :class="{ 'rejected': conditionReviews[condition.key] === 'rejected' }">
-              <div class="condition-content">
-                <div class="condition-icon">
-                  <b-icon :icon="condition.icon"></b-icon>
+      :title="`جزئیات کاندیدا - ${selectedCandidate?.first_name} ${selectedCandidate?.last_name}`" size="lg" hide-footer
+      centered scrollable>
+      <div v-if="selectedCandidate" class="candidate-details">
+        <!-- Basic Info -->
+        <div class="basic-info mb-4">
+          <b-row class="align-items-center">
+            <!-- <b-col md="4" class="text-center">
+              <img :src="`${apiUrlrtb}/${selectedCandidate.user_photo}` || '/default-avatar.png'"
+                class="candidate-photo" alt="عکس کاندیدا" />
+            </b-col> -->
+            <b-col md="12">
+              <h4>{{ selectedCandidate.first_name }} {{ selectedCandidate.last_name }}</h4>
+              <!-- <p class="text-muted">{{ getCandidateValue(selectedCandidate, ['constituency', 'electoral_district',
+                'hoze'])
+              }}</p> -->
+              <div class="candidate-meta">
+                <div class="meta-item">
+                  <strong>نام و نام خانوادگی داوطلب:</strong>
+                  {{ selectedCandidate.first_name }} {{ selectedCandidate.last_name }}
                 </div>
-                <div class="condition-text">
-                  <div class="condition-title">{{ condition.title }}</div>
-                  <div class="condition-desc">{{ condition.description }}</div>
+                <div class="meta-item">
+                  <strong>حوزه انتخابیه:</strong>
+                  {{ getCandidateValue(selectedCandidate, ['regname']) }} ({{  getCandidateValue(selectedCandidate, ['region_id']) }} )
+                </div>
+                <div class="meta-item">
+                  <strong>وضعیت اشتغال:</strong>
+                  {{ getEmploymentStatusText(selectedCandidate) }}
                 </div>
               </div>
-              <div class="condition-actions">
-                <button class="condition-btn approve"
-                  :class="{ active: conditionReviews[condition.key] === 'approved' }"
-                  @click="setConditionReview(condition.key, 'approved')">
-                  <b-icon icon="check-circle"></b-icon>
-                  <span>تایید</span>
-                </button>
-                <button class="condition-btn reject" :class="{ active: conditionReviews[condition.key] === 'rejected' }"
-                  @click="setConditionReview(condition.key, 'rejected')">
-                  <b-icon icon="x-circle"></b-icon>
-                  <span>رد</span>
-                </button>
+              <div class="meta-item">
+                <strong>پست:</strong>
+                {{ getCandidateValue(selectedCandidate, ['org_position_desc', 'position', 'post']) }}
               </div>
-            </div>
-          </div>
+              <div class="meta-item">
+                <strong>سنوات:</strong>
+                {{ getCandidateValue(selectedCandidate, ['yearsOfService', 'senavat', 'service_years']) }}
+              </div>
+              <div class="meta-item">
+                <strong>سال تولد:</strong>
+                {{ getCandidateValue(selectedCandidate, ['birth_year', 'persian_birth_date', 'birthDateYear']) }}
+              </div>
+              <div class="meta-item">
+                <strong>مدرک تحصیلی:</strong>
+                {{ getCandidateValue(selectedCandidate, ['education_level', 'education', 'degree']) }}
+              </div>
+              
+              <div class="table-responsive">
+                <div class="document-details mt-4" v-for="review in getCandidateDocuments(selectedCandidate)"
+                  :key="review.key">
+                  <b-row>
+                    <b-col md="6">
+                      <div v-if="isImageFile(review.path)" class="image-viewer text-center">
+                        <img :src="apiUrlrtb + '/' +review.path" class="img-fluid " style="max-width:200px"
+                          :alt="review.path" />
+                      </div>
+                    </b-col>
+                    <b-col md="6">
+                      <div class="detail-item">
+                        <strong>نام فایل:</strong>
+                        <span>{{ review.label }}</span>
+                      </div>
+                    </b-col>
+                  </b-row>
+                </div>
+              </div>
 
-          <!-- خلاصه وضعیت بررسی -->
-          <div class="review-summary">
-            <div class="summary-stats">
-              <span class="stat approved">✓ تایید شده: {{ approvedConditionsCount }}</span>
-              <span class="stat rejected" v-if="rejectedConditionsCount > 0">✗ رد شده: {{ rejectedConditionsCount
-              }}</span>
-              <span class="stat pending" v-if="pendingConditionsCount > 0">⏳ در انتظار: {{ pendingConditionsCount
-              }}</span>
-            </div>
-            <div class="summary-message" v-if="rejectedConditionsCount > 0">
-              <b-icon icon="exclamation-triangle-fill" variant="warning"></b-icon>
-              <span class="text-warning">با توجه به رد {{ rejectedConditionsCount }} شرط، امکان تایید صلاحیت وجود
-                ندارد.</span>
-            </div>
-            <div class="summary-message" v-else-if="pendingConditionsCount > 0">
-              <b-icon icon="info-circle-fill" variant="info"></b-icon>
-              <span class="text-info">لطفاً تمام شروط را بررسی کنید.</span>
-            </div>
-            <div class="summary-message" v-else>
-              <b-icon icon="check-circle-fill" variant="success"></b-icon>
-              <span class="text-success">تمامی شروط تایید شده است.</span>
-            </div>
-          </div>
+              <div class="meta-item" v-if="selectedCandidate.reson">
+                <b-icon icon="chat-left-text" class="ml-1"></b-icon>
+                نظر نهایی: {{ selectedCandidate.reson }}
+              </div>
+              <div class="meta-item" v-if="selectedCandidate.edited_at_sh">
+                <b-icon icon="clock-history" class="ml-1"></b-icon>
+                تاریخ آخرین ویرایش نظر: {{ selectedCandidate.edited_at_sh }}
+              </div>
+            </b-col>
+          </b-row>
         </div>
 
-        <hr />
+        <!-- Final Decision -->
+        <b-badge :variant="getStatusVariant(selectedCandidate.requestStatus)">
+         وضعیت کنونی: {{ getStatusText(selectedCandidate.requestStatus) }}
+        </b-badge>
+        <div class="final-decision" v-if="selectedCandidate.requestStatus !== 'SUBMITTED'">
+          <b-alert variant="warning" show>
+            <!-- <h6 class="alert-heading">تصمیم</h6> -->
+            <!-- <p>پس از بررسی تمام مدارک، تصمیم را در مورد صلاحیت این کاندیدا بگیرید.</p> -->
 
-        <!-- نظر نهایی -->
-        <div class="final-decision-section">
-          <b-form-group label="📝 نظر هیأت نظارت" label-for="final-comment">
-            <b-form-textarea id="final-comment" v-model="finalComment" rows="2"
-              placeholder="خلاصه نظر هیأت را وارد کنید..."></b-form-textarea>
-          </b-form-group>
+            <b-form-group label="نظر هیأت نظارت" label-for="final-comment">
+              <b-form-textarea id="final-comment" v-model="finalComment" rows="2"
+                placeholder="خلاصه نظر هیأت را وارد کنید..."></b-form-textarea>
+            </b-form-group>
 
-          <div class="decision-buttons">
-            <b-button variant="success" size="lg" class="decision-btn"
-              :disabled="!isAllConditionsApproved || !finalComment || submitting"
-              @click="approveCandidate(selectedCandidate)">
-              <b-spinner small v-if="submitting" class="ml-1"></b-spinner>
-              <template v-else>
+            <div class="text-center mt-3">
+              <b-button variant="success" v-if="selectedCandidate.requestStatus !== 'SUPERVISION_APPROVED'" class="mr-3" @click="approveCandidate(selectedCandidate)"
+                :disabled="!finalComment">
                 <b-icon icon="check-circle" class="ml-1"></b-icon>
                 تایید صلاحیت
-              </template>
-            </b-button>
-
-            <b-button variant="danger" size="lg" class="decision-btn"
-              :disabled="rejectedConditionsCount === 0 || !finalComment || submitting"
-              @click="rejectCandidateWithDetails(selectedCandidate)">
-              <b-spinner small v-if="submitting" class="ml-1"></b-spinner>
-              <template v-else>
+              </b-button>
+              <b-button variant="danger" v-if="selectedCandidate.requestStatus !== 'SUPERVISION_REJECTED'" @click="rejectCandidate(selectedCandidate)" :disabled="!finalComment">
                 <b-icon icon="x-circle" class="ml-1"></b-icon>
                 رد صلاحیت
-              </template>
-            </b-button>
-          </div>
+              </b-button>
+            </div>
+          </b-alert>
         </div>
+        <b-alert v-else-if="selectedCandidate.requestStatus == 'SUBMITTED'" variant="info" show>
+          این کاندیدا هنوز از کارتابل اجرایی به کارتابل نظارت منتقل نشده است و امکان تایید یا رد وجود ندارد.
+        </b-alert>
       </div>
     </b-modal>
 
@@ -723,122 +589,7 @@
         </div>
       </div>
     </b-modal>
-    <!-- Modal Objection Details -->
-    <b-modal v-model="showObjectionModal" title="جزئیات اعتراض" size="lg" hide-footer centered scrollable>
-      <div v-if="selectedObjection" class="objection-details-modal">
-        <div class="objection-header">
-          <div class="d-flex justify-content-between align-items-start">
-            <div>
-              <h5>{{ selectedObjection.subject || 'اعتراض' }}</h5>
-              <div class="objection-meta">
-                <b-badge :variant="getObjectionStatusVariant(selectedObjection.status)" class="ml-2">
-                  {{ getObjectionStatusText(selectedObjection.status) }}
-                </b-badge>
-                <small class="text-muted mr-3">
-                  <b-icon icon="calendar" class="ml-1"></b-icon>
-                  تاریخ ثبت: {{ selectedObjection.submittedDate }}
-                </small>
-              </div>
-            </div>
-            <div class="text-left">
-              <small class="text-muted d-block">کد پیگیری:</small>
-              <strong class="tracking-code">{{ selectedObjection.trackingCode }}</strong>
-            </div>
-          </div>
-        </div>
 
-        <hr />
-
-        <div class="objection-body">
-          <h6 class="section-title">شرح اعتراض</h6>
-          <div class="description-box">
-            {{ selectedObjection.description }}
-          </div>
-
-          <!-- مدارک ضمیمه -->
-          <div v-if="selectedObjection.documents && selectedObjection.documents.length > 0" class="mt-4">
-            <h6 class="section-title">مدارک ضمیمه ({{ selectedObjection.documents.length }} فایل)</h6>
-            <div class="documents-list-objection">
-              <div v-for="(doc, index) in selectedObjection.documents" :key="index" class="document-item-objection">
-                <div class="document-info">
-                  <b-icon :icon="getFileIcon(doc)" class="ml-2"></b-icon>
-                  <span>{{ doc.name || doc.file_name }}</span>
-                  <small class="text-muted mr-2">{{ formatFileSize(doc.size) }}</small>
-                </div>
-                <div class="document-actions">
-                  <b-button size="sm" variant="outline-primary" :href="getDocumentUrl(doc)" target="_blank">
-                    <b-icon icon="eye"></b-icon>
-                    مشاهده
-                  </b-button>
-                  <b-button size="sm" variant="outline-success" :href="getDocumentUrl(doc)" download class="mr-2">
-                    <b-icon icon="download"></b-icon>
-                    دانلود
-                  </b-button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- بررسی اعتراض (در صورت در انتظار بودن) -->
-          <div v-if="selectedObjection.status === 'pending'" class="review-section mt-4">
-            <h6 class="section-title">بررسی اعتراض</h6>
-            <b-form-group label="نظر هیأت نظارت" label-for="objection-comment">
-              <b-form-textarea id="objection-comment" v-model="objectionReviewComment" rows="3"
-                placeholder="نظر خود را در مورد این اعتراض وارد کنید..."></b-form-textarea>
-            </b-form-group>
-            <div class="text-center">
-              <b-button variant="success" class="mr-3" @click="approveObjection(selectedObjection)">
-                <b-icon icon="check-circle" class="ml-1"></b-icon>
-                تایید اعتراض
-              </b-button>
-              <b-button variant="danger" @click="rejectObjection(selectedObjection)">
-                <b-icon icon="x-circle" class="ml-1"></b-icon>
-                رد اعتراض
-              </b-button>
-            </div>
-          </div>
-
-          <!-- نتیجه بررسی (در صورت تایید/رد شده) -->
-          <div v-if="selectedObjection.status === 'approved' && selectedObjection.responseText"
-            class="response-section mt-4">
-            <b-alert variant="success" show>
-              <div class="response-header mb-2">
-                <strong>نتیجه بررسی:</strong>
-                <small class="mr-3">{{ selectedObjection.responseAt || selectedObjection.lastUpdate }}</small>
-              </div>
-              <div class="response-content">
-                {{ selectedObjection.responseText }}
-              </div>
-              <div v-if="selectedObjection.responseBy" class="response-officer mt-2">
-                <small>بررسی توسط: {{ selectedObjection.responseBy }}</small>
-              </div>
-            </b-alert>
-          </div>
-
-          <div v-if="selectedObjection.status === 'rejected' && selectedObjection.responseText"
-            class="response-section mt-4">
-            <b-alert variant="danger" show>
-              <div class="response-header mb-2">
-                <strong>نتیجه بررسی:</strong>
-                <small class="mr-3">{{ selectedObjection.responseAt || selectedObjection.lastUpdate }}</small>
-              </div>
-              <div class="response-content">
-                {{ selectedObjection.responseText }}
-              </div>
-              <div v-if="selectedObjection.responseBy" class="response-officer mt-2">
-                <small>بررسی توسط: {{ selectedObjection.responseBy }}</small>
-              </div>
-            </b-alert>
-          </div>
-        </div>
-
-        <div class="modal-footer-actions mt-4">
-          <b-button variant="outline-secondary" @click="showObjectionModal = false">
-            بستن
-          </b-button>
-        </div>
-      </div>
-    </b-modal>
     <!-- Bulk Actions -->
     <div class="bulk-actions" v-if="false && selectedDocuments.length > 0">
       <b-card class="bulk-card">
@@ -876,31 +627,6 @@ export default {
   name: 'ExecutiveDashboard',
   data() {
     return {
-      objectionsList: [],
-      objectionFilters: {
-        status: 'all',
-        search: ''
-      },
-      objectionStatusOptions: [
-        { value: 'all', text: 'همه وضعیت‌ها' },
-        { value: 'pending', text: 'در انتظار بررسی' },
-        { value: 'under_review', text: 'در حال بررسی' },
-        { value: 'approved', text: 'تایید شده' },
-        { value: 'rejected', text: 'رد شده' },
-        { value: 'cancelled', text: 'لغو شده' }
-      ],
-      objectionFields: [
-        { key: 'info', label: 'اطلاعات اعتراض', sortable: true },
-        { key: 'description', label: 'شرح اعتراض', sortable: false },
-        { key: 'documents', label: 'مدارک', sortable: false },
-        { key: 'status', label: 'وضعیت', sortable: true },
-        { key: 'actions', label: 'عملیات', sortable: false }
-      ],
-
-      // مودال جزئیات اعتراض
-      showObjectionModal: false,
-      selectedObjection: null,
-      objectionReviewComment: '',
       apiUrlrtb,
       isMobile,
       activeTab: 0,
@@ -916,8 +642,8 @@ export default {
       docFilters: {
         status: 'all',
         search: '',
-        gender: 'all',
-        shaghel: 'all',
+        gender:'all',
+        shaghel:'all',
         sortBy: 'newest'
       },
       adFilters: {
@@ -934,11 +660,11 @@ export default {
         { value: 'EXECUTIVE_REJECTED', text: 'رد شده اجرایی' },
         { value: 'SUPERVISION_APPROVED', text: 'تایید شده نظارت' },
         { value: 'SUPERVISION_REJECTED', text: 'رد شده نظارت' }
-      ], genderStatusOptions: [
+      ],genderStatusOptions: [
         { value: 'all', text: 'همه' },
         { value: '1', text: 'آقا' },
         { value: '2', text: 'خانم' },
-      ], shaghelStatusOptions: [
+      ],shaghelStatusOptions: [
         { value: 'all', text: 'همه' },
         { value: '3', text: 'شاغل' },
         { value: '4', text: 'بازنشسته' },
@@ -1045,122 +771,11 @@ export default {
 
       // Charts
       documentsChart: null,
-      adsChart: null,
-
-      conditionsList: [
-        {
-          key: 'constitution',
-          icon: 'book',
-          title: 'التزام به قانون اساسی',
-          description: 'اعتقاد و التزام عملی به قانون اساسی جمهوری اسلامی ایران'
-        },
-        {
-          key: 'nationality',
-          icon: 'flag',
-          title: 'تابعیت جمهوری اسلامی ایران',
-          description: 'دارا بودن تابعیت جمهوری اسلامی ایران'
-        },
-        {
-          key: 'residence',
-          icon: 'house-door',
-          title: 'اقامت در حوزه انتخابیه',
-          description: 'اقامت دائم در حوزه انتخابیه مربوطه'
-        },
-        {
-          key: 'education',
-          icon: 'mortarboard',
-          title: 'حداقل مدرک تحصیلی',
-          description: 'دارا بودن حداقل مدرک کارشناسی یا معادل آن'
-        },
-        {
-          key: 'age',
-          icon: 'calendar',
-          title: 'شرایط سنی',
-          description: 'دارا بودن حداقل ۳۰ سال و حداکثر ۷۰ سال سن'
-        },
-        {
-          key: 'no_criminal_record',
-          icon: 'shield-check',
-          title: 'عدم سوء پیشینه',
-          description: 'نداشتن سابقه محکومیت کیفری مؤثر'
-        },
-        {
-          key: 'health',
-          icon: 'heart-pulse',
-          title: 'سلامت جسمی و روانی',
-          description: 'دارا بودن سلامت کامل جسمی و روانی برای انجام وظایف'
-        },
-        {
-          key: 'loyalty',
-          icon: 'hand-thumbs-up',
-          title: 'التزام به نظام جمهوری اسلامی',
-          description: 'اعتقاد و التزام به نظام جمهوری اسلامی ایران'
-        },
-        {
-          key: 'financial_integrity',
-          icon: 'cash-stack',
-          title: 'سلامت مالی',
-          description: 'نداشتن محکومیت مالی و بدهی معوق'
-        }
-      ],
-
-      // وضعیت بررسی هر شرط
-      conditionReviews: {},
-
-      // وضعیت ارسال
-      submitting: false
+      adsChart: null
     };
   },
   computed: {
     ...mapGetters(["currentUser", "EXECUTIVEListInfo", "ChangeStateInfo", "SystemScheduleInfo"]),
-    // فیلتر شده اعتراضات
-    filteredObjections() {
-      let filtered = [...this.objectionsList]
-
-      if (this.objectionFilters.status !== 'all') {
-        filtered = filtered.filter(obj => obj.status === this.objectionFilters.status)
-      }
-
-      if (this.objectionFilters.search) {
-        const search = this.objectionFilters.search.toLowerCase()
-        filtered = filtered.filter(obj =>
-          obj.trackingCode?.toLowerCase().includes(search) ||
-          obj.subject?.toLowerCase().includes(search) ||
-          obj.description?.toLowerCase().includes(search)
-        )
-      }
-
-      return filtered
-    },
-    // تعداد شروط تایید شده
-    approvedConditionsCount() {
-      return Object.values(this.conditionReviews).filter(v => v === 'approved').length;
-    },
-
-    // تعداد شروط رد شده
-    rejectedConditionsCount() {
-      return Object.values(this.conditionReviews).filter(v => v === 'rejected').length;
-    },
-
-    // تعداد شروط در انتظار
-    pendingConditionsCount() {
-      const total = this.conditionsList.length;
-      const reviewed = this.approvedConditionsCount + this.rejectedConditionsCount;
-      return total - reviewed;
-    },
-
-    // آیا همه شروط تایید شده‌اند؟
-    isAllConditionsApproved() {
-      return this.approvedConditionsCount === this.conditionsList.length;
-    },
-
-    // لیست شروط رد شده (برای ارسال به API)
-    rejectedConditionsList() {
-      return this.conditionsList
-        .filter(c => this.conditionReviews[c.key] === 'rejected')
-        .map(c => ({ key: c.key, title: c.title }));
-    },
-
     filteredDocuments() {
 
       let filtered = this.EXECUTIVEListInfo;
@@ -1243,270 +858,7 @@ export default {
   },
   methods: {
     ...mapMutations(["setChangeStateInfo"]),
-    ...mapActions(["getEXECUTIVEList", "ChangeState", "UpdateDocumentReview", "getAdvertisements", "deleteAdv", "getSystemSchedule", "getObjections", "updateObjectionStatus"]),
-    getFileIcon(file) {
-      const ext = (file.name || file.file_name || '').split('.').pop().toLowerCase()
-      if (ext === 'pdf') return 'file-earmark-pdf'
-      if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) return 'file-earmark-image'
-      if (['doc', 'docx'].includes(ext)) return 'file-earmark-word'
-      return 'file-earmark'
-    },
-
-    formatFileSize(bytes) {
-      if (!bytes || bytes === 0) return '0 بایت'
-      const k = 1024
-      const sizes = ['بایت', 'کیلوبایت', 'مگابایت']
-      const i = Math.floor(Math.log(bytes) / Math.log(k))
-      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
-    },
-
-    getDocumentUrl(doc) {
-      if (doc.id) {
-        return `/apiEntekhabat/downloadObjectionFile.php?id=${doc.id}`
-      }
-      return doc.path || ''
-    },
-    // تنظیم وضعیت یک شرط
-    setConditionReview(key, status) {
-      this.$set(this.conditionReviews, key, status);
-    },
-    // دریافت لیست اعتراضات
-    async loadObjections() {
-      try {
-        const params = {}
-        if (this.objectionFilters.status !== 'all') {
-          params.status = this.objectionFilters.status
-        }
-        const response = await this.getObjections(params)
-        this.objectionsList = (response?.data || []).map(obj => ({
-          ...obj,
-          documentsCount: obj.documents?.length || 0
-        }))
-      } catch (error) {
-        console.error('Error loading objections:', error)
-        this.objectionsList = []
-      }
-    }, // دریافت وضعیت اعتراض
-    getObjectionStatusVariant(status) {
-      const variants = {
-        pending: 'warning',
-        under_review: 'info',
-        approved: 'success',
-        rejected: 'danger',
-        cancelled: 'secondary'
-      }
-      return variants[status] || 'secondary'
-    },
-
-    getObjectionStatusText(status) {
-      const texts = {
-        pending: 'در انتظار بررسی',
-        under_review: 'در حال بررسی',
-        approved: 'تایید شده',
-        rejected: 'رد شده',
-        cancelled: 'لغو شده'
-      }
-      return texts[status] || status
-    },// مشاهده جزئیات اعتراض
-    viewObjectionDetails(objection) {
-      this.selectedObjection = objection
-      this.objectionReviewComment = ''
-      this.showObjectionModal = true
-    },
-    // تایید اعتراض
-    async approveObjection(objection) {
-      this.$bvModal.msgBoxConfirm('آیا از تایید این اعتراض اطمینان دارید؟', {
-        title: 'تایید اعتراض',
-        size: 'md',
-        buttonSize: 'sm',
-        okVariant: 'success',
-        okTitle: 'بله، تایید کن',
-        cancelTitle: 'لغو',
-        centered: true
-      }).then(async value => {
-        if (value) {
-          try {
-            const response = await this.updateObjectionStatus({
-              id: objection.id,
-              status: 'approved',
-              responseText: this.objectionReviewComment || 'اعتراض مورد قبول واقع شد'
-            })
-
-            if (response?.status) {
-              this.$bvToast.toast('اعتراض با موفقیت تایید شد', {
-                title: 'تایید موفق',
-                variant: 'success',
-                solid: true
-              })
-              await this.loadObjections()
-              this.showObjectionModal = false
-            }
-          } catch (error) {
-            this.$bvToast.toast('خطا در تایید اعتراض', {
-              title: 'خطا',
-              variant: 'danger',
-              solid: true
-            })
-          }
-        }
-      })
-    },
-
-    // رد اعتراض
-    async rejectObjection(objection) {
-
-      try {
-        const response = await this.updateObjectionStatus({
-          id: objection.id,
-          status: 'rejected',
-          responseText: this.objectionReviewComment 
-        })
-
-        if (response?.status) {
-          this.$bvToast.toast('اعتراض با موفقیت رد شد', {
-            title: 'رد موفق',
-            variant: 'warning',
-            solid: true
-          })
-          await this.loadObjections()
-          this.showObjectionModal = false
-        }
-      } catch (error) {
-        this.$bvToast.toast('خطا در رد اعتراض', {
-          title: 'خطا',
-          variant: 'danger',
-          solid: true
-        })
-      }
-    },
-    // بازنشانی وضعیت شروط (هنگام باز شدن مودال)
-    resetConditionReviews() {
-      this.conditionReviews = {};
-      this.finalComment = '';
-    },
-
-    // رد صلاحیت با ارسال جزئیات شروط رد شده
-    async rejectCandidateWithDetails(candidate) {
-      if (this.rejectedConditionsCount === 0) {
-        this.$bvToast.toast('حداقل یک شرط باید رد شده باشد.', {
-          title: 'خطا',
-          variant: 'warning'
-        });
-        return;
-      }
-
-      if (!this.finalComment) {
-        this.$bvToast.toast('لطفاً نظر هیأت نظارت را وارد کنید.', {
-          title: 'خطا',
-          variant: 'warning'
-        });
-        return;
-      }
-
-      const canReject = await this.guardScheduleWindow('supervision_review', 'تایید هیات نظارت');
-      if (!canReject) return;
-
-      this.submitting = true;
-
-      // ساخت پیام حاوی شروط رد شده
-      const rejectedTitles = this.rejectedConditionsList.map(c => c.title).join('، ');
-      const fullReason = `${this.finalComment}\n\n❌ شروط رد شده: ${rejectedTitles}`;
-
-      try {
-        const response = await this.ChangeState({
-          national_Id: candidate.national_Id,
-          requestStatus: 'SUPERVISION_REJECTED',
-          reason: fullReason,
-          rejectedConditions: this.rejectedConditionsList  // ارسال لیست شروط رد شده به API
-        });
-
-        if (response?.status === false) {
-          throw new Error(response?.message || 'ثبت رد صلاحیت ناموفق بود.');
-        }
-
-        this.$bvToast.toast(`صلاحیت ${candidate.first_name} ${candidate.last_name} رد شد`, {
-          title: 'ثبت موفق',
-          variant: 'warning',
-          solid: true
-        });
-
-        await this.getEXECUTIVEList();
-        this.showCandidateModal = false;
-        this.resetConditionReviews();
-
-      } catch (error) {
-        this.$bvToast.toast(error?.message || 'ثبت رد صلاحیت با خطا مواجه شد', {
-          title: 'خطا',
-          variant: 'danger',
-          solid: true
-        });
-      } finally {
-        this.submitting = false;
-      }
-    },
-
-    // تایید صلاحیت (بازنویسی شده)
-    async approveCandidate(candidate) {
-      if (!this.isAllConditionsApproved) {
-        this.$bvToast.toast('تمامی شروط باید تایید شوند.', {
-          title: 'خطا',
-          variant: 'warning'
-        });
-        return;
-      }
-
-      if (!this.finalComment) {
-        this.$bvToast.toast('لطفاً نظر هیأت نظارت را وارد کنید.', {
-          title: 'خطا',
-          variant: 'warning'
-        });
-        return;
-      }
-
-      const canApprove = await this.guardScheduleWindow('supervision_review', 'تایید هیات نظارت');
-      if (!canApprove) return;
-
-      this.submitting = true;
-
-      try {
-        const response = await this.ChangeState({
-          national_Id: candidate.national_Id,
-          requestStatus: 'SUPERVISION_APPROVED',
-          reason: this.finalComment
-        });
-
-        if (!response || response.status !== true) {
-          throw new Error(response?.message || 'ثبت تایید صلاحیت ناموفق بود.');
-        }
-
-        this.$bvToast.toast(`صلاحیت ${candidate.first_name} ${candidate.last_name} تایید شد`, {
-          title: 'ثبت موفق',
-          variant: 'success',
-          solid: true
-        });
-
-        await this.getEXECUTIVEList();
-        this.showCandidateModal = false;
-        this.resetConditionReviews();
-
-      } catch (error) {
-        this.$bvToast.toast(error?.message || 'ثبت تایید صلاحیت با خطا مواجه شد', {
-          title: 'خطا',
-          variant: 'danger',
-          solid: true
-        });
-      } finally {
-        this.submitting = false;
-      }
-    },
-
-    // باز کردن مودال با ریست وضعیت
-    viewCandidateDetails(candidate) {
-      this.selectedCandidate = candidate;
-      this.finalComment = candidate?.reson || '';
-      this.resetConditionReviews();
-      this.showCandidateModal = true;
-    },
+    ...mapActions(["getEXECUTIVEList", "ChangeState", "UpdateDocumentReview", "getAdvertisements", "deleteAdv", "getSystemSchedule"]),
     async ensureSystemSchedule() {
       if (!Array.isArray(this.SystemScheduleInfo) || !this.SystemScheduleInfo.length) {
         await this.getSystemSchedule();
@@ -1517,8 +869,8 @@ export default {
       await this.ensureSystemSchedule();
 
       const event = this.SystemScheduleInfo?.find(item => item?.event_key === eventKey);
-
-
+    
+      
       if (!event?.start_date || !event?.end_date) {
         return {
           ok: false,
@@ -1556,7 +908,7 @@ export default {
 
     async guardScheduleWindow(eventKey, eventTitle) {
       const check = await this.isActionAllowedInSchedule(eventKey, eventTitle);
-
+       
       if (!check.ok) {
         this.$bvToast.toast(check.msg, {
           title: 'خارج از بازه مجاز',
@@ -1845,7 +1197,7 @@ export default {
     },
     async approveCandidate(val) {
       const canApprove = await this.guardScheduleWindow('supervision_review', 'تایید هیات نظارت');
-
+      
       if (!canApprove) {
         return;
       }
@@ -2255,9 +1607,6 @@ export default {
         } catch (error) {
           console.error("Error loading ads:", error);
         }
-      } else if (val === 3) {
-        // تب اعتراضات (شاخص 2)
-        this.loadObjections()
       }
     }, EXECUTIVEListInfo: {
       handler(val) {
@@ -2729,342 +2078,5 @@ export default {
     right: 10px;
     bottom: 10px;
   }
-}
-
-/* ========== استایل جدید برای بررسی شروط ========== */
-
-/* هدر اطلاعات کاندیدا */
-.candidate-info-header {
-  display: flex;
-  gap: 20px;
-  padding: 16px;
-  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-  border-radius: 20px;
-  margin-bottom: 16px;
-}
-
-.candidate-avatar-sm {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  overflow: hidden;
-  background: #dee2e6;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.candidate-avatar-sm img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.candidate-info-text h4 {
-  margin-bottom: 8px;
-  color: #1e293b;
-}
-
-.info-row {
-  display: flex;
-  gap: 8px;
-  font-size: 0.85rem;
-  margin-bottom: 4px;
-}
-
-.info-row span {
-  color: #64748b;
-  min-width: 90px;
-}
-
-/* نمایش خلاصه مدارک */
-.documents-summary-view {
-  margin: 16px 0;
-}
-
-.section-title {
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.docs-thumbnails {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.doc-thumb-item {
-  width: 100px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.doc-thumb-item:hover {
-  transform: translateY(-3px);
-}
-
-.thumb-img {
-  width: 80px;
-  height: 80px;
-  object-fit: cover;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-}
-
-.thumb-placeholder {
-  width: 80px;
-  height: 80px;
-  background: #f1f5f9;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #94a3b8;
-}
-
-.thumb-label {
-  font-size: 0.7rem;
-  color: #64748b;
-  display: block;
-  margin-top: 6px;
-}
-
-/* چک‌لیست شروط */
-.conditions-checklist {
-  margin: 20px 0;
-}
-
-.conditions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-top: 16px;
-}
-
-.condition-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  background: #f8fafc;
-  border-radius: 16px;
-  border-right: 4px solid #cbd5e1;
-  transition: all 0.2s;
-}
-
-.condition-item.rejected {
-  background: #fef2f2;
-  border-right-color: #ef4444;
-}
-
-.condition-content {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-}
-
-.condition-icon {
-  width: 40px;
-  height: 40px;
-  background: white;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #3f51b5;
-}
-
-.condition-title {
-  font-weight: 700;
-  font-size: 0.9rem;
-  color: #1e293b;
-}
-
-.condition-desc {
-  font-size: 0.75rem;
-  color: #64748b;
-}
-
-.condition-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.condition-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: 40px;
-  border: 1px solid #e2e8f0;
-  background: white;
-  font-size: 0.75rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.condition-btn.approve {
-  color: #10b981;
-}
-
-.condition-btn.approve.active {
-  background: #10b981;
-  color: white;
-  border-color: #10b981;
-}
-
-.condition-btn.reject {
-  color: #ef4444;
-}
-
-.condition-btn.reject.active {
-  background: #ef4444;
-  color: white;
-  border-color: #ef4444;
-}
-
-.condition-btn:hover {
-  transform: scale(1.02);
-}
-
-/* خلاصه وضعیت */
-.review-summary {
-  margin-top: 20px;
-  padding: 16px;
-  background: #f1f5f9;
-  border-radius: 16px;
-}
-
-.summary-stats {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-  margin-bottom: 12px;
-}
-
-.summary-stats .stat {
-  font-size: 0.85rem;
-  font-weight: 500;
-}
-
-.summary-stats .stat.approved {
-  color: #10b981;
-}
-
-.summary-stats .stat.rejected {
-  color: #ef4444;
-}
-
-.summary-stats .stat.pending {
-  color: #f59e0b;
-}
-
-.summary-message {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.85rem;
-}
-
-/* دکمه‌های تصمیم نهایی */
-.decision-buttons {
-  display: flex;
-  gap: 16px;
-  justify-content: center;
-  margin-top: 16px;
-}
-
-.decision-btn {
-  min-width: 160px;
-  padding: 10px 24px;
-}
-
-/* موبایل */
-@media (max-width: 768px) {
-  .condition-item {
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .condition-content {
-    width: 100%;
-  }
-
-  .condition-actions {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .decision-buttons {
-    flex-direction: column;
-  }
-
-  .decision-btn {
-    width: 100%;
-  }
-}
-
-/* ========== استایل اعتراضات ========== */
-.objection-preview {
-  font-size: 0.85rem;
-  color: #475569;
-  line-height: 1.4;
-}
-
-.documents-badge {
-  text-align: center;
-}
-
-.objection-details-modal {
-  padding: 10px;
-}
-
-.description-box {
-  background: #f8fafc;
-  padding: 16px;
-  border-radius: 12px;
-  line-height: 1.6;
-  color: #334155;
-  font-size: 0.9rem;
-}
-
-.documents-list-objection {
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.document-item-objection {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.document-item-objection:last-child {
-  border-bottom: none;
-}
-
-.review-section {
-  background: #f1f5f9;
-  padding: 20px;
-  border-radius: 16px;
-}
-
-.tracking-code {
-  font-family: monospace;
-  font-size: 1rem;
-  color: #3f51b5;
-  background: #e0e7ff;
-  padding: 4px 10px;
-  border-radius: 8px;
 }
 </style>

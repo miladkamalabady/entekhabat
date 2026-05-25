@@ -1,122 +1,111 @@
 <template>
-  <div class="topdiv d-flex navbar px-2 notinvoice navtopall">
+  <div class="topbar-modern d-flex align-items-center justify-content-between px-3 px-md-4">
     
-    <div @click="gohomepath.includes($route.name) ? gohome() : setsidebarVisible(!sidebarVisible)" class="mr-4">
-      <div style="gap: 1rem; display: flex">
-        <svg
-          class="mt-2"
-          width="16"
-          height="14"
-          viewBox="0 0 16 14"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M1.33398 1.66663H14.6673M1.33398 6.99996H14.6673M1.33398 12.3333H14.6673"
-            stroke="#fff"
-            stroke-width="1.5"
-            stroke-linecap="round"
-          ></path>
-        </svg>
-        
-          <div class="text-center muirtl-rmig3n mx-auto mb-2  items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="-1 -0.968 2 1.968">
-              <defs>
-                <linearGradient id="blackGradient135" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#6EE7B7"></stop>
-                  <stop offset="100%" stop-color="#34D399"></stop>
-                </linearGradient>
-              </defs>
-              <g id="A" fill="#000">
-                <path
-                  d="m 1,6.5298e-4 c 0,0.2832 -0.1568,0.5432 -0.4072,0.6756 0.3408,-0.4264 0.2712,-1.0484 -0.1552,-1.3896 v 0 c -0.0144,-0.0116 -0.0292,-0.0228 -0.0444,-0.0336 0.3536,0.074 0.6068,0.386 0.6068,0.7476 z">
-                </path>
-                <path
-                  d="m 0.6456,-0.03014702 c -4e-4,0.504 -0.4092,0.9124 -0.9132,0.912 -0.0956,0 -0.1904,-0.0152 -0.2812,-0.0444 0.016,8e-4 0.0324,0.0012 0.0484,0.0012 0.5524,0 1,-0.448 1,-1.0004 0,-0.1992 -0.0596,-0.394 -0.1712,-0.5592 0.202,0.1728 0.3176,0.4252 0.3172,0.6908 z">
-                </path>
-                <path
-                  d="m 0.2576,-0.91334702 c 0,0.0768 -0.0624,0.1392 -0.1392,0.1392 -0.048,0 -0.0928,-0.0248 -0.118,-0.0656 l -0.0168,-0.0168 0.0164,-0.082 c 0.03,0.0652 0.1076,0.0936 0.1728,0.0636 0.038,-0.0176 0.0656,-0.0528 0.0732,-0.094 0.0076,0.0176 0.0116,0.0364 0.0116,0.0556 z">
-                </path>
-                <path
-                  d="m 0.118,-0.68774702 c -0.0464,-0.0212 -0.0872,-0.0536 -0.118,-0.094 l -0.05,0.7816 L 0,1.000653 0.0776,0.89385298 l 0.0104,-0.2464 0.0108,-0.2564 0.0012,-0.0328 4e-4,-0.0124 0.0024,-0.0532 0.0068,-0.1616 0.0056,-0.1304 0.0016,-0.0376 0.002,-0.048 z">
-                </path>
-              </g>
-              <use href="#A" transform="scale(-1 1)" fill="#000"></use>
-            </svg>
-            <h6 class="text-dark">وزارت آموزش و پرورش</h6>
-          </div>
+    <!-- سمت راست: دکمه منو + لوگو -->
+    <div class="d-flex align-items-center gap-3">
+      <!-- دکمه همبرگر (منوی موبایل / باز کردن سایدبار) -->
+      <div class="menu-toggle-btn" @click="toggleSidebar">
+        <div class="hamburger-icon" :class="{ 'active': sidebarVisible }">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </div>
+
+      <!-- لوگو و عنوان -->
+      <div class="logo-area d-none d-sm-flex align-items-center gap-2" @click="goHomeIfNeeded">
+        <div class="logo-icon">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="32" height="32" rx="8" fill="url(#logoGradient)" />
+            <path d="M16 8L20 12L16 16L12 12L16 8Z" fill="white" fill-opacity="0.9" />
+            <path d="M16 16L20 20L16 24L12 20L16 16Z" fill="white" fill-opacity="0.6" />
+            <defs>
+              <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#3f51b5" />
+                <stop offset="100%" stop-color="#5c6bc0" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="logo-text d-none d-lg-block">
+          <h6 class="mb-0 fw-bold">سامانه انتخابات</h6>
+          <small class="opacity-75">الکترونیک · امن</small>
+        </div>
       </div>
     </div>
-    <div v-if="showname" style="gap: 1rem; display: flex;align-items: center;">
+
+    <!-- سمت چپ: اطلاعیه‌ها + پروفایل کاربر -->
+    <div class="d-flex align-items-center gap-3 gap-md-4" v-if="showname">
       
-    <b-nav-item-dropdown
-  right
-  no-caret
-  toggle-class="p-0"
-  class="notif-dropdown"
->
-  <!-- آیکن -->
-  <template #button-content>
-    <div class="position-relative">
-      <svg
-      :class="{ shake: newNotifCount > 0 }"
-        width="25"
-        height="25"
-        viewBox="0 0 24 24"
-      >
-        <path
-          fill="#feffffff"
-          d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2Zm6-6V11a6 6 0 0 0-5-5.91V4a1 1 0 0 0-2 0v1.09A6 6 0 0 0 6 11v5l-2 2v1h16v-1l-2-2Z"
-        />
-      </svg>
-      <span
-        v-if="newNotifCount > 0"
-        class="notif-badge"
-      >
-        {{ newNotifCount }}
-      </span>
-    </div>
-  </template>
-  <b-dropdown-item
-    v-for="(item, index) in topNotifs"
-    :key="index"
-    class="text-right small"
-    @click="goToNotifs(item)"
-  >
-    <div class="font-weight-bold">
-      {{ item.title }}
-    </div>
-    <small class="text-muted">{{ item.tarikh }}</small>
-  </b-dropdown-item>
+      <!-- دکمه اعلان‌ها با Dropdown مدرن -->
+      <b-nav-item-dropdown right no-caret toggle-class="p-0" class="notif-dropdown-modern">
+        <template #button-content>
+          <div class="notif-icon-wrapper position-relative">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+              :class="{ 'shake-animation': newNotifCount > 0 && !shookOnce }">
+              <path d="M12 22C13.1 22 14 21.1 14 20H10C10 21.1 10.9 22 12 22ZM18 16V11C18 7.93 16.36 5.36 13.5 4.68V4C13.5 3.17 12.83 2.5 12 2.5C11.17 2.5 10.5 3.17 10.5 4V4.68C7.63 5.36 6 7.92 6 11V16L4 18V19H20V18L18 16Z"
+                fill="currentColor" />
+            </svg>
+            <span v-if="newNotifCount > 0" class="notif-badge-modern">
+              {{ newNotifCount > 9 ? '9+' : newNotifCount }}
+            </span>
+          </div>
+        </template>
 
-  <b-dropdown-divider />
+        <b-dropdown-item v-for="(item, index) in topNotifs" :key="index" class="notif-item"
+          @click="goToNotifs(item)">
+          <div class="notif-title">{{ item.title }}</div>
+          <small class="notif-date">{{ item.tarikh }}</small>
+        </b-dropdown-item>
 
-  <b-dropdown-item
-    class="text-center text-primary"
-    @click="$router.push({ name: 'Notifications' })"
-  >
-    مشاهده همه اطلاعیه‌ها
-  </b-dropdown-item>
-</b-nav-item-dropdown>
-      <img
-        src="/assets/img/logout1.png"
-        @click="logout()"
-        style="width: 35px; cursor: pointer"
-      />
+        <b-dropdown-divider />
 
-      <span class="small text-center" v-if="currentUser">
-        {{ currentUser?.full_name }}<br/> <span>{{ currentUser?.userType==3 ? 'شاغل' : 'بازنشسته' }} - {{ currentUser?.regionName }}</span>
-      </span>
-      
+        <b-dropdown-item class="text-center text-primary fw-bold" @click="$router.push({ name: 'Notifications' })">
+          📢 مشاهده همه اطلاعیه‌ها
+        </b-dropdown-item>
+      </b-nav-item-dropdown>
+
+      <!-- جداکننده عمودی -->
+      <div class="vr opacity-25 d-none d-sm-block"></div>
+
+      <!-- پروفایل کاربر -->
+      <div class="user-info-modern d-flex align-items-center gap-2">
+        <div class="user-avatar">
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+            <circle cx="18" cy="18" r="17" fill="#e8eef5" stroke="#cbd5e1" stroke-width="1" />
+            <path d="M18 16C20.2091 16 22 14.2091 22 12C22 9.79086 20.2091 8 18 8C15.7909 8 14 9.79086 14 12C14 14.2091 15.7909 16 18 16Z"
+              fill="#3f51b5" fill-opacity="0.7" />
+            <path d="M10 24C10 20.6863 12.6863 18 16 18H20C23.3137 18 26 20.6863 26 24V26H10V24Z"
+              fill="#3f51b5" fill-opacity="0.5" />
+          </svg>
+        </div>
+        <div class="user-details d-none d-md-block">
+          <div class="user-name">{{ currentUser?.full_name || 'کاربر مهمان' }}</div>
+          <div class="user-meta">
+            <small>{{ currentUser?.userType == 3 ? 'شاغل' : 'بازنشسته' }}</small>
+            <small class="mx-1">•</small>
+            <small>{{ currentUser?.regionName || 'منطقه نامشخص' }}</small>
+          </div>
+        </div>
+        <div class="logout-btn" @click="logout()" title="خروج از سیستم">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9" 
+              stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M16 17L21 12L16 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M21 12H9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
 import { mapActions, mapMutations, mapGetters } from "vuex";
-  import { notifs } from "../data/dataConst";
-import { currentUser } from "../constants/config";
-const gohomepath=[]
+import { notifs } from "../data/dataConst";
+
+const gohomepath = [];
+
 export default {
   data() {
     return {
@@ -130,25 +119,29 @@ export default {
   computed: {
     ...mapGetters(["processing", "sidebarVisible", "currentUser"]),
     newNotifCount() {
-    return this.notifs?.filter(n => n.isNew).length;
+      return this.notifs?.filter(n => n.isNew).length;
+    },
+    topNotifs() {
+      return this.notifs?.slice(0, 3);
+    }
   },
-  topNotifs() {
-    return this.notifs?.slice(0, 3);
-  }
-  },
-
   methods: {
     ...mapActions(["signOut"]),
     ...mapMutations(["setsidebarVisible"]),
-    gohome(){
-      this.$router.push({ name: "home" });
+    toggleSidebar() {
+      this.setsidebarVisible(!this.sidebarVisible);
+    },
+    goHomeIfNeeded() {
+      if (gohomepath.includes(this.$route.name)) {
+        this.$router.push({ name: "home" });
+      }
     },
     goToNotifs(item) {
-    this.$router.push({
-      name: "Notifications",
-      query: { id: item.id }
-    });
-  },
+      this.$router.push({
+        name: "Notifications",
+        query: { id: item.id }
+      });
+    },
     logout() {
       this.signOut().then(() => {
         window.location.href = "https://my.medu.ir";
@@ -157,63 +150,221 @@ export default {
   },
   mounted() {
     if (this.$route?.path?.includes("/sso")) this.showname = false;
-  },watch: {
-  newNotifCount(val) {
-    if (val > 0 && !this.shookOnce) {
-      this.shookOnce = true;
-
-      // بعد از یک بار shake کافیه
-      setTimeout(() => {
-        this.shookOnce = false;
-      }, 3000);
+  },
+  watch: {
+    newNotifCount(val) {
+      if (val > 0 && !this.shookOnce) {
+        this.shookOnce = true;
+        setTimeout(() => {
+          this.shookOnce = false;
+        }, 3000);
+      }
     }
   }
-}
 };
 </script>
+
 <style scoped>
-.topdiv {
-  background-color: #73c2fb;
-  box-shadow: rgba(74, 107, 99, 0.69) 0px 4px 20px;
-  color: #fff;
-  /* position: fixed; */
-  width: 100%;
-  z-index: 121;
-}.notif-badge {
-  position: absolute;
-  top: -4px;
-  right: -6px;
-  background: #dc3545;
-  color: #fff;
-  font-size: 10px;
-  padding: 2px 5px;
-  border-radius: 10px;
-  line-height: 1;
-}
-.notif-dropdown::marker {
-  color:#73c2fb
-}
-.notif-dropdown svg {
-  transition: transform 0.2s ease, fill 0.2s ease;
+/* ========== توپبار مدرن ========== */
+.topbar-modern {
+  background: linear-gradient(135deg, #2c3e8f 0%, #3f51b5 50%, #5c6bc0 100%);
+  height: 70px;
+  position: fixed;      /* تغییر از sticky به fixed */
+  top: 0;
+ left: 0;
+
+  right: 0;
+  z-index: 1040;       /* بالاتر از سایدبار (1050) */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  color: white;
 }
 
-.notif-dropdown:hover svg {
-  transform: scale(1.1);
-  fill: #0d6efd; /* آبی جذاب‌تر */
+/* دکمه همبرگر (هَمبورگر منو) */
+.menu-toggle-btn {
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 12px;
+  transition: background 0.2s;
 }
-@keyframes bell-shake {
-  0% { transform: rotate(0); }
-  15% { transform: rotate(10deg); }
+
+.menu-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.hamburger-icon {
+  width: 24px;
+  height: 18px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.hamburger-icon span {
+  display: block;
+  height: 2.5px;
+  width: 100%;
+  background: white;
+  border-radius: 4px;
+  transition: all 0.25s ease;
+}
+
+.hamburger-icon.active span:nth-child(1) {
+  transform: translateY(7.5px) rotate(45deg);
+}
+
+.hamburger-icon.active span:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger-icon.active span:nth-child(3) {
+  transform: translateY(-7.5px) rotate(-45deg);
+}
+
+/* لوگو */
+.logo-area {
+  cursor: pointer;
+}
+
+.logo-text h6 {
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+.logo-text small {
+  font-size: 0.65rem;
+  opacity: 0.8;
+}
+
+/* ناحیه اعلان‌ها */
+.notif-dropdown-modern ::v-deep .dropdown-toggle {
+  background: transparent !important;
+  border: none !important;
+  color: white;
+}
+
+.notif-icon-wrapper {
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  transition: background 0.2s;
+  color: white;
+}
+
+.notif-icon-wrapper:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.notif-badge-modern {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: #ef4444;
+  color: white;
+  font-size: 9px;
+  font-weight: bold;
+  padding: 2px 5px;
+  border-radius: 20px;
+  line-height: 1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* انیمیشن زنگوله */
+@keyframes shakeNotification {
+  0% { transform: rotate(0deg); }
+  15% { transform: rotate(12deg); }
   30% { transform: rotate(-10deg); }
   45% { transform: rotate(8deg); }
-  60% { transform: rotate(-8deg); }
+  60% { transform: rotate(-6deg); }
   75% { transform: rotate(4deg); }
-  100% { transform: rotate(0); }
+  100% { transform: rotate(0deg); }
 }
 
-.shake {
-  animation: bell-shake 0.8s ease-in-out;
+.shake-animation {
+  animation: shakeNotification 0.6s ease-in-out;
   transform-origin: top center;
 }
 
+/* آیتم اعلان در dropdown */
+.notif-item {
+  padding: 10px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.notif-item:hover {
+  background: #f8faff;
+}
+
+.notif-title {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.notif-date {
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+/* پروفایل کاربر */
+.user-info-modern {
+  padding: 4px 8px;
+  border-radius: 40px;
+  transition: background 0.2s;
+}
+
+.user-info-modern:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.user-avatar {
+  display: flex;
+  align-items: center;
+}
+
+.user-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.user-meta {
+  font-size: 0.7rem;
+  opacity: 0.85;
+}
+
+/* دکمه خروج */
+.logout-btn {
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s;
+  color: white;
+}
+
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
+}
+
+/* جداکننده عمودی */
+.vr {
+  width: 1px;
+  height: 30px;
+  background: white;
+}
+
+/* موبایل */
+@media (max-width: 576px) {
+  .topbar-modern {
+    height: 60px;
+    padding: 0 12px;
+  }
+  
+  .user-name {
+    font-size: 0.75rem;
+  }
+}
 </style>

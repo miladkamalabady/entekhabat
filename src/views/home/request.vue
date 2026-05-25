@@ -1,5 +1,5 @@
 <template>
-  <div class="px-2">
+  <div class="px-2 ">
     <b-container fluid class="request-wrapper" v-if="isRegistrationOpen">
 
       <!-- Wizard -->
@@ -171,7 +171,6 @@ export default {
   watch: {
     userstatusInfo(val) {
       if (val) {
-
         this.runChecks()
       }
     }
@@ -272,9 +271,11 @@ export default {
 </script>
 
 <style scoped>
+
+
 .request-wrapper {
   background: #f5f7fb;
-  min-height: 100vh;
+  min-height: calc(100vh - 70px);
   padding: 20px;
 }
 
@@ -326,10 +327,24 @@ export default {
     opacity: 0;
     transform: translateY(4px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* موبایل */
+@media (max-width: 576px) {
+  
+  
+  .request-wrapper {
+    min-height: calc(100vh - 60px);
+    padding: 12px;
+  }
+  
+  .wizard li {
+    font-size: 10px;
+    padding: 6px;
   }
 }
 </style>

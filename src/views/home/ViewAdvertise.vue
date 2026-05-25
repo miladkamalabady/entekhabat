@@ -1,5 +1,6 @@
 <template>
   <div class="user-advertisements-page">
+    <div class="page-spacer"></div>
     <!-- Header Section -->
     <b-container fluid class="ads-header py-4 mb-4">
       <b-row class="align-items-center">
@@ -14,6 +15,39 @@
             <b-icon icon="megaphone" class="ml-1"></b-icon>
             {{ activeAdsCount }} تبلیغ فعال
           </b-badge>
+        </b-col>
+        <b-col cols="12" class="text-left text-md-left">
+          <!-- شمارنده کاهشی زمان باقی‌مانده -->
+          <div class="countdown-timer" v-if="adsRemainingTime > 0">
+            <div class="timer-box">
+              <span class="timer-label">⏱️ زمان باقی‌مانده نمایش تبلیغات:</span>
+              <div class="timer-digits">
+                <div class="timer-unit">
+                  <span class="unit-value">{{ formattedRemainingTime.days }}</span>
+                  <span class="unit-label">روز</span>
+                </div>
+                <span class="timer-separator">:</span>
+                <div class="timer-unit">
+                  <span class="unit-value">{{ formattedRemainingTime.hours }}</span>
+                  <span class="unit-label">ساعت</span>
+                </div>
+                <span class="timer-separator">:</span>
+                <div class="timer-unit">
+                  <span class="unit-value">{{ formattedRemainingTime.minutes }}</span>
+                  <span class="unit-label">دقیقه</span>
+                </div>
+                <span class="timer-separator">:</span>
+                <div class="timer-unit">
+                  <span class="unit-value">{{ formattedRemainingTime.seconds }}</span>
+                  <span class="unit-label">ثانیه</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-else-if="adsRemainingTime <= 0 && shouldShowAds" class="expired-warning">
+            <b-icon icon="exclamation-triangle-fill" variant="danger"></b-icon>
+            <span>زمان نمایش تبلیغات به پایان رسیده است</span>
+          </div>
         </b-col>
       </b-row>
     </b-container>
@@ -56,10 +90,13 @@
 
       <!-- Active Ads Section -->
       <div class="mb-5">
-        <h4 class="section-title mb-3">
-          <b-icon icon="star-fill" variant="warning" class="ml-2"></b-icon>
-          تبلیغات فعال
-        </h4>
+        <div class="section-header d-flex justify-content-between align-items-center mb-3 flex-wrap">
+          <h4 class="section-title mb-2">
+            <b-icon icon="star-fill" variant="warning" class="ml-2"></b-icon>
+            تبلیغات فعال
+          </h4>
+
+        </div>
 
         <!-- Banner Ads Carousel -->
         <div v-if="bannerAds.length > 0" class="mb-4">
@@ -297,6 +334,8 @@ export default {
   name: "UserAdvertisements",
   data() {
     return {
+      adsRemainingTime: 0,
+      countdownInterval: null,
       nowTime: Date.now(),
       scheduleRows: [],
 
@@ -334,6 +373,36 @@ export default {
   },
   computed: {
     ...mapGetters(["sidebarVisible", "electionStatusAll", "ConfigInfo", "SystemScheduleInfo"]),
+    // زمان باقی‌مانده فرمت شده برای نمایش
+    formattedRemainingTime() {
+      const totalSeconds = Math.floor(this.adsRemainingTime / 1000);
+      const days = Math.floor(totalSeconds / 86400);
+      const hours = Math.floor((totalSeconds % 86400) / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+
+      return {
+        days: this.padNumber(days),
+        hours: this.padNumber(hours),
+        minutes: this.padNumber(minutes),
+        seconds: this.padNumber(seconds)
+      };
+    }, // زمان پایان نمایش تبلیغات
+    adsEndDate() {
+      const campaignEvent = (this.scheduleRows || []).find(e => e.event_key === 'campaign_start');
+      const votingEvent = (this.scheduleRows || []).find(e => e.event_key === 'voting');
+
+      if (!campaignEvent?.start_date || !votingEvent?.start_date) return null;
+
+      const campaignStart = this.$moment(campaignEvent.start_date, 'jYYYY-jMM-jDD HH:mm:ss');
+      const votingStart = this.$moment(votingEvent.start_date, 'jYYYY-jMM-jDD HH:mm:ss');
+
+      // زمان پایان = زودترین زمان (۷ روز بعد از شروع کمپین یا ۲۴ ساعت قبل از رأی‌گیری)
+      const sevenDaysAfterCampaign = campaignStart.clone().add(7, 'days');
+      const twentyFourHoursBeforeVoting = votingStart.clone().subtract(24, 'hours');
+
+      return this.$moment.min(sevenDaysAfterCampaign, twentyFourHoursBeforeVoting);
+    },
     // Active Ads
     activeAds() {
       return this.filteredAds.filter(ad => ad.status === "active");
@@ -382,7 +451,7 @@ export default {
       const displayEnd = this.$moment.min(legalWindowEnd, votingCutoff);
 
       const now = this.$moment(); // زمان فعلی
-// return true;
+      // return true;
       return now.isSameOrAfter(campaignStart) && now.isBefore(displayEnd);
     },
 
@@ -488,6 +557,7 @@ export default {
     this.loadAds();
     this.trackView();
     this.loadSchedule();
+    this.startCountdown(); // شروع شمارنده
     this.timer = setInterval(() => {
       this.refreshClock();
     }, 1000);
@@ -499,7 +569,47 @@ export default {
   methods: {
     ...mapMutations(["SetelectionStatusAll"]),
     ...mapActions(["getAdvertisements", "increaseViewAdd", "getSystemSchedule"]),
+    // تکمیل اعداد (۰ جلو آنها)
+    padNumber(num) {
+      return String(num).padStart(2, '0');
+    },
 
+    // محاسبه زمان باقی‌مانده
+    calculateRemainingTime() {
+      if (!this.adsEndDate) {
+        this.adsRemainingTime = 0;
+        return;
+      }
+
+      const now = this.$moment();
+      const end = this.adsEndDate;
+
+      if (now.isAfter(end)) {
+        this.adsRemainingTime = 0;
+        this.stopCountdown();
+      } else {
+        this.adsRemainingTime = end.diff(now);
+      }
+    }, // شروع شمارنده
+    startCountdown() {
+      this.calculateRemainingTime();
+
+      if (this.countdownInterval) {
+        clearInterval(this.countdownInterval);
+      }
+
+      this.countdownInterval = setInterval(() => {
+        this.calculateRemainingTime();
+      }, 1000);
+    },
+
+    // توقف شمارنده
+    stopCountdown() {
+      if (this.countdownInterval) {
+        clearInterval(this.countdownInterval);
+        this.countdownInterval = null;
+      }
+    },
     refreshClock() {
       this.nowTime = Date.now();
       if (this.ConfigInfo?.startDate) {
@@ -538,7 +648,7 @@ export default {
         this.allAds = this.allAds?.filter(x => !x.deleter)
         this.routeFilteredAds = this.applyRouteCodeFilter(this.allAds);
         this.filteredAds = [...this.routeFilteredAds];
-    
+
         this.filterAds();
       } catch (error) {
         console.error("Error loading ads:", error);
@@ -598,7 +708,7 @@ export default {
 
     // View Ad Details
     viewAdDetails(ad) {
-      
+
       this.selectedAd = ad;
       this.showAdModal = true;
 
@@ -772,95 +882,97 @@ export default {
 </script>
 
 <style scoped>
+/* ========== فاصله از topbar و طراحی مدرن ========== */
 .user-advertisements-page {
-  background-color: #f8f9fa;
+  background: linear-gradient(135deg, #f5f7ff 0%, #eef2fa 100%);
   min-height: 100vh;
 }
 
+/* هدر مدرن */
 .ads-header {
-  background: linear-gradient(135deg, #3F51B5 0%, #2196F3 100%);
+  background: linear-gradient(135deg, #1e2a6e, #2b3b8a, #1e2a6e);
   color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px !important;
 }
 
-.ads-container {
-  padding-bottom: 50px;
-}
-
-.filter-card {
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-/* Carousel Styles */
-.carousel-image-wrapper {
-  position: relative;
-  cursor: pointer;
-  height: 320px;
-  overflow: hidden;
-}
-
-.carousel-image {
-  height: 100%;
-  object-fit: cover;
-}
-
-.carousel-caption-overlay {
-  display: none;
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
-  color: white;
-  padding: 20px;
-  text-align: right;
-}
-
-.carousel-caption-overlay h5 {
+.ads-header h2 {
+  font-weight: 700;
   font-size: 1.5rem;
-  margin-bottom: 5px;
 }
 
-.carousel-caption-overlay p {
-  font-size: 1rem;
-  margin-bottom: 5px;
-  opacity: 0.9;
+/* کانتینر اصلی */
+.ads-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px 50px;
 }
 
-/* Ad Card */
+/* کارت فیلتر */
+.filter-card {
+  border-radius: 20px;
+  border: none;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  margin-bottom: 24px !important;
+}
+
+.filter-card .card-body {
+  padding: 20px;
+}
+
+/* عنوان بخش */
+.section-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1e293b;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px !important;
+}
+
+/* کارت تبلیغات */
 .ad-card {
-  border-radius: 10px;
+  border-radius: 20px;
   overflow: hidden;
   transition: all 0.3s ease;
   cursor: pointer;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #e2e8f0;
+  background: white;
+  position: relative;
 }
 
 .ad-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
-  border-color: #3F51B5;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+  border-color: #3f51b5;
 }
 
 .ad-card.featured-ad {
-  border: 2px solid #FFC107;
+  border: 2px solid #f59e0b;
 }
 
 .ad-badges {
   position: absolute;
-  top: 10px;
-  left: 10px;
+  top: 12px;
+  left: 12px;
   z-index: 1;
+  display: flex;
+  gap: 6px;
 }
 
 .ad-image-container {
   height: 180px;
   overflow: hidden;
-  border-radius: 8px;
-  background-color: #f5f5f5;
+  background: #f1f5f9;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 16px;
+  margin: 16px;
 }
 
 .ad-image {
@@ -870,263 +982,432 @@ export default {
 }
 
 .ad-image-placeholder {
-  color: #ccc;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .ad-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: #333;
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 16px 8px;
+  color: #1e293b;
 }
 
 .ad-description {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  color: #64748b;
   line-height: 1.5;
-  flex-grow: 1;
+  margin: 0 16px 12px;
 }
 
 .ad-footer {
+  padding: 12px 16px;
+  border-top: 1px solid #e2e8f0;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 10px;
-  border-top: 1px solid #eee;
+  justify-content: flex-end;
 }
 
-/* Upcoming Ads */
-.upcoming-ad-card {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 100%);
-  border: 1px solid #bbdefb;
-}
-
-.upcoming-date {
-  background: #2196F3;
-  color: white;
-  padding: 10px;
-  border-radius: 8px;
-  min-width: 80px;
-}
-
-.date-day {
-  font-size: 1.8rem;
-  font-weight: bold;
-  line-height: 1;
-}
-
-.date-month {
-  font-size: 0.9rem;
-  margin-top: 5px;
-}
-
-/* Section Titles */
-.section-title {
-  color: #333;
-  padding-bottom: 8px;
-  border-bottom: 2px solid #e0e0e0;
-}
-
-/* Statistics */
-.statistics-card {
-  border-radius: 12px;
-  background: white;
-}
-
-.stat-item {
-  padding: 15px;
-}
-
-.stat-number {
-  font-size: 2rem;
-  font-weight: bold;
-  line-height: 1;
-}
-
-.stat-label {
-  font-size: 0.9rem;
-  color: #666;
-  margin-top: 5px;
-}
-
-/* Ad Details */
-.ad-details-header {
-  padding-bottom: 15px;
-  border-bottom: 1px solid #eee;
-}
-
-.ad-details-image {
-  border-radius: 10px;
+/* کاروسل */
+.carousel-image-wrapper {
+  position: relative;
+  cursor: pointer;
+  height: 320px;
   overflow: hidden;
+  border-radius: 20px;
 }
 
-.ad-details-image img {
+.carousel-image {
   width: 100%;
-  max-height: 400px;
+  height: 100%;
   object-fit: cover;
 }
 
-.ad-description-full {
-  line-height: 1.8;
-  color: #555;
-  text-align: justify;
+.carousel-caption-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85), transparent);
+  color: white;
+  padding: 30px 20px 20px;
+  text-align: right;
 }
 
-.details-card {
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
+.carousel-caption-overlay h5 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 6px;
 }
 
-.detail-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.carousel-caption-overlay p {
+  font-size: 0.85rem;
+  opacity: 0.9;
+  margin: 0;
 }
 
-/* Share Section */
-.share-section {
-  padding-top: 15px;
-  border-top: 1px solid #eee;
-}
-
+/* کارت تبلیغاتی کاندید */
 .candidate-card-wrapper {
-  border: 1px solid #e6e9ef;
-  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 24px;
   overflow: hidden;
-  background: #ffffff;
+  background: white;
+  margin-top: 20px;
 }
 
 .candidate-card-header {
-  padding: 14px;
-  background: linear-gradient(120deg, #1f4ba5 0%, #3f88ff 100%);
-  color: #fff;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #1e2a6e, #2b3b8a);
+  color: white;
+}
+
+.candidate-card-header h6 {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.candidate-card-header small {
+  opacity: 0.8;
+  font-size: 0.7rem;
 }
 
 .candidate-card-body {
   display: flex;
-  gap: 16px;
-  padding: 14px;
+  gap: 20px;
+  padding: 20px;
+  flex-wrap: wrap;
 }
 
 .candidate-photo img,
 .photo-placeholder {
   width: 150px;
   height: 180px;
-  border-radius: 12px;
-  background: #edf1f7;
+  border-radius: 16px;
+  background: #f1f5f9;
   display: flex;
   align-items: center;
   justify-content: center;
+  object-fit: cover;
 }
 
 .candidate-card-content {
   flex: 1;
+  min-width: 250px;
 }
 
 .candidate-name {
-  color: #253858;
-  margin-bottom: 4px;
-}
-
-.candidate-slogan {
-  color: #56637a;
-  margin-bottom: 8px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 12px;
 }
 
 .card-meta-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 0.9rem;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 16px;
+  margin-bottom: 12px;
+}
+
+.card-meta-list div {
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+.card-meta-list strong {
+  color: #1e293b;
+}
+
+.candidate-slogan {
+  font-size: 0.8rem;
+  margin-bottom: 8px;
+  padding: 8px;
+  background: #f8fafc;
+  border-radius: 12px;
 }
 
 .countdown-box {
   display: inline-flex;
   align-items: center;
-  padding: 6px 10px;
-  border-radius: 8px;
-  background: #eef9f2;
-  color: #1f7a44;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 40px;
+  background: #eef2ff;
+  color: #3f51b5;
+  font-size: 0.8rem;
   font-weight: 600;
+  margin-top: 12px;
 }
 
-.site-path {
-  color: #394b66;
-  word-break: break-all;
+/* مودال */
+.ad-details {
+  padding: 10px;
 }
 
-/* Floating Action Button */
+.ad-details-header {
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.ad-details-image {
+  border-radius: 16px;
+  overflow: hidden;
+  text-align: center;
+}
+
+.ad-details-image img {
+  max-height: 200px;
+  object-fit: contain;
+}
+
+.ad-description-full {
+  line-height: 1.8;
+  color: #475569;
+  text-align: justify;
+}
+
+.detail-item {
+  display: flex;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
+/* دکمه شناور */
 .floating-action-btn {
   position: fixed;
   bottom: 20px;
   left: 20px;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  font-size: 1.5rem;
-  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
-  z-index: 1000;
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  background: #f59e0b;
+  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+  z-index: 1050;
+}
+
+.floating-action-btn:hover {
+  background: #d97706;
+  transform: scale(1.05);
 }
 
 .badge-count {
   position: absolute;
-  top: -5px;
-  right: -5px;
-  background: #dc3545;
+  top: -4px;
+  right: -4px;
+  background: #ef4444;
   color: white;
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  font-size: 0.8rem;
+  border-radius: 20px;
+  width: 20px;
+  height: 20px;
+  font-size: 0.7rem;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* Responsive Adjustments */
+/* بخش اشتراک‌گذاری */
+.share-section {
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+  margin-top: 16px;
+}
+
+/* وضعیت خالی */
+.text-center.py-5 {
+  background: white;
+  border-radius: 20px;
+  padding: 40px !important;
+}
+
+/* موبایل */
 @media (max-width: 768px) {
+  .user-advertisements-page {
+    margin-top: 60px;
+  }
+
   .candidate-card-body {
     flex-direction: column;
+    align-items: center;
+    text-align: center;
   }
 
-  .candidate-photo img,
-  .photo-placeholder {
-    width: 100%;
-    height: 220px;
+  .candidate-photo img {
+    width: 120px;
+    height: 140px;
   }
 
-
+  .card-meta-list {
+    grid-template-columns: 1fr;
+  }
 
   .carousel-image-wrapper {
     height: 200px;
   }
 
-  .carousel-caption-overlay h5 {
-    font-size: 1.2rem;
+  .carousel-caption-overlay {
+    padding: 15px;
   }
 
-  .carousel-caption-overlay p {
-    font-size: 0.9rem;
+  .carousel-caption-overlay h5 {
+    font-size: 1rem;
+  }
+
+  .ad-image-container {
+    height: 140px;
   }
 
   .floating-action-btn {
-    bottom: 10px;
-    left: 10px;
-    width: 50px;
-    height: 50px;
-    font-size: 1.2rem;
+    width: 48px;
+    height: 48px;
+    bottom: 15px;
+    left: 15px;
   }
 }
 
 @media (max-width: 576px) {
-  .ad-image-container {
-    height: 150px;
+  .ads-container {
+    padding: 0 12px 30px;
   }
 
-  .stat-number {
-    font-size: 1.5rem;
+  .filter-card .card-body {
+    padding: 15px;
+  }
+
+  .section-title {
+    font-size: 1rem;
+  }
+}
+
+.page-spacer {
+  display: none;
+}
+
+/* ========== شمارنده زمان تبلیغات ========== */
+.section-header {
+  margin-bottom: 20px;
+}
+
+.countdown-timer {
+  background: linear-gradient(135deg, #1e2a6e, #2b3b8a);
+  border-radius: 60px;
+  padding: 6px 20px;
+  display: inline-flex;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.timer-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.timer-label {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.timer-digits {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  direction: ltr;
+}
+
+.timer-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 6px 12px;
+  min-width: 65px;
+}
+
+.unit-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  line-height: 1;
+  font-family: monospace;
+}
+
+.unit-label {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 4px;
+}
+
+.timer-separator {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0 2px;
+}
+
+.expired-warning {
+  background: #fee2e2;
+  border-radius: 40px;
+  padding: 8px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #dc2626;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* موبایل */
+@media (max-width: 768px) {
+  .countdown-timer {
+    width: 100%;
+    justify-content: center;
+    margin-top: 10px;
+    border-radius: 20px;
+    padding: 12px;
+  }
+
+  .timer-box {
+    justify-content: center;
+  }
+
+  .timer-unit {
+    min-width: 50px;
+    padding: 4px 8px;
+  }
+
+  .unit-value {
+    font-size: 1.1rem;
+  }
+
+  .timer-label {
+    font-size: 0.75rem;
+  }
+
+  .timer-separator {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .timer-unit {
+    min-width: 40px;
+  }
+
+  .unit-value {
+    font-size: 0.9rem;
+  }
+
+  .timer-label {
+    width: 100%;
+    text-align: center;
   }
 }
 </style>

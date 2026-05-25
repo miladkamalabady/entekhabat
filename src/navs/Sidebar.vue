@@ -1,71 +1,74 @@
 <template>
-  <div id="sidbarrightnew" class=" notinvoice mt-2" @click.stop="() => { }">
-    <!-- Sidebar -->
-    <div class="custom-sidebar main-menu" v-if="sidebarVisible" style="overflow: auto;">
-      <b-nav vertical class="sidebar-nav overflow-auto px-2">
-        <b-nav-item>
-          <!-- نمایه کاربر -->
-          <div class="text-center ">
-
-            <img src="assets/img/szf.0.jpg" style="max-width:100%;height: 50px;" />
-
-            <p class="text-dark muirtl-1rehyf">سامانه انتخابات الکترونیک</p>
+  <div id="sidbarrightnew" class="notinvoice mt-2" @click.stop="() => {}">
+    <!-- Sidebar با رنگ هماهنگ توپبار -->
+    <div class="custom-sidebar main-menu" :class="{ 'sidebar-collapsed': !sidebarVisible }" v-if="sidebarVisible"
+      style="overflow: auto;">
+      <b-nav vertical class="sidebar-nav overflow-auto px-3 py-2">
+        
+        <!-- Header Sidebar -->
+        <b-nav-item class="mb-3">
+          <div class="text-center sidebar-header">
+            <img src="assets/img/szf.0.jpg" style="max-width: 80px; height: auto; border-radius: 16px; background: white; padding: 4px;" />
+            <h6 class="mt-3 fw-bold text-white">سامانه انتخابات</h6>
+            <p class="text-white-50 small">الکترونیک · امن · شفاف</p>
           </div>
-          <hr class="my-2 mb-0" />
-          <div class="d-flex align-items-center profile-card" style="gap:0.5rem">
-            <!-- <img :src="currentUser?.img" class="profile" /> -->
-            <p class="muirtl-78ml10">
-              {{ currentUser?.full_name }}
-            </p>
+          <hr class="my-2" style="border-color: rgba(255,255,255,0.2);" />
+          
+          <!-- پروفایل کاربر -->
+          <div class="d-flex align-items-center gap-2 p-2 rounded-3 user-profile-card">
+            <div class="avatar-icon">
+              <i class="bi bi-person-circle fs-4 text-white"></i>
+            </div>
+            <div class="user-info text-white">
+              <p class="mb-0 fw-bold small">{{ currentUser?.full_name || 'کاربر مهمان' }}</p>
+              <small class="text-white-50">{{ currentUser?.roles?.[0] || 'نقش نامشخص' }}</small>
+            </div>
           </div>
-          <hr class="my-2" />
-
+          <hr class="my-2" style="border-color: rgba(255,255,255,0.2);" />
         </b-nav-item>
+
+        <!-- منوها -->
         <div v-for="(val, index) in filteredMenu" :key="`a${index}`">
-          <!-- منوی بازشو (کالپس) -->
-          <div style="padding: 15px 5px;" v-if="val?.cate == 1" class="cursor-pointer mb-0 bb37b3d5 muirtl-zor93q"
-            :class="{ active: isParentActive(val.title), 'Mui-selected': openMenu === val.title }"
+          <!-- منوی دارای زیرمنو (cate == 1) -->
+          <div v-if="val?.cate == 1" class="sidebar-menu-parent mb-1"
+            :class="{ 'active-parent': isParentActive(val.title), 'menu-open': openMenu === val.title }"
             @click.prevent="toggleMenu(val.title)">
-            <span class="d-flex" style="justify-content:space-between">
-              <div>
-                <img :src="val.img" style="width:20px;" class="ml-2" />
-                {{ val.title }}
+            <span class="d-flex align-items-center justify-content-between w-100">
+              <div class="d-flex align-items-center gap-2 text-white">
+                <i :class="val.icon || 'bi bi-folder'"></i>
+                <span>{{ val.title }}</span>
               </div>
-              <i class="glyph-icon simple-icon-arrow-down rotate-icon"
-                :class="{ 'rotated': openMenu === val.title, 'text-light': openMenu === val.title }" style:></i>
+              <i class="bi bi-chevron-down menu-arrow text-white" :class="{ 'rotated': openMenu === val.title }"></i>
             </span>
           </div>
 
-          <!-- زیرمنو -->
-          <b-collapse :visible="openMenu === val.title">
-            <b-nav vertical class="submenu pl-2 mt-1">
+          <!-- زیرمنوها -->
+          <b-collapse :visible="openMenu === val.title" class="mt-1">
+            <b-nav vertical class="submenu-modern ps-3">
               <b-nav-item v-for="(val1, index1) in profilecontent1?.filter(x => x.cate == val.title)"
-                :key="`b${index1}`" class="submenu-item bb37b3d5 "
-                :class="{ 'Mui-selected': openMenu === val1.cate && (val1.link == panelactiveparvande) }"
-                @click="go2(val1)"><span class="pr-2" style="color:#000">
-                  <span class="glyph-icon simple-icon-arrow-left-circle"></span>
-                  {{ val1.title }}
+                :key="`b${index1}`" class="submenu-item"
+                :class="{ 'active-submenu': $route.name === val1.link }" @click="go2(val1)">
+                <span class="d-flex align-items-center gap-2 text-white">
+                  <i :class="val1.icon || 'bi bi-arrow-left-circle'"></i>
+                  <span>{{ val1.title }}</span>
                 </span>
               </b-nav-item>
             </b-nav>
           </b-collapse>
 
-          <!-- آیتم معمولی -->
-          <p v-if="val?.cate != 1" style="padding: 12px 5px;" class="cursor-pointer mb-0 bb37b3d5 muirtl-zor93q"
-            :class="panelactiveparvande == val.link && !openMenu ? 'Mui-selected' : ''" @click="go2(val)">
-            <img :src="val.img" style="width:20px" class="ml-2" />{{ val.title }}
-            <span v-if="val?.active" class="spinner-grow spinner-grow-sm"></span>
-          </p>
-
+          <!-- آیتم ساده (بدون زیرمنو) -->
+          <div v-if="val?.cate != 1" class="sidebar-menu-item mb-1"
+            :class="{ 'active-item': panelactiveparvande == val.link && !openMenu }" @click="go2(val)">
+            <div class="d-flex align-items-center gap-2 w-100 text-white">
+              <i :class="val.icon || 'bi bi-grid'"></i>
+              <span>{{ val.title }}</span>
+            </div>
+            <span v-if="val?.active" class="spinner-grow spinner-grow-sm text-light ms-2"></span>
+          </div>
         </div>
       </b-nav>
     </div>
 
-    <div v-if="!isMobile()" class="muirtl-5tu3nt" :style="sidebarVisible ? 'right: 95%;' : 'right:5%'"
-      @click="setsidebarVisible(!sidebarVisible)">
-      <span class="glyph-icon "
-        :class="sidebarVisible ? 'glyph-icon simple-icon-arrow-left' : 'simple-icon-arrow-right'"></span>
-    </div>
   </div>
 </template>
 
@@ -79,121 +82,52 @@ export default {
     return {
       openMenu: null,
       isMobile,
-
       profilecontent1: [],
-
       profilecontent: [
-        {
-          "title": "خانه",
-          "link": "home",
-          "img": "assets/img/ltms.svg",
-          "type": "3",
-          "cate": 2,
-        }, {
-          "title": "ثبت درخواست",
-          "link": "request",
-          "img": "assets/img/ltms.svg",
-          "type": "3",
-          "cate": '',
-          roles: ['VOTER'],
-        }, {
-          "title": "تبلیغات",
-          "link": "ViewAdvertise",
-          "img": "assets/img/ltms.svg",
-          "type": "3",
-        }, {
-          "title": "انتخابات",
-          "link": "votingPage",
-          "img": "assets/img/ltms.svg",
-          "type": "3",
-          requiresActive: true,
-        }, {
-          "title": "مشاهده نتایج",
-          "link": "final-election",
-          "img": "assets/img/ltms.svg",
-          "type": "3",
-          "cate": 2,
-          requiresActive: true,
-        }, {
-          "title": "کارتابل اجرایی",
-          "link": "executive-dashboard",
-          "img": "assets/img/ltms.svg",
-          "type": "3",
-          "cate": 2,
-          roles: ['EXECUTIVE'],
-        }, {
-          "title": "کارتابل نظارت",
-          "link": "supervisor-dashboard",
-          "img": "assets/img/ltms.svg",
-          "type": "3",
-          "cate": 2,
-          roles: ['SUPERVISOR'],
-        }, {
-          "title": "زمان‌بندی انتخابات",
-          "link": "system-schedule",
-          "img": "assets/img/ltms.svg",
-          "type": "3",
-          "cate": 2,
-          roles: ['ADMIN'],
-        }, {
-          "title": "گزارش لاگ",
-          "link": "logs",
-          "img": "assets/img/ltms.svg",
-          "type": "3",
-          "cate": 2,
-          roles: ['ADMIN']
-        }, {
-          "title": "پشتیبانی",
-          "link": "Contact",
-          "img": "assets/img/ltms.svg",
-          "type": "3",
-          "cate": 2,
-          roles: ['CANDIDATE','SUPERVISOR']
-        },
-
+        { title: "خانه", link: "home", icon: "bi bi-house-door", type: "3", cate: 2 },
+        { title: "ثبت درخواست", link: "request", icon: "bi bi-file-earmark-text", type: "3", roles: ['VOTER'] },
+        { title: "تبلیغات", link: "ViewAdvertise", icon: "bi bi-megaphone", type: "3" },
+        { title: "انتخابات", link: "votingPage", icon: "bi bi-check2-square", type: "3", requiresActive: true },
+        { title: "مشاهده نتایج", link: "final-election", icon: "bi bi-bar-chart-steps", type: "3", cate: 2, requiresActive: true },
+        { title: "کارتابل اجرایی", link: "executive-dashboard", icon: "bi bi-inbox", type: "3", cate: 2, roles: ['EXECUTIVE'] },
+        { title: "کارتابل نظارت", link: "supervisor-dashboard", icon: "bi bi-shield-check", type: "3", cate: 2, roles: ['SUPERVISOR'] },
+        { title: "زمان‌بندی انتخابات", link: "system-schedule", icon: "bi bi-calendar-event", type: "3", cate: 2, roles: ['ADMIN'] },
+        { title: "گزارش لاگ", link: "logs", icon: "bi bi-journal-text", type: "3", cate: 2, roles: ['ADMIN'] },
+        { title: "پشتیبانی", link: "Contact", icon: "bi bi-headset", type: "3", cate: 2, roles: ['CANDIDATE', 'SUPERVISOR'] },
       ],
     };
   },
   mounted() {
     if (this.currentUser?.roles == 'CANDIDATE') {
-      this.getstateCandid()
-      // this.stateRefreshIntervalId = setInterval(() => {
-      //   this.getstateCandid()
-      // }, 5000)
+      this.getstateCandid();
     }
     setTimeout(() => {
       if (this.$route?.name != 'home' && !this.ConfigInfo && this.currentUser)
-        this.getConfig()
+        this.getConfig();
     }, 1000);
 
-    this.setpanelactiveparvande(this.$route?.name)
+    this.setpanelactiveparvande(this.$route?.name);
     if (this.profilecontent1.filter(x => x.link == this.$route?.name).length > 0)
-      this.openMenu = this.profilecontent1.filter(x => x.link == this.$route?.name)[0].cate
+      this.openMenu = this.profilecontent1.filter(x => x.link == this.$route?.name)[0].cate;
     else if (this.profilecontent.filter(x => x.link == this.$route?.name).length > 0) {
-      this.openMenu = null
+      this.openMenu = null;
     }
   },
   beforeDestroy() {
     if (this.stateRefreshIntervalId) {
-      clearInterval(this.stateRefreshIntervalId)
-      this.stateRefreshIntervalId = null
+      clearInterval(this.stateRefreshIntervalId);
+      this.stateRefreshIntervalId = null;
     }
-  },
-  components: {
-
   },
   computed: {
     ...mapGetters(["currentUser", "panelactiveparvande", "sidebarVisible", "ConfigInfo", "stateCandidInfo"]),
     filteredMenu() {
       return this.profilecontent.filter(item => {
-        let roleAllowed = true
-
-        if (item?.roles)
-          roleAllowed = item?.roles?.includes(this.currentUser?.roles[0])
-
-        const disabled = item.requiresActive && !this.ConfigInfo?.active
-        return roleAllowed && !disabled
-      })
+        let roleAllowed = true;
+        if (item?.roles) roleAllowed = item?.roles?.includes(this.currentUser?.roles[0]);
+        const disabled = item.requiresActive && !this.ConfigInfo?.active;
+        return roleAllowed && !disabled;
+      });
     }
   },
   methods: {
@@ -203,222 +137,156 @@ export default {
       this.openMenu = this.openMenu === title ? null : title;
     },
     isParentActive(title) {
-      return this.profilecontent1?.some(
-        x => x.cate === title && x.link === this.$route.path
-      );
+      return this.profilecontent1?.some(x => x.cate === title && x.link === this.$route.name);
     },
     go2(val) {
       if (val.type == 2) {
-        this.$notify("info", "سرویس", val.popup, {
-          duration: 3000,
-          permanent: false
-        })
-      }
-
-      else if (val.type == 1) {
-        this.setProcessing(false)
-        if (this.isMobile()) this.setsidebarVisible(false)
-        if (this.$route?.name != 'home')
-          this.$router.push({ name: 'home' });
-        setTimeout(() => {
-          this.setpanelactiveparvande(val.link)
-        }, 500);
-      }
-      else if (val.type == 3) {
-        if (this.isMobile()) this.setsidebarVisible(false)
-        this.setpanelactiveparvande(val.link)
-        if (this.$route?.name != val.link)
-          this.$router.push({ name: val.link });
+        this.$notify("info", "سرویس", val.popup, { duration: 3000, permanent: false });
+      } else if (val.type == 1) {
+        this.setProcessing(false);
+        if (this.isMobile()) this.setsidebarVisible(false);
+        if (this.$route?.name != 'home') this.$router.push({ name: 'home' });
+        setTimeout(() => this.setpanelactiveparvande(val.link), 500);
+      } else if (val.type == 3) {
+        if (this.isMobile()) this.setsidebarVisible(false);
+        this.setpanelactiveparvande(val.link);
+        if (this.$route?.name != val.link) this.$router.push({ name: val.link });
       }
     },
-
   },
   watch: {
     stateCandidInfo(val) {
-      if (val) {
-        this.setRequestStatus(val?.requestStatus)
-      }
+      if (val) this.setRequestStatus(val?.requestStatus);
     }
   },
 };
 </script>
 
 <style scoped>
-.bb37b3d5 {
-  border-bottom: 1px solid #37b3d5;
-  font-size: small;
-}
-
-.bb37b3d5:hover {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.7) 0%, rgba(31, 122, 77, 0.8) 40%, rgba(255, 255, 255, 0.6) 100%);
-}
-
+/* ========== سایدبار هماهنگ با توپبار (آبی گرادیانتی) ========== */
 .custom-sidebar {
-  min-height: calc(100vh - 40px);
+  position: fixed;
+  right: 0;
+  top: 70px;           /* فاصله از بالا به اندازه ارتفاع topbar */
+  width: 280px;
+  height: calc(100vh - 70px);  /* ارتفاع باقیمانده صفحه */
+  background: linear-gradient(145deg, #2c3e8f 0%, #3f51b5 50%, #5c6bc0 100%);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  z-index: 1040;   
+  overflow-y: auto;
 }
 
-.muirtl-16hg5vz {
-  margin: 0px 0px 2.4px;
-  font-weight: 700;
-  font-size: 0.9rem;
-  line-height: 1.3;
+.sidebar-collapsed {
+  transform: translateX(100%);
 }
 
-.muirtl-1rehyf {
-  margin: 0px;
-  letter-spacing: 0em;
-  font-weight: 400;
-  line-height: 1.5em;
-  font-size: 0.75rem;
+/* هدر سایدبار */
+.sidebar-header {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 12px;
+  backdrop-filter: blur(4px);
 }
 
-.muirtl-78ml10 {
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 14px;
-  font-weight: 700;
-  color: rgba(0, 0, 0, 0.87);
+/* کارت کاربر */
+.user-profile-card {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 48px;
+  padding: 8px 12px;
+  backdrop-filter: blur(4px);
 }
 
-.muirtl-12xv2pg {
-  position: relative;
-  display: flex;
-  -webkit-box-align: center;
-  align-items: center;
-  -webkit-box-pack: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  font-size: 1.25rem;
-  line-height: 1;
-  border-radius: 50%;
-  overflow: hidden;
-  user-select: none;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(31, 122, 77, 0.2) 40%, rgba(255, 255, 255, 0.6) 100%);
-  backdrop-filter: blur(12px) saturate(140%);
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  box-shadow: rgba(31, 122, 77, 0.45) 0px 10px 28px, rgba(255, 255, 255, 0.45) 0px 1px 1px inset;
-  transition: 225ms;
-  color: rgb(6, 78, 59);
+.avatar-icon i {
+  font-size: 2rem;
+  color: white;
 }
 
-.muirtl-5tu3nt {
-  display: inline-flex;
-  -webkit-box-align: center;
-  align-items: center;
-  -webkit-box-pack: center;
-  justify-content: center;
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
-  outline: 0px;
-  border: 0px;
-  margin: 0px;
+/* آیتم‌های منو - متن سفید */
+.sidebar-menu-parent,
+.sidebar-menu-item {
+  padding: 12px 12px;
+  border-radius: 14px;
   cursor: pointer;
-  user-select: none;
-  vertical-align: middle;
-  appearance: none;
-  text-decoration: none;
-  text-align: center;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  --IconButton-hoverBg: rgba(34, 197, 94, 0.04);
-  padding: 5px;
-  font-size: 1.125rem;
-  position: absolute;
-  top: 50%;
-  z-index: 120;
-  background-color: rgb(255, 255, 255);
-  color: rgb(31, 122, 77);
-  box-shadow: rgba(0, 0, 0, 0.2) 0px 3px 3px -2px, rgba(0, 0, 0, 0.14) 0px 3px 4px 0px, rgba(0, 0, 0, 0.12) 0px 1px 8px 0px;
-  transform: translateY(-50%) rotate(0deg);
-  transition: 400ms;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.muirtl-zor93q {
-  color: #000;
+.sidebar-menu-parent:hover,
+.sidebar-menu-item:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateX(-4px);
+  color: white;
 }
 
-.muirtl-zor93q:hover {
-  background-color: rgb(31, 122, 77);
-  color: rgb(255, 255, 255);
-  border-radius: 10px
+/* آیتم فعال */
+.active-parent,
+.active-item {
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+  font-weight: 600;
+  border-right: 3px solid white;
 }
 
-.Mui-selected {
-  background-color: #73c2fb;
-  border-radius: 10px;
-  color: #fff !important;
+/* زیرمنوها */
+.submenu-modern .submenu-item {
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: 0.2s;
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.8);
 }
 
-.Mui-selected span {
-  color: #fff !important;
+.submenu-modern .submenu-item:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateX(-4px);
+  color: white;
 }
 
-.sidebar-nav {
-  width: 100%;
+.active-submenu {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  font-weight: 500;
+  color: white !important;
 }
 
-.submenu {
-  background: #f8f9fa;
+/* آیکون فلش */
+.menu-arrow {
+  transition: transform 0.25s ease;
 }
 
-.submenu-item.active {
-  background-color: #dbeafe;
-  color: #1d4ed8;
-  border-radius: 6px;
-}
-
-.submenu-item .glyph-icon {
-  vertical-align: middle;
-}
-
-.nav-link-custom.active {
-  background-color: #e3f2fd;
-  font-weight: bold;
-}
-
-.rotate-icon {
-  display: inline-block;
-  /* مهم */
-  transition: transform 0.3s ease;
-  /* انیمیشن نرم */
-  align-content: center;
-  font-weight: bold;
-}
-
-.rotate-icon.rotated {
+.menu-arrow.rotated {
   transform: rotate(180deg);
 }
 
-.collapse-enter-active,
-.collapse-leave-active {
-  transition: max-height 0.35s ease, opacity 0.25s ease;
+
+/* اسکرول‌بار */
+.custom-sidebar::-webkit-scrollbar {
+  width: 5px;
 }
 
-.collapse-enter,
-.collapse-leave-to {
-  max-height: 0;
-  opacity: 0;
+.custom-sidebar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
 }
 
-.collapse-enter-to,
-.collapse-leave {
-  max-height: 500px;
-  opacity: 1;
+.custom-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 10px;
 }
 
-.muirtl-rmig3n {
-  width: 4rem;
-  padding: 5px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(31, 122, 77, 0.2) 40%, rgba(255, 255, 255, 0.6) 100%);
-  backdrop-filter: blur(12px) saturate(140%);
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  box-shadow: rgba(31, 122, 77, 0.45) 0px 10px 28px, rgba(255, 255, 255, 0.45) 0px 1px 1px inset;
-  transition: 225ms;
-  justify-content: center;
+/* موبایل */
+@media (max-width: 768px) {
+  .custom-sidebar {
+    top: 60px;
+    height: calc(100vh - 60px);
+    width: 260px;
+  }
+  
 }
 </style>

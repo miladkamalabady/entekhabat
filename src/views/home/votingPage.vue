@@ -1,573 +1,374 @@
 <template>
-  <div class="voting-page">
-    <!-- Header -->
-    <b-container fluid class="voting-header py-4">
-      <b-row class="align-items-center">
-        <b-col cols="12" md="8">
-          <div class="d-flex align-items-center">
-            <div class="voting-icon mr-3">
-              <b-icon icon="ballot-fill"></b-icon>
+  <div class="voting-page-modern">
+    <!-- فاصله از topbar -->
+    <div class="page-spacer"></div>
+
+    <!-- Header با گرادیانت -->
+    <div class="voting-header-modern">
+      <div class="container-fluid">
+        <div class="header-content">
+          <div class="header-title">
+            <div class="icon-wrapper">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z"/>
+                <path d="M22 6L12 13L2 6" stroke-linecap="round"/>
+                <path d="M16 16L8 16" stroke-linecap="round"/>
+              </svg>
             </div>
             <div>
-              <h2 class="mb-1">صندوق رأی‌گیری الکترونیکی</h2>
-              <p class="text-muted mb-0">انتخابات صندوق ذخیره فرهنگیان</p>
+              <h2>صندوق رأی‌گیری الکترونیکی</h2>
+              <p>انتخابات هیأت امنای صندوق ذخیره فرهنگیان</p>
             </div>
           </div>
-        </b-col>
-        <b-col cols="12" md="4" class="text-left text-md-right">
-          <div class="voter-info">
-            <div class="voter-name">{{ currentUser.full_name }}</div>
-            <div class="voter-id">کد ملی: {{ currentUser.national_id }}</div>
-            <div class="voter-status">
-              <b-badge :variant="voteStatus === 'voted' ? 'success' : 'warning'">
-                {{ electionStatusAll === 'active' ? getVoteStatusText() : 'پایان یافته' }}
-              </b-badge>
+          <div class="voter-card">
+            <div class="voter-avatar">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M20 21V19C20 16.8 18.2 15 16 15H8C5.8 15 4 16.8 4 19V21" stroke-width="1.5"/>
+                <circle cx="12" cy="7" r="4" stroke-width="1.5"/>
+              </svg>
+            </div>
+            <div class="voter-details">
+              <div class="voter-name">{{ currentUser?.full_name || 'کاربر مهمان' }}</div>
+              <div class="voter-id">کد ملی: {{ currentUser?.national_id || '---' }}</div>
+              <div class="voter-status">
+                <span class="status-badge" :class="voteStatus === 'voted' ? 'voted' : 'ready'">
+                  {{ electionStatusAll === 'active' ? (voteStatus === 'voted' ? '✓ رأی داده شده' : '● آماده رأی‌گیری') : 'پایان یافته' }}
+                </span>
+              </div>
             </div>
           </div>
-        </b-col>
-      </b-row>
-    </b-container>
-    <b-alert show variant="light" class="text-center">
-      <b-badge
-        :variant="electionStatusAll === 'active' ? 'success' : electionStatusAll === 'upcoming' ? 'warning' : 'secondary'"
-        pill>
-        {{ electionStatusAll === 'active' ? 'در حال برگزاری' : electionStatusAll === 'upcoming' ? 'آغاز به زودی' :
-          'پایان یافته' }}
-      </b-badge>
-    </b-alert>
-    <!-- Voting Progress -->
-    <b-container class="voting-progress mb-4" v-if="electionStatusAll === 'active'">
-      <b-card>
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h5 class="mb-0">روند رأی‌گیری</h5>
-          <!-- <div class="time-remaining">
-            <b-icon icon="clock" class="ml-1"></b-icon>
-            زمان باقیمانده: {{ timeRemaining }}
-          </div> -->
         </div>
+      </div>
+    </div>
 
-        <b-progress height="8px" class="mb-2">
-          <b-progress-bar :value="progress" variant="primary" :label="`${progress}%`"></b-progress-bar>
-        </b-progress>
+    <!-- هشدار وضعیت انتخابات -->
+    <div class="container-fluid mt-3 ">
+      <div class="election-alert" :class="electionStatusAll">
+        <span class="alert-dot"></span>
+        <span class="alert-text">
+          {{ electionStatusAll === 'active' ? 'در حال برگزاری انتخابات' : electionStatusAll === 'upcoming' ? 'آغاز به زودی' : 'پایان یافته' }}
+        </span>
+      </div>
+    </div>
 
-        <div class="progress-steps">
-          <div class="step" :class="{ active: currentStep >= 1, completed: currentStep > 1 }">
-            <span class="step-number">1</span>
-            <span class="step-label">مشاهده فهرست داوطلبان حوزه انتخابیه</span>
-          </div>
-          <div class="step" :class="{ active: currentStep >= 2, completed: currentStep > 2 }">
-            <span class="step-number">2</span>
-            <span class="step-label">برگ رای</span>
-          </div>
-          <div class="step" :class="{ active: currentStep >= 3, completed: currentStep > 3 }">
-            <span class="step-number">3</span>
-            <span class="step-label">تأیید نهایی</span>
-          </div>
+    <!-- Stepper مدرن -->
+    <div class="container-fluid mt-4" v-if="electionStatusAll === 'active' && voteStatus !== 'voted'">
+      <div class="stepper-modern">
+        <div class="step-item" :class="{ active: currentStep >= 1, completed: currentStep > 1 }">
+          <div class="step-circle">1</div>
+          <div class="step-label">انتخاب داوطلب</div>
         </div>
-      </b-card>
-    </b-container>
+        <div class="step-line" :class="{ active: currentStep > 1 }"></div>
+        <div class="step-item" :class="{ active: currentStep >= 2, completed: currentStep > 2 }">
+          <div class="step-circle">2</div>
+          <div class="step-label">برگ رأی</div>
+        </div>
+        <div class="step-line" :class="{ active: currentStep > 2 }"></div>
+        <div class="step-item" :class="{ active: currentStep >= 3 }">
+          <div class="step-circle">3</div>
+          <div class="step-label">تأیید نهایی</div>
+        </div>
+      </div>
+    </div>
 
-    <!-- Main Voting Content -->
-    <b-container class="voting-content" v-if="electionStatusAll === 'active' || electionStatusAll === 'ended'">
+    <!-- محتوای اصلی -->
+    <div class="container-fluid voting-content-modern p-4" v-if="electionStatusAll === 'active' || electionStatusAll === 'ended'">
 
-      <!-- Step 2: Candidates List -->
+      <!-- مرحله 1: لیست کاندیداها -->
       <div v-if="currentStep === 1 && electionStatusAll === 'active'" class="step-container">
-        <b-card>
-          <div class="text-center mb-4">
-            <h4>فهرست داوطلبان انتخابات در حوزه انتخابیه {{ currentUser?.regionName }}</h4>
-            <p v-if="maxVotes" class="text-muted">لطفاً اطلاعات را مطالعه کنید<br />
-              تعداد حداکثر داوطلب انتخابی در حوزه <u class="text-success">{{ currentUser?.regionName }}</u> تعداد <u
-                class="text-success">{{ maxVotes }}</u> نفر می‌باشد</p>
+        <div class="candidates-header">
+          <h3>📋 فهرست داوطلبان</h3>
+          <p>حوزه انتخابیه: <strong>{{ currentUser?.regionName || 'منطقه نامشخص' }}</strong></p>
+          <div class="max-votes-info">
+            <span class="info-badge">حداکثر انتخاب: {{ maxVotes }} نفر</span>
           </div>
+        </div>
 
-          <div class="candidates-filter mb-4">
-            <b-input-group>
-              <template #prepend>
-                <b-input-group-text>
-                  <b-icon icon="search"></b-icon>
-                </b-input-group-text>
-              </template>
-              <b-form-input v-model="searchQuery" placeholder="جستجو در کاندیداها..."></b-form-input>
-              <template #append>
-                <b-form-select v-model="sortBy" :options="sortOptions" class="w-auto"></b-form-select>
-              </template>
-            </b-input-group>
+        <!-- فیلتر جستجو -->
+        <div class="search-filter-modern">
+          <div class="search-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <circle cx="11" cy="11" r="8" stroke-width="1.5"/>
+              <path d="M21 21L17 17" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <input type="text" v-model="searchQuery" placeholder="جستجو در داوطلبان...">
           </div>
+          <select v-model="sortBy" class="sort-select">
+            <option value="persian_birth_date">مرتب‌سازی بر اساس سن</option>
+            <option value="name">مرتب‌سازی بر اساس نام</option>
+          </select>
+        </div>
 
-          <div class="text-center mt-2 mb-4">
-            <b-button variant="primary" @click="goToConfirmation" :disabled="selectedCandidates?.length === 0">
-              <b-icon icon="arrow-left" class="ml-1"></b-icon>
-              ادامه به انتخاب نهایی
-            </b-button>
-            <!-- <b-button variant="outline-secondary" class="mr-3" @click="prevStep">
-              بازگشت
-            </b-button> -->
-          </div>
-          <b-row>
-            <b-col v-for="candidate in filteredCandidates" :key="candidate.id" cols="12" md="4" lg="3" class="mb-4">
-              <b-card class="candidate-card h-100" :class="{ 'selected': selectedCandidates?.includes(candidate.codeentekhabati) }"
-                @click="previewCandidate(candidate)">
-                <!-- Candidate Image -->
-                <div class="candidate-image-container mb-3">
-                  <img :src="`${apiUrlrtb}/${candidate.user_photo}`" :alt="candidate.first_name"
-                    class="candidate-image" />
-
-                </div>
-                <!-- Candidate Info -->
-                <h5 class="candidate-name">{{ candidate.first_name }} {{ candidate.last_name }}</h5>
-                <p class="candidate-position" :class="{ 'text-muted': !selectedCandidates?.includes(candidate.codeentekhabati) }">{{
-                  candidate.org_position_desc }}</p>
-
-                <!-- Candidate Stats -->
-                <div class="candidate-stats" :class="{ 'text-muted': !selectedCandidates?.includes(candidate.codeentekhabati) }">
-                  <div class="stat-item">
-                    <b-icon icon="award" class="ml-1"></b-icon>
-                    {{ candidate.personnel_code }}
-                  </div>
-                  <div class="stat-item">
-                    <b-icon icon="award" class="ml-1"></b-icon>
-                    {{ candidate.codeentekhabati }}
-                  </div>
-                </div>
-
-                <!-- Action Button -->
-                <div class="text-center mt-3">
-                  <b-button variant="outline-primary" size="sm" @click.stop="previewCandidate(candidate)" block>
-                    <b-icon icon="eye" class="ml-1"></b-icon>
-                    مشاهده جزئیات
-                  </b-button>
-                </div>
-              </b-card>
-            </b-col>
-          </b-row>
-
-        </b-card>
-      </div>
-
-      <!-- Step 3: Final Selection -->
-      <div v-else-if="currentStep === 2" class="step-container">
-        <b-card>
-          <div class="selection-container" v-if="selectedCandidates?.length">
-
-            <!-- Confirmation -->
-            <div class="confirmation-section mt-1">
-              <b-alert variant="warning" show class="text-center">
-                <h5 class="alert-heading">بازبینی و تأیید نهایی رأی</h5>
-                <p class="mb-3"> شما افراد زیر را برای عضویت در هیأت امنا صندوق ذخیره فرهنگیان انتخاب کرده‌اید. لطفاً
-                  فهرست انتخابی را
-                  با دقت بررسی نمایید. پس از ثبت نهایی، امکان تغییر رأی وجود نخواهد داشت. </p>
-
-                <!-- لیست انتخاب‌ها -->
-                <div class="selected-review-box mb-4">
-                  <b-row>
-                    <b-col v-for="cid in selectedCandidates" :key="cid" md="3" class="p-1 mb-2">
-                      <div class="review-item p-2">
-                        <div class="selected-candidate-image">
-                          <img :src="`${apiUrlrtb}/${findCandidate(cid).user_photo}`"
-                            :alt="findCandidate(cid).first_name" class="selected-image" />
-                        </div>
-
-                        <div class="selected-details">
-                          <div class="text-center">
-                            <span>{{ findCandidate(cid).gender==1 ? 'آقای' : 'خانم' }} {{ findCandidate(cid).first_name }}
-                              {{
-                                findCandidate(cid).last_name }}</span>
-                            <hr />
-                          </div>
-                          <div class="detail-item">
-                            <strong>کدانتخاباتی:</strong>
-                            <span>{{ findCandidate(cid).codeentekhabati }}</span>
-                          </div>
-                          <!-- <div class="detail-item">
-                            <strong>تولد:</strong>
-                            <span>{{ findCandidate(cid).persian_birth_date }}</span>
-                          </div> -->
-                          <div class="detail-item">
-                            <strong>کدکاندید:</strong>
-                            <span>{{ findCandidate(cid).tracking_code }}</span>
-                          </div>
-                          <!-- <div class="detail-item">
-                            <strong>پرسنلی:</strong>
-                            <span>{{ findCandidate(cid).personnel_code }}</span>
-                          </div> -->
-                          <div class="detail-item">
-                            <strong>منطقه:</strong>
-                            <span>{{ findCandidate(cid).regionName }}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </b-col>
-                  </b-row>
-                </div>
-
-                <!-- چک تأیید -->
-                <div class="confirmation-check">
-                  <b-form-checkbox v-model="confirmation.accepted" name="confirmation-check" :state="confirmationState">
-                    <span class="confirmation-text"> اینجانب پس از
-                      مشاهده و بررسی کامل لیست فوق،
-                      انتخاب‌های خود را تأیید نموده و از غیرقابل تغییر بودن رأی پس از ثبت نهایی آگاه هستم. </span>
-                  </b-form-checkbox>
-                  <b-form-invalid-feedback :state="confirmationState"> لطفاً گزینه تأیید را انتخاب کنید
-                  </b-form-invalid-feedback>
-                </div>
-
-              </b-alert>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="text-center mt-4">
-              <b-button variant="success" size="lg" class="mr-3" @click="submitVote"
-                :disabled="!confirmation.accepted || submitting">
-                <b-spinner small v-if="submitting" class="ml-1"></b-spinner>
-                <b-icon v-else icon="check-circle" class="ml-1"></b-icon>
-                ثبت رأی نهایی
-              </b-button>
-              <b-button variant="outline-secondary" @click="prevStep">
-                بازگشت و تغییر انتخاب
-              </b-button>
-            </div>
-          </div>
-
-          <div v-else class="text-center py-5">
-            <b-icon icon="exclamation-circle" font-scale="4" variant="warning"></b-icon>
-            <h5 class="mt-3">کاندیدایی انتخاب نشده است</h5>
-            <p class="text-muted">لطفاً به مرحله قبل بازگردید و کاندیدای مورد نظر خود را انتخاب کنید.</p>
-            <b-button variant="primary" @click="prevStep">
-              بازگشت به لیست کاندیداها
-            </b-button>
-          </div>
-        </b-card>
-      </div>
-
-      <!-- Step 4: Vote Success -->
-      <div v-else-if="currentStep === 3" class="step-container">
-        <b-card class="success-card">
-          <div class="text-center py-5">
-            <div class="success-icon">
-              <b-icon icon="check-circle-fill"></b-icon>
-            </div>
-            <h3 class="mt-4 mb-3">رأی شما با موفقیت ثبت شد!</h3>
-            <p class="lead mb-4">از مشارکت شما در این انتخابات سپاسگزاریم.</p>
-
-            <div class="vote-summary">
-              <b-card class="summary-card">
-                <b-row>
-                  <b-col md="6">
-                    
-                    <div class="summary-item">
-                      <strong>کدملی رأی‌دهنده:</strong>
-                      <span>{{ currentUser?.national_id }}</span>
-                    </div>
-                    <div class="summary-item">
-                      <strong>زمان رأی‌گیری:</strong>
-                      <span>{{ voteDate }}</span>
-                    </div>
-                    <div class="summary-item">
-                      <strong>ساعت رأی‌گیری:</strong>
-                      <span>{{ voteTime }}</span>
-                    </div>
-                  </b-col>
-                  <b-col md="6">
-                    <div class="summary-item">
-                      <strong>داوطلب/داوطلبان انتخاب شده:</strong>
-                      <span v-for="(cid, i) in selectedCandidate" :key="`${i}a`">{{ cid?.first_name }} {{ cid?.last_name
-                      }}<br /></span>
-                    </div>
-                    <div class="summary-item">
-                      <strong>کد داوطلب/داوطلبان انتخاب شده:</strong>
-                      <span v-for="(cid, i) in selectedCandidate" :key="`${i}b`">{{ cid?.codeentekhabati }}</span>
-                    </div>
-                    <div class="summary-item">
-                      <strong>شماره پیگیری:</strong>
-                      <span class="tracking-number">{{ voteTrackingCode }}</span>
-                    </div>
-                  </b-col>
-                </b-row>
-              </b-card>
-            </div>
-
-            <div class="success-actions mt-5">
-              <b-button variant="primary" class="mr-3" @click="downloadReceipt">
-                <b-icon icon="download" class="ml-1"></b-icon>
-                دریافت رسید
-              </b-button>
-              
-              <b-button v-if=" electionStatusAll === 'ended'" variant="outline-info" class="mr-3" @click="viewResults">
-                <b-icon icon="bar-chart" class="ml-1"></b-icon>
-                مشاهده نتایج
-              </b-button>
-              <b-button variant="outline-secondary" @click="goToHome">
-                <b-icon icon="house-door" class="ml-1"></b-icon>
-                بازگشت به صفحه اصلی
-              </b-button>
-            </div>
-
-            <div class="success-note mt-4">
-              <b-alert variant="info" show>
-                <b-icon icon="info-circle" class="ml-1"></b-icon>
-                شماره پیگیری خود را حفظ کنید. این شماره برای پیگیری رأی شما ضروری است.
-              </b-alert>
-            </div>
-          </div>
-        
-          <h5 class="mb-3">
-            <b-icon icon="chat-dots-fill" class="ml-1"></b-icon>
-            نظر و امتیاز شما
-          </h5>
-
-          <!-- امتیاز ستاره -->
-          <div class="star-rating mb-3">
-            <b-form-group label="امتیاز (ستاره‌ها)" label-for="rating">
-              <div class="stars">
-                <span v-for="star in 5" :key="star" class="star" :class="{ filled: star <= feedback.rating }"
-                  @click="feedback.rating = star">★</span>
-              </div>
-            </b-form-group>
-          </div>
-
-          <!-- متن نظر -->
-          <b-form-group label="نظر شما" label-for="feedback-text">
-            <b-form-textarea id="feedback-text" v-model="feedback.comment" placeholder="نظر خود را بنویسید..." rows="3"
-              max-rows="6"></b-form-textarea>
-          </b-form-group>
-
-          <!-- دکمه ارسال -->
-          <div class="text-center mt-3">
-            <b-button variant="success" @click="submitFeedbackT" :disabled="submittingFeedback">
-              <b-spinner v-if="submittingFeedback" small class="ml-1"></b-spinner>
-              ارسال نظر
-            </b-button>
-          </div>
-        </b-card>
-
-      </div>
-    </b-container>
-
-    <!-- Candidate Preview Modal -->
-    <b-modal v-model="showCandidateModal"
-      :title="`${previewCandidateData?.first_name} ${previewCandidateData?.last_name} `" size="lg" hide-footer centered
-      scrollable>
-      <div v-if="previewCandidateData" class="candidate-preview">
-        <b-row class="align-items-center mb-4">
-          <b-col md="4" class="text-center">
-            <img :src="`${apiUrlrtb}/${previewCandidateData.user_photo}`" :alt="previewCandidateData.first_name"
-              class="preview-image" />
-          </b-col>
-          <b-col md="8">
-            <h5>{{ previewCandidateData.org_position_desc }}</h5>
-            <div class="preview-stats">
-              <!-- <b-badge variant="info" class="mr-2">
-                <b-icon icon="briefcase" class="ml-1"></b-icon>
-                {{ previewCandidateData.persian_birth_date }}
-              </b-badge>
-              <b-badge variant="success" class="mr-2">
-                <b-icon icon="award" class="ml-1"></b-icon>
-                {{ previewCandidateData.personnel_code }}
-              </b-badge> -->
-              <b-badge variant="warning" class="mr-2">
-                <b-icon icon="award" class="ml-1"></b-icon>
-                کد کاندید: {{ previewCandidateData.codeentekhabati }}
-              </b-badge>
-            </div>
-          </b-col>
-        </b-row>
-
-        <b-tabs content-class="mt-3">
-          <!-- <b-tab title="منطقه" active> -->
-            <p class="preview-text">{{ previewCandidateData.regionName }} -
-              {{ previewCandidateData.gender==1 ? 'آقا' : 'خانم' }} {{ previewCandidateData?.first_name }}
-              {{ previewCandidateData?.last_name }}</p>
-              
-          <!-- </b-tab> -->
-
-          <!-- <b-tab title="سوابق کاری">
-            <ul class="preview-list">
-              <li v-for="(experience, index) in previewCandidateData.experiences" :key="index">
-                {{ experience }}
-              </li>
-            </ul>
-          </b-tab>
-
-          <b-tab title="برنامه انتخابی">
-            <ul class="preview-list">
-              <li v-for="(item, index) in previewCandidateData.program" :key="index">
-                {{ item }}
-              </li>
-            </ul>
-          </b-tab> -->
-
-          <!-- <b-tab title="مدارک و گواهی‌ها">
-            <div class="certificates">
-              <div v-for="(cert, index) in previewCandidateData.certificates" :key="index" class="certificate-item">
-                <b-icon icon="file-earmark-text" class="ml-2"></b-icon>
-                {{ cert }}
+        <!-- لیست کاندیداها -->
+        <div class="candidates-grid">
+          <div v-for="candidate in filteredCandidates" :key="candidate.id" class="candidate-card-modern"
+            :class="{ selected: selectedCandidates?.includes(candidate.codeentekhabati) }"
+            @click="toggleCandidate(candidate)">
+            <div class="candidate-image">
+              <img :src="`${apiUrlrtb}/${candidate.user_photo}`" :alt="candidate.first_name">
+              <div v-if="selectedCandidates?.includes(candidate.codeentekhabati)" class="check-mark">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white">
+                  <path d="M20 6L9 17L4 12" stroke-width="2" stroke-linecap="round"/>
+                </svg>
               </div>
             </div>
-          </b-tab> -->
-        </b-tabs>
+            <div class="candidate-info">
+              <h4>{{ candidate.first_name }} {{ candidate.last_name }}</h4>
+              <p class="position">{{ candidate.org_position_desc }}</p>
+              <div class="candidate-meta">
+                <span>کد انتخاباتی: {{ candidate.codeentekhabati }}</span>
+              </div>
+            </div>
+            <button class="detail-btn" @click.stop="previewCandidate(candidate)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="3" stroke-width="1.5"/>
+                <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z" stroke-width="1.5"/>
+              </svg>
+            </button>
+          </div>
+        </div>
 
-        <div class="text-center mt-4">
-          <b-button variant="primary" @click="toggleCandidate(previewCandidateData)" :disabled="voteStatus === 'voted'">
-            <b-icon icon="check-circle" class="ml-1"></b-icon>
-            انتخاب این کاندیدا
-          </b-button>
+        <div class="action-buttons-step">
+          <button class="btn-next" :disabled="selectedCandidates?.length === 0" @click="goToConfirmation">
+            ادامه به برگ رأی
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
         </div>
       </div>
+
+      <!-- مرحله 2: برگ رأی (تأیید نهایی) -->
+      <div v-else-if="currentStep === 2" class="step-container">
+        <div class="ballot-paper">
+          <div class="ballot-header">
+            <h3>📄 برگ رأی انتخابات</h3>
+            <p>هیأت امنای موسسه صندوق ذخیره فرهنگیان</p>
+          </div>
+          
+          <div class="ballot-body">
+            <div class="ballot-info">
+              <div class="info-line">
+                <span>نام رأی‌دهنده:</span>
+                <strong>{{ currentUser?.full_name }}</strong>
+              </div>
+              <div class="info-line">
+                <span>کد ملی:</span>
+                <strong>{{ currentUser?.national_id }}</strong>
+              </div>
+              <div class="info-line">
+                <span>حوزه انتخابیه:</span>
+                <strong>{{ currentUser?.regionName }}</strong>
+              </div>
+              <div class="info-line">
+                <span>تاریخ رأی‌گیری:</span>
+                <strong>{{ getCurrentDate() }}</strong>
+              </div>
+            </div>
+
+            <div class="ballot-separator"></div>
+
+            <div class="selected-candidates-list">
+              <h4>داوطلبان انتخاب شده</h4>
+              <div class="candidates-ballot">
+                <div v-for="cid in selectedCandidates" :key="cid" class="ballot-candidate-item">
+                  <div class="ballot-candidate-number">{{ selectedCandidates.indexOf(cid) + 1 }}</div>
+                  <div class="ballot-candidate-info">
+                    <img :src="`${apiUrlrtb}/${findCandidate(cid).user_photo}`" :alt="findCandidate(cid).first_name">
+                    <div>
+                      <div class="ballot-candidate-name">
+                        {{ findCandidate(cid).gender == 1 ? 'آقای' : 'خانم' }} {{ findCandidate(cid).first_name }} {{ findCandidate(cid).last_name }}
+                      </div>
+                      <div class="ballot-candidate-code">کد انتخاباتی: {{ findCandidate(cid).codeentekhabati }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="ballot-separator"></div>
+
+            <div class="confirmation-section">
+              <label class="checkbox-container">
+                <input type="checkbox" v-model="confirmation.accepted">
+                <span class="checkmark"></span>
+                <span class="confirmation-text">
+                  اینجانب پس از مشاهده و بررسی کامل لیست فوق، انتخاب‌های خود را تأیید نموده و از غیرقابل تغییر بودن رأی پس از ثبت نهایی آگاه هستم.
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <div class="ballot-footer">
+            <button class="btn-back" @click="prevStep">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M19 12H5M5 12L12 5M5 12L12 19" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+              بازگشت و تغییر انتخاب
+            </button>
+            <button class="btn-submit-ballot" :disabled="!confirmation.accepted || submitting" @click="submitVote">
+              <svg v-if="!submitting" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M20 6L9 17L4 12" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              <span v-else class="spinner-small"></span>
+              ثبت رأی نهایی
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- مرحله 3: موفقیت -->
+      <div v-else-if="currentStep === 3" class="step-container">
+        <div class="success-card-modern">
+          <div class="success-animation">
+            <div class="success-checkmark">
+              <svg viewBox="0 0 52 52">
+                <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+                <path class="checkmark-check" fill="none" d="M14 27L23 36L38 15"/>
+              </svg>
+            </div>
+          </div>
+          
+          <h2>رأی شما با موفقیت ثبت شد!</h2>
+          <p>از مشارکت شما در این انتخابات سپاسگزاریم.</p>
+
+          <div class="vote-receipt">
+            <div class="receipt-header">
+              <span>رسید رأی‌گیری الکترونیکی</span>
+            </div>
+            <div class="receipt-body">
+              <div class="receipt-row">
+                <span>شماره پیگیری:</span>
+                <strong class="tracking-code">{{ voteTrackingCode }}</strong>
+              </div>
+              <div class="receipt-row">
+                <span>تاریخ ثبت:</span>
+                <span>{{ voteDate }} - {{ voteTime }}</span>
+              </div>
+              <div class="receipt-row">
+                <span>داوطلبان انتخاب شده:</span>
+                <span>{{ selectedCandidate?.map(c => c.first_name + ' ' + c.last_name).join(' - ') }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="success-actions">
+            <button class="btn-outline" @click="downloadReceipt">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M12 3V16M12 16L9 13M12 16L15 13" stroke-width="1.5" stroke-linecap="round"/>
+                <path d="M5 21H19" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+              دریافت رسید
+            </button>
+            <button class="btn-primary" @click="goToHome">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M3 9L12 3L21 9V20H15V14H9V20H3V9Z" stroke-width="1.5" stroke-linejoin="round"/>
+              </svg>
+              بازگشت به صفحه اصلی
+            </button>
+          </div>
+
+          <!-- بخش نظر و امتیاز -->
+          <div class="feedback-section">
+            <h4>نظر و امتیاز شما</h4>
+            <div class="star-rating-modern">
+              <span v-for="star in 5" :key="star" class="star" :class="{ filled: star <= feedback.rating }"
+                @click="feedback.rating = star">★</span>
+            </div>
+            <textarea v-model="feedback.comment" placeholder="نظر خود را بنویسید..." rows="3"></textarea>
+            <button class="btn-feedback" :disabled="submittingFeedback" @click="submitFeedbackT">
+              {{ submittingFeedback ? 'در حال ارسال...' : 'ارسال نظر' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- مودال جزئیات کاندیدا -->
+    <b-modal v-model="showCandidateModal" hide-footer centered size="lg" class="candidate-modal-modern">
+      <template #modal-header>
+        <div class="modal-header-custom">
+          <h4>{{ previewCandidateData?.first_name }} {{ previewCandidateData?.last_name }}</h4>
+          <button type="button" class="close" @click="showCandidateModal = false">×</button>
+        </div>
+      </template>
+      <div v-if="previewCandidateData" class="modal-body-custom">
+        <div class="modal-candidate-image">
+          <img :src="`${apiUrlrtb}/${previewCandidateData.user_photo}`" :alt="previewCandidateData.first_name">
+        </div>
+        <div class="modal-candidate-info">
+          <div class="info-row">
+            <span>کد انتخاباتی:</span>
+            <strong>{{ previewCandidateData.codeentekhabati }}</strong>
+          </div>
+          <div class="info-row">
+            <span>جنسیت:</span>
+            <strong>{{ previewCandidateData.gender == 1 ? 'آقا' : 'خانم' }}</strong>
+          </div>
+          <div class="info-row">
+            <span>حوزه انتخابیه:</span>
+            <strong>{{ previewCandidateData.regionName }}</strong>
+          </div>
+          <div class="info-row">
+            <span>سمت:</span>
+            <strong>{{ previewCandidateData.org_position_desc }}</strong>
+          </div>
+        </div>
+      </div>
+      <template #modal-footer>
+        <button class="btn-select" :disabled="voteStatus === 'voted'" @click="toggleCandidate(previewCandidateData); showCandidateModal = false">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M20 6L9 17L4 12" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          {{ selectedCandidates?.includes(previewCandidateData.codeentekhabati) ? 'حذف از لیست' : 'انتخاب این داوطلب' }}
+        </button>
+      </template>
     </b-modal>
-
-    <!-- Voting Instructions -->
-    <b-container class="voting-instructions mt-4" v-if="electionStatusAll === 'active'">
-      <b-card>
-        <h5 class="mb-3">
-          <b-icon icon="info-circle-fill" class="ml-2"></b-icon>
-          راهنمای رأی‌گیری
-        </h5>
-        <b-row>
-          <b-col md="4">
-            <div class="instruction-item">
-              <div class="instruction-icon">
-                <b-icon icon="shield-check"></b-icon>
-              </div>
-              <h6>امنیت کامل</h6>
-              <p>رأی شما به صورت کاملاً محرمانه و امن ثبت می‌شود.</p>
-            </div>
-          </b-col>
-          <b-col md="4">
-            <div class="instruction-item">
-              <div class="instruction-icon">
-                <b-icon icon="clock-history"></b-icon>
-              </div>
-              <h6>زمان محدود</h6>
-              <p>تا پایان زمان انتخابات فرصت دارید رأی خود را ثبت کنید.</p>
-            </div>
-          </b-col>
-          <b-col md="4">
-            <div class="instruction-item">
-              <div class="instruction-icon">
-                <b-icon icon="arrow-counterclockwise"></b-icon>
-              </div>
-              <h6>غیرقابل تغییر</h6>
-              <p>پس از ثبت نهایی، رأی شما قابل تغییر نخواهد بود.</p>
-            </div>
-          </b-col>
-        </b-row>
-      </b-card>
-    </b-container>
-
-    <!-- Timer Warning -->
-    <!-- <div v-if="showTimeWarning" class="timer-warning">
-      <b-alert variant="warning" show class="mb-0 text-center">
-        <b-icon icon="exclamation-triangle-fill" class="ml-1"></b-icon>
-        زمان باقیمانده تا پایان انتخابات: {{ timeRemaining }}
-        <b-button variant="outline-warning" size="sm" class="mr-3" @click="showTimeWarning = false">
-          فهمیدم
-        </b-button>
-      </b-alert>
-    </div> -->
   </div>
 </template>
 
 <script>
 import { isMobile } from "../../utils";
-import { apiUrlrtb, currentUser } from '../../constants/config'
-import { mapGetters, mapActions, mapMutations } from "vuex";
+import { apiUrlrtb } from '../../constants/config'
+import { mapGetters, mapActions } from "vuex";
+
 export default {
   name: "VotingPage",
   data() {
     return {
       isMobile, apiUrlrtb,
-      feedback: {
-        rating: 0, // امتیاز 1 تا 5
-        comment: ''
-      },
+      feedback: { rating: 0, comment: '' },
       submittingFeedback: false,
-      // Voting Status
-      voteStatus: '', // 'not_voted', 'voted'
+      voteStatus: '',
       currentStep: 1,
       progress: 25,
-      timeRemaining: '۲ ساعت و ۴۵ دقیقه',
-
-      // Authentication Data
-      authData: {
-        nationalId: '',
-        mobile: '',
-        verificationCode: ''
-      },
-      authState: {
-        nationalId: null,
-        mobile: null,
-        verificationCode: null
-      },
-      verifying: false,
-      cooldown: 0,
-      cooldownInterval: null,
-
-      // Candidates Data
-      candidates: [],
-
-      // Search and Filter
       searchQuery: '',
-      sortBy: 'experience',
-      sortOptions: [
-        { value: 'persian_birth_date', text: 'سن' },
-        { value: 'name', text: 'نام الفبایی' },
-      ],
-
-      // Selected Candidate
+      sortBy: 'persian_birth_date',
+      candidates: [],
       selectedCandidates: [],
       maxVotes: null,
       voteSessionToken: null,
       previewCandidateData: null,
       showCandidateModal: false,
-
-      // Confirmation
-      confirmation: {
-        accepted: false
-      },
-      confirmationState: null,
-
-      // Submission
+      confirmation: { accepted: false },
       submitting: false,
-
-      // Success Data
       voteTrackingCode: '',
       voteDate: '',
       voteTime: '',
-
-      // UI State
-      showTimeWarning: false
+      selectedCandidate: []
     };
   },
   computed: {
     ...mapGetters(["currentUser", "electionStatusAll"]),
     filteredCandidates() {
-
       let filtered = [...this.candidates];
-
-
-      // Apply search
       if (this.searchQuery) {
-        const query = this.searchQuery();
-        filtered = filtered.filter(candidate =>
-          candidate.name().includes(query) ||
-          candidate.position().includes(query) ||
-          candidate.specialty().includes(query) ||
-          candidate.city().includes(query)
+        const query = this.searchQuery.toLowerCase();
+        filtered = filtered.filter(c => 
+          (c.first_name + ' ' + c.last_name).toLowerCase().includes(query) ||
+          c.codeentekhabati?.toString().includes(query)
         );
       }
-
-      // Apply sorting
-      // switch (this.sortBy) {
-      //   case 'experience':
-      //     filtered.sort((a, b) => b.experience - a.experience);
-      //     break;
-      //   case 'name':
-      //     filtered.sort((a, b) => a.name.localeCompare(b.name));
-      //     break;
-      //   case 'city':
-      //     filtered.sort((a, b) => a.city.localeCompare(b.city));
-      //     break;
-      // }
       return filtered;
     }
   },
@@ -576,311 +377,169 @@ export default {
       this.$router.push('/home');
       return;
     }
-
     try {
       await this.checkVoteStatus();
-      this.startTimer();
-      this.startCooldownTimer();
-
     } catch (e) {
-      this.$notify("warning", "هشدار", 'امکان ورود به صندوق رأی وجود ندارد', {
-        duration: 6000,
-        permanent: false,
-      });
+      this.$notify("warning", "هشدار", 'امکان ورود به صندوق رأی وجود ندارد', { duration: 6000 });
       this.$router.push('/home');
     }
   },
-  beforeUnmount() {
-    if (this.cooldownInterval) {
-      clearInterval(this.cooldownInterval);
-    }
-  },
   methods: {
-    ...mapActions(["getCandidsList", "getVote", "insertVote", "createVoteToken","submitFeedback"]),
+    ...mapActions(["getCandidsList", "getVote", "insertVote", "createVoteToken", "submitFeedback"]),
+    
     async submitFeedbackT() {
       if (!this.feedback.comment && !this.feedback.rating) {
         this.$bvToast.toast('لطفاً امتیاز یا نظر خود را وارد کنید', { variant: 'warning' });
         return;
       }
-
       this.submittingFeedback = true;
       try {
-        // ارسال به سرور
-      const ret= await this.submitFeedback({
+        const ret = await this.submitFeedback({
           rating: this.feedback.rating,
           comment: this.feedback.comment
         });
-        if(ret)
-        this.$bvToast.toast(ret, { variant: 'success' });
-        
+        if (ret) this.$bvToast.toast(ret, { variant: 'success' });
       } catch (err) {
-        console.error(err);
         this.$bvToast.toast('خطا در ثبت نظر', { variant: 'danger' });
       }
       this.submittingFeedback = false;
     },
-    goToConfirmation() {
 
+    goToConfirmation() {
       if (this.selectedCandidates.length === 0) {
-        this.$bvToast.toast('حداقل یک کاندیدا باید انتخاب شود', {
-          variant: 'warning'
-        });
+        this.$bvToast.toast('حداقل یک داوطلب باید انتخاب شود', { variant: 'warning' });
         return;
       }
-
       this.nextStep();
     },
+
     findCandidate(id) {
       return this.candidates.find(c => c.codeentekhabati == id) || {};
     },
-    // Step Navigation
+
     nextStep() {
-      if (this.currentStep < 4) {
+      if (this.currentStep < 3) {
         this.currentStep++;
-        this.progress = this.currentStep * 25;
       }
     },
 
     prevStep() {
       if (this.currentStep > 1) {
         this.currentStep--;
-        this.progress = this.currentStep * 25;
       }
-      if (this.currentStep ==3) 
-      console.log(this.currentStep );
-      
     },
 
-    startCooldownTimer() {
-      this.cooldownInterval = setInterval(() => {
-        if (this.cooldown > 0) {
-          this.cooldown--;
-        }
-      }, 1000);
-    },
-
-    // Candidate Selection
     previewCandidate(candidate) {
       this.previewCandidateData = candidate;
       this.showCandidateModal = true;
     },
+
     toggleCandidate(candidate) {
-
       const id = candidate.codeentekhabati;
-      // اگر قبلاً انتخاب شده → حذف
       if (this.selectedCandidates.includes(id)) {
-        this.selectedCandidates =
-          this.selectedCandidates.filter(c => c !== id);
-        this.showCandidateModal = false;
+        this.selectedCandidates = this.selectedCandidates.filter(c => c !== id);
         return;
       }
-      // محدودیت تعداد
       if (this.selectedCandidates.length >= this.maxVotes) {
-        this.$bvToast.toast(`حداکثر ${this.maxVotes} انتخاب مجاز است`, {
-          variant: 'warning'
-        });
-        this.showCandidateModal = false;
+        this.$bvToast.toast(`حداکثر ${this.maxVotes} انتخاب مجاز است`, { variant: 'warning' });
         return;
       }
-
       this.selectedCandidates.push(id);
-      this.showCandidateModal = false;
-      this.$bvToast.toast(`کاندیدای ${candidate.first_name} ${candidate.last_name} انتخاب شد`, {
-        title: 'انتخاب کاندیدا',
-        variant: 'success',
-        solid: true
+      this.$bvToast.toast(`داوطلب ${candidate.first_name} ${candidate.last_name} انتخاب شد`, {
+        title: 'انتخاب شد',
+        variant: 'success'
       });
     },
 
-
-    // Vote Submission
     async submitVote() {
-      if (!this.confirmation.accepted) {
-        this.confirmationState = false;
-        return;
-      }
-
-      this.confirmationState = true;
+      if (!this.confirmation.accepted) return;
       this.submitting = true;
-
       try {
-        // ارسال یک درخواست به جای حلقه
         const response = await this.insertVote({
           vote_token: this.voteSessionToken,
-          candidateIds: this.selectedCandidates  // <-- آرایه همه کاندیداها
+          candidateIds: this.selectedCandidates
         });
-
         if (response.status) {
-          // موفقیت
-          await this.checkVoteStatus()
+          await this.checkVoteStatus();
           this.voteStatus = 'voted';
-
-          // // کد رهگیری سرور
-          // this.voteTrackingCode = response.data.tracking_code;
-
-          // // تاریخ و زمان رأی‌گیری
-          // const now = new Date();
-          // this.voteDate = now.toLocaleDateString('fa-IR');
-          // this.voteTime = now.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
-
-          // // انتخاب کاندیدا (فقط برای نمایش)
-          // this.selectedCandidate = (this.selectedCandidates);
-
-          // // پاک کردن localStorage
-          localStorage.removeItem('ballot');
-
-          // رفتن به مرحله موفقیت
           this.currentStep = 3;
-          this.progress = 100;
-
-
-          this.$bvToast.toast('رأی شما با موفقیت ثبت شد', {
-            variant: 'success'
-          });
+          this.$bvToast.toast('رأی شما با موفقیت ثبت شد', { variant: 'success' });
         } else {
-          this.$bvToast.toast(response.message || 'خطا در ثبت رأی', {
-            variant: 'danger'
-          });
+          this.$bvToast.toast(response.message || 'خطا در ثبت رأی', { variant: 'danger' });
         }
-
       } catch (e) {
-        console.error(e);
-        this.$bvToast.toast('خطا در ثبت رأی', {
-          variant: 'danger'
-        });
+        this.$bvToast.toast('خطا در ثبت رأی', { variant: 'danger' });
       }
-
       this.submitting = false;
     },
 
-    // Success Actions
     downloadReceipt() {
-      // Generate receipt content
-      //  <span  v-for="(cid,i) in selectedCandidate" :key="`${i}a`">{{ cid?.first_name }} {{ cid?.last_name }}<br/></span>
-      let na = ''; let ids = '';
+      let na = '', ids = '';
       this.selectedCandidate.forEach(element => {
-        na += element.first_name + ' ' + element.last_name + '-'
-        ids += (element.codeentekhabati) + '-'
+        na += element.first_name + ' ' + element.last_name + '-';
+        ids += (element.codeentekhabati) + '-';
       });
-
       const receiptContent = `
-        رسید رأی‌گیری الکترونیکی
-        =========================
-        
-        شماره پیگیری: ${this.voteTrackingCode}
-        تاریخ: ${this.voteDate}
-        ساعت: ${this.voteTime}
-        
-        اطلاعات رأی‌دهنده:
-        -----------------
-        نام: ${this.currentUser.full_name}
-        کد ملی: ${this.currentUser.national_id}
-        
-        کاندیدای انتخاب شده:
-        ${na}
-        --------------------
-        کد: ${ids}
-        
-        این سند به عنوان رسید رسمی رأی‌گیری محسوب می‌شود.
-        
-        تاریخ چاپ: ${new Date().toLocaleDateString('fa-IR')}
-      `;
+رسید رأی‌گیری الکترونیکی
+=========================
+شماره پیگیری: ${this.voteTrackingCode}
+تاریخ: ${this.voteDate}
+ساعت: ${this.voteTime}
 
-      // Create and download text file
+اطلاعات رأی‌دهنده:
+نام: ${this.currentUser.full_name}
+کد ملی: ${this.currentUser.national_id}
+
+داوطلبان انتخاب شده:
+${na}
+کدها: ${ids}
+
+این سند به عنوان رسید رسمی رأی‌گیری محسوب می‌شود.
+تاریخ چاپ: ${new Date().toLocaleDateString('fa-IR')}
+      `;
       const blob = new Blob([receiptContent], { type: 'text/plain' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `vote_receipt_${this.voteTrackingCode}.txt`;
-      document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-
-      this.$bvToast.toast('رسید رأی‌گیری دانلود شد', {
-        title: 'دانلود موفق',
-        variant: 'success',
-        solid: true
-      });
-    },
-
-    viewResults() {
-      if (this.electionStatusAll == 'ended')
-        this.$router.push('/results/final-election');
-      else
-        this.$router.push('/results/live-election');
+      this.$bvToast.toast('رسید رأی‌گیری دانلود شد', { variant: 'success' });
     },
 
     goToHome() {
       this.$router.push('/');
     },
 
-    // Utilities
     async checkVoteStatus() {
-      // Check if user has already voted (from localStorage for demo)
-      const voteData = await this.getVote()
+      const voteData = await this.getVote();
       const isNumber = (value) => Number.isFinite(value);
-
       if (!voteData) {
-        this.$notify("warning", "هشدار", 'امکان ورود به صندوق رأی وجود ندارد', {
-          duration: 6000,
-          permanent: false,
-        });
         this.$router.push('/home');
-      }
-      else if (isNumber(voteData)) {
+      } else if (isNumber(voteData)) {
         this.maxVotes = voteData;
         this.voteStatus = 'not_voted';
         const session = await this.createVoteToken();
         this.voteSessionToken = session.vote_token;
         this.candidates = await this.getCandidsList();
-      }
-      else if (voteData) {
+      } else if (voteData) {
         this.voteStatus = 'voted';
         this.currentStep = 3;
-        this.progress = 100;
-
-        this.voteTrackingCode = voteData[0].tracking_code;
-        this.voteDate = (voteData[0].date1);
-        this.voteTime = (voteData[0].Time1);
-
-        // Find selected candidate
+        this.voteTrackingCode = voteData[0]?.tracking_code;
+        this.voteDate = voteData[0]?.date1;
+        this.voteTime = voteData[0]?.Time1;
         this.selectedCandidate = voteData;
       }
-
-    },
-
-    getVoteStatusText() {
-      return this.voteStatus === 'voted' ? 'رأی داده شده' : 'آماده رأی‌گیری';
     },
 
     getCurrentDate() {
       return new Date().toLocaleDateString('fa-IR');
-    },
-
-    getCurrentTime() {
-      return new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
-    },
-
-    startTimer() {
-      // Simulate time countdown
-      setInterval(() => {
-        // Update time remaining (for demo)
-        const hours = Math.floor(Math.random() * 3);
-        const minutes = Math.floor(Math.random() * 60);
-        this.timeRemaining = `${hours} ساعت و ${minutes} دقیقه`;
-
-        // Show warning when time is low
-        if (hours === 0 && minutes < 30) {
-          this.showTimeWarning = true;
-        }
-      }, 60000); // Update every minute
     }
   },
   watch: {
     selectedCandidates: {
       handler(val) {
-        localStorage.setItem('ballot', JSON.stringify(val))
+        localStorage.setItem('ballot', JSON.stringify(val));
       },
       deep: true
     }
@@ -893,479 +552,846 @@ export default {
 </script>
 
 <style scoped>
-.voting-page {
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+/* ========== استایل‌های مدرن صفحه رأی‌گیری ========== */
+
+
+.voting-page-modern {
+  background: linear-gradient(135deg, #f5f7ff 0%, #eef2fa 100%);
   min-height: 100vh;
   padding-bottom: 50px;
 }
 
-/* Header */
-.voting-header {
-  background: linear-gradient(135deg, #2c3e50 0%, #4a6491 100%);
+/* ========== هدر ========== */
+.voting-header-modern {
+  background: linear-gradient(135deg, #1e2a6e, #2b3b8a, #1e2a6e);
+  padding: 24px 0;
   color: white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.voting-icon {
-  font-size: 2.5rem;
-  color: #4CAF50;
-}
-
-.voter-info {
-  background: rgba(255, 255, 255, 0.1);
-  padding: 15px;
-  border-radius: 10px;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.voter-name {
-  font-size: 1.2rem;
-  font-weight: bold;
-  margin-bottom: 5px;
-}
-
-.voter-id {
-  font-size: 0.9rem;
-  opacity: 0.9;
-  margin-bottom: 8px;
-}
-
-/* Progress Steps */
-.progress-steps {
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
   display: flex;
   justify-content: space-between;
-  position: relative;
-  margin-top: 30px;
-}
-
-.progress-steps::before {
-  content: '';
-  position: absolute;
-  top: 15px;
-  right: 0;
-  left: 0;
-  height: 2px;
-  background: #e0e0e0;
-  z-index: 1;
-}
-
-.step {
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  position: relative;
-  z-index: 2;
+  flex-wrap: wrap;
+  gap: 20px;
 }
 
-.step-number {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: #e0e0e0;
-  color: #666;
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-title .icon-wrapper {
+  width: 56px;
+  height: 56px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
-  margin-bottom: 8px;
-  transition: all 0.3s ease;
 }
 
-.step.active .step-number {
-  background: #2196F3;
+.header-title h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.header-title p {
+  margin: 0;
+  opacity: 0.8;
+  font-size: 0.85rem;
+}
+
+/* کارت رأی‌دهنده */
+.voter-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  padding: 12px 20px;
+  border-radius: 40px;
+  backdrop-filter: blur(8px);
+}
+
+.voter-avatar {
+  width: 44px;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.voter-details {
+  text-align: left;
+}
+
+.voter-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.voter-id {
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
+.status-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.status-badge.ready {
+  background: #f59e0b;
   color: white;
-  transform: scale(1.1);
 }
 
-.step.completed .step-number {
-  background: #4CAF50;
+.status-badge.voted {
+  background: #10b981;
+  color: white;
+}
+
+/* ========== هشدار وضعیت ========== */
+.election-alert {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 12px 24px;
+  border-radius: 60px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.election-alert.active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.election-alert.upcoming {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.alert-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ========== Stepper مدرن ========== */
+.stepper-modern {
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: white;
+  padding: 20px 30px;
+  border-radius: 60px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.step-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  transition: all 0.3s;
+}
+
+.step-item.active .step-circle {
+  background: #3f51b5;
+  color: white;
+  box-shadow: 0 0 0 4px rgba(63, 81, 181, 0.2);
+}
+
+.step-item.completed .step-circle {
+  background: #10b981;
   color: white;
 }
 
 .step-label {
-  font-size: 0.9rem;
-  color: #666;
+  font-size: 0.7rem;
+  color: #64748b;
+}
+
+.step-item.active .step-label {
+  color: #3f51b5;
+  font-weight: 600;
+}
+
+.step-line {
+  width: 80px;
+  height: 2px;
+  background: #e2e8f0;
+}
+
+.step-line.active {
+  background: #10b981;
+}
+
+/* ========== لیست کاندیداها ========== */
+.candidates-header {
   text-align: center;
+  margin-bottom: 30px;
 }
 
-.step.active .step-label {
-  color: #2196F3;
-  font-weight: bold;
+.candidates-header h3 {
+  color: #1e293b;
+  margin-bottom: 8px;
 }
 
-/* Authentication */
-.auth-card {
-  max-width: 600px;
-  margin: 0 auto;
-  border-radius: 15px;
+.max-votes-info {
+  margin-top: 12px;
 }
 
-.auth-icon {
-  font-size: 3rem;
-  color: #3F51B5;
-  margin-bottom: 15px;
+.info-badge {
+  display: inline-block;
+  background: #e0e7ff;
+  color: #3f51b5;
+  padding: 6px 16px;
+  border-radius: 40px;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
-/* Candidate Cards */
-.candidate-card {
-  border-radius: 12px;
-  border: 2px solid transparent;
-  transition: all 0.3s ease;
+/* فیلتر جستجو */
+.search-filter-modern {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  padding: 12px 18px;
+  border-radius: 50px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.search-box input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 0.9rem;
+  background: transparent;
+}
+
+.sort-select {
+  padding: 12px 20px;
+  border-radius: 50px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  font-size: 0.85rem;
+  outline: none;
+}
+
+/* گرید کاندیداها */
+.candidates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.candidate-card-modern {
+  background: white;
+  border-radius: 24px;
+  padding: 20px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
   cursor: pointer;
-  overflow: hidden;
-}
-
-.candidate-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
-  border-color: #2196F3;
-}
-
-.candidate-card.selected {
-  border-color: #000;
-  background: #4CAF50;
-}
-
-.candidate-image-container {
+  transition: all 0.3s ease;
   position: relative;
-  height: 200px;
-  overflow: hidden;
-  border-radius: 10px;
+  border: 2px solid transparent;
+}
+
+.candidate-card-modern:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+}
+
+.candidate-card-modern.selected {
+  border-color: #10b981;
+  background: #f0fdf4;
 }
 
 .candidate-image {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+  position: relative;
+  width: 70px;
+  height: 70px;
+  flex-shrink: 0;
 }
 
-.candidate-badge {
+.candidate-image img {
+  width: 100%;
+  height: 100%;
+  border-radius: 20px;
+  object-fit: cover;
+}
+
+.check-mark {
   position: absolute;
-  top: 10px;
-  left: 10px;
-  background: #FFC107;
-  color: #333;
-  width: 40px;
-  height: 40px;
+  bottom: -4px;
+  left: -4px;
+  width: 24px;
+  height: 24px;
+  background: #10b981;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
 }
 
-.candidate-name {
-  font-size: 1.1rem;
-  font-weight: bold;
-  margin-bottom: 5px;
-  color: #2c3e50;
+.candidate-info {
+  flex: 1;
 }
 
-.candidate-position {
+.candidate-info h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.candidate-info .position {
   font-size: 0.7rem;
-  margin-bottom: 10px;
-  min-height: 40px;
+  color: #64748b;
+  margin-bottom: 6px;
 }
 
-.candidate-stats {
-  font-size: 0.8rem;
-  color: #5a5454;
+.candidate-meta {
+  font-size: 0.7rem;
+  color: #94a3b8;
 }
 
-.stat-item {
-  margin-bottom: 5px;
+.detail-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  border: none;
+  cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
 }
 
-/* Selected Candidate */
-.selected-candidate-image {
-  padding: 10px;
+.detail-btn:hover {
+  background: #e2e8f0;
 }
 
-.selected-image {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 5px solid #4CAF50;
-  box-shadow: 0 10px 10px rgba(0, 0, 0, 0.2);
+/* ========== برگ رأی (Ballot Paper) ========== */
+.ballot-paper {
+  max-width: 700px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 32px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 
-.selected-name {
-  color: #2c3e50;
-  font-size: 1.8rem;
-  margin-bottom: 10px;
+.ballot-header {
+  background: linear-gradient(135deg, #1e2a6e, #2b3b8a);
+  color: white;
+  padding: 24px;
+  text-align: center;
 }
 
-.selected-position {
-  color: #666;
-  font-size: 1.1rem;
-  margin-bottom: 20px;
+.ballot-header h3 {
+  margin: 0 0 6px;
 }
 
-.selected-details {
-  background: #f8f9fa;
-  padding: 15px;
-  border-radius: 10px;
-  margin-bottom: 20px;
+.ballot-header p {
+  margin: 0;
+  opacity: 0.8;
+  font-size: 0.85rem;
 }
 
-.detail-item {
+.ballot-body {
+  padding: 28px;
+}
+
+.ballot-info {
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 20px;
+}
+
+.info-line {
   display: flex;
   justify-content: space-between;
   padding: 8px 0;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px dashed #e2e8f0;
 }
 
-.detail-item:last-child {
+.info-line:last-child {
   border-bottom: none;
 }
 
-.selected-bio {
-  background: white;
-  padding: 15px;
-  border-radius: 10px;
-  border: 1px solid #e0e0e0;
+.info-line span {
+  color: #64748b;
+  font-size: 0.85rem;
 }
 
-.bio-text {
-  line-height: 1.8;
-  color: #555;
-  text-align: justify;
+.ballot-separator {
+  height: 2px;
+  background: repeating-linear-gradient(90deg, #cbd5e1, #cbd5e1 10px, transparent 10px, transparent 20px);
+  margin: 24px 0;
 }
 
-.selected-program {
-  background: #e8f5e9;
-  padding: 15px;
-  border-radius: 10px;
+.selected-candidates-list h4 {
+  font-size: 1rem;
+  margin-bottom: 16px;
+  color: #1e293b;
 }
 
-.program-list {
-  padding-right: 20px;
-  color: #555;
+.candidates-ballot {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.program-list li {
-  margin-bottom: 8px;
-  line-height: 1.6;
+.ballot-candidate-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 16px;
 }
 
-.confirmation-check {
-  margin-top: 20px;
+.ballot-candidate-number {
+  width: 32px;
+  height: 32px;
+  background: #e2e8f0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #475569;
+}
+
+.ballot-candidate-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.ballot-candidate-info img {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.ballot-candidate-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.ballot-candidate-code {
+  font-size: 0.7rem;
+  color: #64748b;
+}
+
+/* چک‌باکس سفارشی */
+.checkbox-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.checkbox-container input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.checkmark {
+  width: 20px;
+  height: 20px;
+  background: #e2e8f0;
+  border-radius: 6px;
+  display: inline-block;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.checkbox-container input:checked ~ .checkmark {
+  background: #10b981;
+}
+
+.checkbox-container input:checked ~ .checkmark:after {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 3px;
+  width: 5px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }
 
 .confirmation-text {
-  font-size: 0.95rem;
-  color: #333;
+  color: #475569;
 }
 
-/* Success Card */
-.success-card {
-  max-width: 800px;
-  margin: 0 auto;
-  border-radius: 15px;
-  border: 3px solid #4CAF50;
-  background: linear-gradient(135deg, #f8fff8 0%, #e8f5e9 100%);
-}
-
-.success-icon {
-  font-size: 5rem;
-  color: #4CAF50;
-  animation: bounce 2s infinite;
-}
-
-@keyframes bounce {
-
-  0%,
-  100% {
-    transform: scale(1);
-  }
-
-  50% {
-    transform: scale(1.1);
-  }
-}
-
-.summary-card {
-  background: white;
-  border-radius: 10px;
-  border: 1px solid #e0e0e0;
-}
-
-.summary-item {
+.ballot-footer {
   display: flex;
   justify-content: space-between;
-  padding: 12px 0;
-  border-bottom: 1px solid #f0f0f0;
+  gap: 16px;
+  padding: 20px 28px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
 }
 
-.summary-item:last-child {
-  border-bottom: none;
+.btn-back, .btn-submit-ballot, .btn-next {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  border-radius: 40px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
 }
 
-.tracking-number {
+.btn-back {
+  background: white;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+}
+
+.btn-back:hover {
+  background: #f1f5f9;
+}
+
+.btn-submit-ballot, .btn-next {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+
+.btn-submit-ballot:hover, .btn-next:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(16, 185, 129, 0.3);
+}
+
+.btn-submit-ballot:disabled, .btn-next:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ========== کارت موفقیت ========== */
+.success-card-modern {
+  max-width: 600px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 32px;
+  padding: 40px;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.success-animation {
+  margin-bottom: 24px;
+}
+
+.success-checkmark svg {
+  width: 80px;
+  height: 80px;
+}
+
+.checkmark-circle {
+  stroke: #10b981;
+  stroke-width: 3;
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.checkmark-check {
+  stroke: #10b981;
+  stroke-width: 3;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.5s forwards;
+}
+
+@keyframes stroke {
+  100% { stroke-dashoffset: 0; }
+}
+
+.success-card-modern h2 {
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.success-card-modern > p {
+  color: #64748b;
+  margin-bottom: 24px;
+}
+
+.vote-receipt {
+  background: #f8fafc;
+  border-radius: 20px;
+  padding: 20px;
+  margin: 24px 0;
+  text-align: right;
+  border: 1px solid #e2e8f0;
+}
+
+.receipt-header {
+  font-weight: 700;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 12px;
+}
+
+.receipt-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 0.85rem;
+}
+
+.tracking-code {
   font-family: monospace;
-  font-size: 1.2rem;
-  font-weight: bold;
-  color: #3F51B5;
-  background: #f0f0f0;
-  padding: 5px 10px;
-  border-radius: 5px;
+  font-size: 1rem;
+  color: #3f51b5;
 }
 
 .success-actions {
   display: flex;
+  gap: 16px;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 15px;
 }
 
-/* Preview Modal */
-.preview-image {
-  width: 150px;
-  height: 150px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 3px solid #3F51B5;
-}
-
-.preview-stats {
-  margin-bottom: 15px;
-}
-
-.preview-text {
-  line-height: 1.8;
-  color: #555;
-  text-align: justify;
-}
-
-.preview-list {
-  padding-right: 20px;
-  color: #555;
-}
-
-.preview-list li {
-  margin-bottom: 10px;
-  line-height: 1.6;
-}
-
-.certificates {
-  padding-right: 20px;
-}
-
-.certificate-item {
-  padding: 10px;
-  border-bottom: 1px solid #e0e0e0;
+.btn-outline, .btn-primary {
   display: flex;
   align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  border-radius: 40px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
 }
 
-.certificate-item:last-child {
-  border-bottom: none;
+.btn-outline {
+  background: white;
+  border: 1px solid #cbd5e1;
+  color: #475569;
 }
 
-/* Instructions */
-.instruction-item {
-  text-align: center;
-  padding: 20px;
+.btn-outline:hover {
+  background: #f1f5f9;
 }
 
-.instruction-icon {
-  font-size: 2.5rem;
-  color: #3F51B5;
-  margin-bottom: 15px;
+.btn-primary {
+  background: #3f51b5;
+  color: white;
 }
 
-.instruction-item h6 {
-  color: #2c3e50;
-  margin-bottom: 10px;
+.btn-primary:hover {
+  background: #2c3e8f;
+  transform: translateY(-2px);
 }
 
-.instruction-item p {
-  color: #666;
-  font-size: 0.9rem;
-  line-height: 1.6;
+/* بخش نظر و امتیاز */
+.feedback-section {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid #e2e8f0;
 }
 
-/* Timer Warning */
-.timer-warning {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 1000;
+.feedback-section h4 {
+  font-size: 1rem;
+  margin-bottom: 12px;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-  .voter-info {
-    margin-top: 15px;
-    text-align: center;
-  }
-
-  .progress-steps {
-    flex-direction: column;
-    gap: 20px;
-  }
-
-  .progress-steps::before {
-    display: none;
-  }
-
-  .step {
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 15px;
-  }
-
-  .step-number {
-    margin-bottom: 0;
-  }
-
-  .selected-image {
-    width: 150px;
-    height: 150px;
-  }
-
-  .success-actions {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .success-actions .btn {
-    width: 100%;
-    max-width: 250px;
-    margin-bottom: 10px;
-  }
+.star-rating-modern {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 16px;
 }
 
-@media (max-width: 576px) {
-  .candidate-card {
-    margin-bottom: 15px;
-  }
-
-  .selected-name {
-    font-size: 1.4rem;
-  }
-
-  .instruction-item {
-    margin-bottom: 20px;
-  }
+.star-rating-modern .star {
+  font-size: 2rem;
+  cursor: pointer;
+  color: #cbd5e1;
+  transition: all 0.2s;
 }
-.star-rating .stars {
-  display: inline-block;
-  font-size: 1.5rem;
+
+.star-rating-modern .star:hover,
+.star-rating-modern .star.filled {
+  color: #f59e0b;
+}
+
+.feedback-section textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  font-size: 0.85rem;
+  resize: vertical;
+  margin-bottom: 16px;
+}
+
+.btn-feedback {
+  background: #8b5cf6;
+  color: white;
+  border: none;
+  padding: 10px 28px;
+  border-radius: 40px;
   cursor: pointer;
 }
-.star-rating .star {
-  color: #ccc;
-  margin-right: 4px;
-}
-.star-rating .star.filled {
-  color: gold;
+
+/* مودال */
+.candidate-modal-modern ::v-deep .modal-content {
+  border-radius: 32px;
+  overflow: hidden;
 }
 
+.modal-header-custom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #1e2a6e, #2b3b8a);
+  color: white;
+}
+
+.modal-header-custom button {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: white;
+  cursor: pointer;
+}
+
+.modal-body-custom {
+  padding: 24px;
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.modal-candidate-image img {
+  width: 120px;
+  height: 120px;
+  border-radius: 24px;
+  object-fit: cover;
+}
+
+.modal-candidate-info {
+  flex: 1;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.btn-select {
+  width: 100%;
+  padding: 14px;
+  background: #3f51b5;
+  color: white;
+  border: none;
+  border-radius: 40px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* دکمه اقدام مرحله */
+.action-buttons-step {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid white;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* موبایل */
+@media (max-width: 768px) {
+  .page-spacer { margin-top: 60px; }
+  
+  .header-content { flex-direction: column; text-align: center; }
+  
+  .stepper-modern { padding: 15px 20px; }
+  .step-label { display: none; }
+  .step-line { width: 40px; }
+  
+  .ballot-body { padding: 20px; }
+  .ballot-footer { flex-direction: column; }
+  .btn-back, .btn-submit-ballot { justify-content: center; }
+  
+  .success-card-modern { padding: 24px; margin: 0 16px; }
+  
+  .candidates-grid { grid-template-columns: 1fr; }
+}
 </style>

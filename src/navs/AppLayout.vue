@@ -12,7 +12,7 @@
       </div>
 
      <div v-if="(!sidebarVisible && isMobile()) || (!isMobile())" style="padding:0 15px;flex:1;"
-        :style="isMobile() ? 'max-width: calc(100%);' : ''">
+        :style="isMobile() ? 'max-width: calc(100%);' : ''" class="request-page-container">
         <slot></slot>
       </div>
 </div>
@@ -47,7 +47,7 @@ export default {
   },
 };
 </script>
-<style scoped>
+<style >
 @media (min-width: 780px) {
 main.mr120 {
   margin-right: 100px !important;
@@ -55,5 +55,15 @@ main.mr120 {
 }
 .main-hidden main.mr120 {
   margin-right: 20px !important;
+}
+/* ========== اصلاح فاصله از topbar ========== */
+.request-page-container {
+  margin-top: 70px;  /* فاصله از topbar ثابت */
+}
+@media (max-width: 576px) {
+  .request-page-container {
+    margin-top: 60px;
+  }
+  
 }
 </style>

@@ -7,88 +7,200 @@
         :style="isMobile() ? 'max-width: calc(100%);' : ''">
         <div class="mt-4" style="">
 
-          <b-container fluid class="dashboard-wrapper d-flex align-items-center justify-content-center">
+          <b-container fluid class="dashboard-wrapper d-flex justify-content-center">
             <b-row class="w-100 justify-content-center">
               <b-col cols="12" md="10" lg="8" class="text-center">
 
                 <!-- Header -->
-                <div class="mb-4" v-if="ConfigInfo">
-                  <h5 class="mb-2 text-primary-org">
-                    سامانه انتخابات نمایندگان اعضای فرهنگی در هیأت امنای موسسه صندوق ذخیره فرهنگیان
-                  </h5>
-
+                <div class="election-header mb-5 text-center" v-if="ConfigInfo">
+                  <div class="header-glow"></div>
+                  <h4 class="mb-2 fw-bold text-white">
+                    🗳️ سامانه انتخابات نمایندگان اعضای فرهنگی
+                  </h4>
+                  <p class="text-white-50 mb-3">هیأت امنای موسسه صندوق ذخیره فرهنگیان</p>
                   <ElectionStatusTimer :config-info="ConfigInfo" />
                 </div>
+                <!-- بخش وضعیت داوطلب - با UI بهبود یافته -->
                 <div v-if="electionStatusAll == 'upcoming'">
                   <CustomStepper v-if="(currentUser?.roles.includes('CANDIDATE')) && requestStatus"
                     :steps="stepperSteps" :current-step="currentStep" :disabled="processing" />
-                  <!-- درخواست ثبت شده -->
-                  <b-alert
-                    v-if="currentUser?.roles.includes('CANDIDATE') && (requestStatus === 'SUBMITTED' || requestStatus === 'EXECUTIVE_APPROVED' )"
-                    variant="warning" show>
-                    ⏳ درخواست شما ثبت شده و در حال بررسی توسط مراجع است
-                    <br />
-                    <b-button variant="outline-danger" class="mt-2" @click="canselRequest()">
-                      انصراف
-                    </b-button>
-                  </b-alert>
-                  <b-alert v-else-if="requestStatus === 'EXECUTIVE_REJECTED'" variant="warning" show>
-                    ❌ مدارک شما تایید نشده است
-                    <div v-if="stateCandidInfo?.reson" class="mt-2">
-                      نظر هیأت اجرایی: {{ stateCandidInfo.reson }}
+
+                  <!-- ========== کارت وضعیت: در حال بررسی ========== -->
+                  <div
+                    v-if="currentUser?.roles.includes('CANDIDATE') && (requestStatus === 'SUBMITTED' || requestStatus === 'EXECUTIVE_APPROVED')"
+                    class="status-card status-pending mb-4">
+                    <div class="status-card-icon">
+                      <div class="icon-circle-pending">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path
+                            d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z"
+                            stroke="currentColor" stroke-width="1.5" fill="none" />
+                          <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                        </svg>
+                      </div>
                     </div>
-                    <div v-if="stateCandidInfo?.edited_at_sh" class="mt-1">
-                      تاریخ آخرین ویرایش: {{ stateCandidInfo.edited_at_sh }}
+                    <div class="status-card-content">
+                      <h6 class="status-title">در انتظار بررسی</h6>
+                      <p class="status-message">درخواست شما ثبت شده و در حال بررسی توسط مراجع ذی‌صلاح است.</p>
+                      <div class="status-progress">
+                        <div class="progress-step active"></div>
+                        <div class="progress-step"></div>
+                        <div class="progress-step"></div>
+                        <div class="progress-step"></div>
+                      </div>
                     </div>
-                    <br />
-                    <b-button variant="outline-info" class="mt-2" @click="submitAgain()">
-                      ثبت مجدد
-                    </b-button>
-                  </b-alert>
-                  <b-alert v-else-if="requestStatus === 'SUPERVISION_REJECTED'" variant="danger" show>
-                    ❌ درخواست شما رد شده است
-                    <div v-if="stateCandidInfo?.reson" class="mt-2">
-                      نظر نهایی هیأت نظارت: {{ stateCandidInfo.reson }}
+                    <div class="status-card-action">
+                      <button class="btn-action-outline" @click="canselRequest()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                          <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="1.8"
+                            stroke-linecap="round" />
+                        </svg>
+                        انصراف از ثبت‌نام
+                      </button>
                     </div>
-                    <div v-if="stateCandidInfo?.edited_at_sh" class="mt-1">
-                      تاریخ آخرین ویرایش: {{ stateCandidInfo.edited_at_sh }}
+                  </div>
+
+                  <!-- ========== کارت وضعیت: تایید نشده (اجرایی) ========== -->
+                  <div v-else-if="requestStatus === 'EXECUTIVE_REJECTED'" class="status-card status-rejected mb-4">
+                    <div class="status-card-icon">
+                      <div class="icon-circle-rejected">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                          <path
+                            d="M12 8V12M12 16H12.01M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z"
+                            stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                        </svg>
+                      </div>
                     </div>
-                    <br />
-                    <b-button variant="outline-danger" class="mt-2" @click="$router.push('/candidate/objection')">
-                      ثبت اعتراض
-                    </b-button>
-                  </b-alert>
-                  <b-alert v-else-if="requestStatus === 'SUPERVISION_APPROVED' && stateCandidInfo?.reson" variant="success" show>
-                    درخواست شما تایید شده است
-                    <div v-if="stateCandidInfo?.reson" class="mt-2">
-                      نظر نهایی هیأت نظارت: {{ stateCandidInfo.reson }}
+                    <div class="status-card-content">
+                      <h6 class="status-title text-danger">مدارک تایید نشد</h6>
+                      <p class="status-message">متأسفانه مدارک شما توسط هیأت اجرایی تأیید نشده است.</p>
+                      <div v-if="stateCandidInfo?.reson" class="reject-reason">
+                        <span class="reason-label">نظر هیأت اجرایی:</span>
+                        <span class="reason-text">{{ stateCandidInfo.reson }}</span>
+                      </div>
+                      <div v-if="stateCandidInfo?.edited_at_sh" class="edit-date">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path d="M20 12V18H4V12M12 4V16M12 16L15 13M12 16L9 13" stroke-width="1.5"
+                            stroke-linecap="round" />
+                        </svg>
+                        آخرین ویرایش: {{ stateCandidInfo.edited_at_sh }}
+                      </div>
                     </div>
-                    <div v-if="stateCandidInfo?.edited_at_sh" class="mt-1">
-                      تاریخ آخرین ویرایش: {{ stateCandidInfo.edited_at_sh }}
+                    <div class="status-card-action">
+                      <button class="btn-action-primary" @click="submitAgain()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                          <path d="M1 12C1 12 4 4 12 4C20 4 23 12 23 12C23 12 20 20 12 20C4 20 1 12 1 12Z"
+                            stroke="currentColor" stroke-width="1.5" fill="none" />
+                          <path
+                            d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z"
+                            stroke="currentColor" stroke-width="1.5" />
+                        </svg>
+                        ثبت مجدد درخواست
+                      </button>
                     </div>
-                  </b-alert>
+                  </div>
+
+                  <!-- ========== کارت وضعیت: رد شده توسط نظارت ========== -->
+                  <div v-else-if="requestStatus === 'SUPERVISION_REJECTED'"
+                    class="status-card status-final-rejected mb-4">
+                    <div class="status-card-icon">
+                      <div class="icon-circle-final-rejected">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                          <path
+                            d="M12 8V12M12 16H12.01M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z"
+                            stroke="currentColor" stroke-width="1.5" />
+                          <path d="M18 6L6 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div class="status-card-content">
+                      <h6 class="status-title text-danger">درخواست رد شده</h6>
+                      <p class="status-message">درخواست شما توسط هیأت نظارت رد شده است.</p>
+                      <div v-if="stateCandidInfo?.reson" class="reject-reason">
+                        <span class="reason-label">نظر نهایی هیأت نظارت:</span>
+                        <span class="reason-text">{{ stateCandidInfo.reson }}</span>
+                      </div>
+                      <div v-if="stateCandidInfo?.edited_at_sh" class="edit-date">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path d="M20 12V18H4V12M12 4V16M12 16L15 13M12 16L9 13" stroke-width="1.5"
+                            stroke-linecap="round" />
+                        </svg>
+                        آخرین ویرایش: {{ stateCandidInfo.edited_at_sh }}
+                      </div>
+                    </div>
+                    <div class="status-card-action">
+                      <button class="btn-action-warning" @click="$router.push('/candidate/objection')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                          <path
+                            d="M12 9V13M12 17H12.01M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z"
+                            stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+                        </svg>
+                        ثبت اعتراض به رأی
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- ========== کارت وضعیت: تایید شده ========== -->
+                  <div v-else-if="requestStatus === 'SUPERVISION_APPROVED' && stateCandidInfo?.reson"
+                    class="status-card status-approved mb-4">
+                    <div class="status-card-icon">
+                      <div class="icon-circle-approved">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                          <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div class="status-card-content">
+                      <h6 class="status-title text-success">درخواست شما تأیید شد</h6>
+                      <p class="status-message">درخواست ثبت‌نام شما با موفقیت تأیید شده است.</p>
+                      <div v-if="stateCandidInfo?.reson" class="approve-note">
+                        <span class="reason-label">نظر نهایی هیأت نظارت:</span>
+                        <span class="reason-text">{{ stateCandidInfo.reson }}</span>
+                      </div>
+                      <div v-if="stateCandidInfo?.edited_at_sh" class="edit-date">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path d="M20 12V18H4V12M12 4V16M12 16L15 13M12 16L9 13" stroke-width="1.5"
+                            stroke-linecap="round" />
+                        </svg>
+                        تاریخ تأیید: {{ stateCandidInfo.edited_at_sh }}
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <!-- Menu -->
-                <b-row>
-                  <b-col v-for="(item, index) in filteredMenu" :key="index" cols="12" sm="4" class="mb-3">
-                    <b-card class="dashboard-card h-100" :class="{ disabled: isMenuDisabled(item) }"
-                      @click="!isMenuDisabled(item) ? handleClick(item) : ''">
-                      <div class="icon mb-2">
-                        <i :class="item.icon"></i>
+
+                <!-- Menu Cards - Improved Grid -->
+                <b-row class="g-4">
+                  <b-col v-for="(item, index) in filteredMenu" :key="index" cols="12" sm="6" md="4" lg="4" class="mb-4">
+                    <div class="dashboard-card-modern h-100" :class="{ 'card-disabled': isMenuDisabled(item) }"
+                      @click="!isMenuDisabled(item) ? handleClick(item) : null">
+
+                      <!-- Badge on corner -->
+                      <div v-if="item.badge && electionStatusAll == 'active'" class="card-badge">
+                        <span>{{ item.badge }}</span>
+                      </div>
+                      <div v-if="item.requiresFinalApproval && !isFinalResultAnnouncementActive"
+                        class="card-badge secondary">
+                        <span>{{ finalApprovalStatusText }}</span>
                       </div>
 
-                      <div class="title">
-                        {{ item.title }}
+                      <!-- Icon with circle background -->
+                      <div class="icon-wrapper mb-3">
+                        <div class="icon-circle">
+                          <i :class="item.icon"></i>
+                        </div>
                       </div>
 
-                      <b-badge v-if="item.badge && electionStatusAll == 'active'" variant="warning" class="mt-2">
-                        {{ item.badge }}
-                      </b-badge>
-                      <b-badge v-if="item.requiresFinalApproval && !isFinalResultAnnouncementActive" variant="secondary"
-                        class="mt-2">
-                        {{ finalApprovalStatusText }}
-                      </b-badge>
-                    </b-card>
+                      <h5 class="card-title">{{ item.title }}</h5>
+                      <p class="card-desc mt-2">
+                        {{ getCardDescription(item) }}
+                      </p>
+
+                      <div class="card-footer-link">
+                        <span>مشاهده و اقدام <i class="bi bi-arrow-left-short"></i></span>
+                      </div>
+                    </div>
                   </b-col>
                 </b-row>
 
@@ -96,24 +208,21 @@
             </b-row>
           </b-container>
         </div>
-        <b-modal id="final-result-activation" v-model="showFinalResultActivation" title="فعال‌سازی اعلام نتایج نهایی"
-          hide-footer centered>
-          <p class="text-muted">اعضای هیأت اجرایی و هیأت نظارت باید هر کدام با رمز خود تایید ثبت کنند.</p>
-          <b-form-group label="رمز هیأت اجرایی" label-for="approval-passcode">
-            <b-form-input id="approval-passcode" v-model="approvalPasscode1" type="password"
-              placeholder="رمز هیأت اجرایی را وارد کنید"></b-form-input>
+        <b-modal id="final-result-activation" v-model="showFinalResultActivation" title="🔐 فعال‌سازی اعلام نتایج نهایی"
+          hide-footer centered body-class="p-4" header-class="border-0 bg-light">
+          <p class="text-muted mb-4">اعضای هیأت اجرایی و هیأت نظارت هر کدام باید با رمز خود تایید کنند.</p>
+          <b-form-group label="🔑 رمز هیأت اجرایی" label-for="approval-passcode1">
+            <b-form-input id="approval-passcode1" v-model="approvalPasscode1" type="password"
+              placeholder="رمز را وارد کنید" class="rounded-pill"></b-form-input>
           </b-form-group>
-          <b-form-group label="رمز هیأت نظارت" label-for="approval-passcode">
-            <b-form-input id="approval-passcode" v-model="approvalPasscode2" type="password"
-              placeholder="رمز هیأت نظارت را وارد کنید"></b-form-input>
+          <b-form-group label="🔑 رمز هیأت نظارت" label-for="approval-passcode2">
+            <b-form-input id="approval-passcode2" v-model="approvalPasscode2" type="password"
+              placeholder="رمز را وارد کنید" class="rounded-pill"></b-form-input>
           </b-form-group>
-          <!-- <small class="d-block mb-3 text-muted">
-            وضعیت تاییدها: اجرایی {{ finalResultApprovals.executive ? '✅' : '⏳' }} |
-            نظارت {{ finalResultApprovals.supervisor ? '✅' : '⏳' }}
-          </small> -->
-          <div class="d-flex justify-content-end">
-            <b-button variant="outline-secondary" class="ml-2" @click="closeActivationModal">انصراف</b-button>
-            <b-button variant="success" @click="activateFinalResults">تایید و ثبت</b-button>
+          <div class="d-flex justify-content-end gap-2 mt-3">
+            <b-button variant="outline-secondary" @click="closeActivationModal"
+              class="rounded-pill px-4">انصراف</b-button>
+            <b-button variant="success" @click="activateFinalResults" class="rounded-pill px-4">تایید و ثبت</b-button>
           </div>
         </b-modal>
       </div>
@@ -166,7 +275,7 @@ export default {
   }, mounted() {
     if (!this.ConfigInfo && this.currentUser)
       this.getConfig()
-    
+
   },
   data() {
     return {
@@ -226,7 +335,6 @@ export default {
           icon: 'bi bi-check2-square',
           roles: ['CANDIDATE', 'VOTER'],
           electionStatusAll: 'active',
-          visibleWhen: electionStatusAll => electionStatusAll === 'active',
           badge: 'در حال رأی‌گیری'
         },
         {
@@ -241,7 +349,7 @@ export default {
           title: 'مشاهده نتایج',
           route: '/results/final-election',
           icon: 'bi bi-bar-chart',
-          roles: ['EXECUTIVE','ADMIN','VOTER','CANDIDATE','SUPERVISOR'],
+          roles: ['EXECUTIVE', 'ADMIN', 'VOTER', 'CANDIDATE', 'SUPERVISOR'],
           electionStatusAll: 'ended',
           badge: 'نمایش نهایی',
           visibleWhen: requiresFinalApproval => requiresFinalApproval === true,
@@ -270,7 +378,15 @@ export default {
   methods: {
     ...mapMutations(["setRequestStatus", "setUser"]),
     ...mapActions(["getConfig", "canselRequestCANDIDATE", "getSystemSchedule", "submitFinalResultsApproval", "getFinalResultsApprovalStatus"]),
-    submitAgain(){
+    getCardDescription(item) {
+      if (item.route === '/candidate/request') return 'ثبت نام و ارسال مدارک';
+      if (item.route === '/User/votingPage') return 'شرکت در انتخابات و رأی‌دهی';
+      if (item.route === '/results/final-election') return 'مشاهده نتایج نهایی انتخابات';
+      if (item.roles.includes('EXECUTIVE')) return 'بررسی درخواست‌ها و تایید مدارک';
+      if (item.roles.includes('SUPERVISOR')) return 'نظارت بر فرآیند انتخابات';
+      return 'برای مشاهده کلیک کنید';
+    },
+    submitAgain() {
       this.canselRequest()
       // this.$router.push("/candidate/request")
     },
@@ -445,7 +561,7 @@ export default {
       this.pendingApprovalRole = null
     }
   },
-   async created() {
+  async created() {
     await this.syncFinalResultsStatus(true)
   }
 }
@@ -505,5 +621,381 @@ export default {
 
 .cursor-pointer {
   cursor: pointer;
+}
+
+/* ========== بهبودهای گرافیکی و UI مدرن ========== */
+.dashboard-wrapper {
+  background: linear-gradient(135deg, #f5f7ff 0%, #eef2fa 100%);
+  min-height: 100vh;
+  padding: 20px 0;
+}
+
+/* هدر گرادیانتی */
+.election-header {
+  background: linear-gradient(120deg, #1e2a6e, #2b3b8a, #1e2a6e);
+  border-radius: 32px;
+  padding: 28px 20px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+}
+
+.header-glow {
+  position: absolute;
+  top: -30%;
+  right: -20%;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 70%);
+  border-radius: 50%;
+}
+
+/* کارت مدرن */
+.dashboard-card-modern {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(0px);
+  border-radius: 28px;
+  padding: 28px 20px 24px;
+  transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+  cursor: pointer;
+  position: relative;
+  box-shadow: 0 12px 24px -12px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.dashboard-card-modern:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 24px 36px -12px rgba(33, 33, 68, 0.25);
+  background: white;
+  border-color: #cbd5ff;
+}
+
+.card-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: grayscale(0.1);
+}
+
+.card-disabled:hover {
+  transform: none;
+  box-shadow: 0 12px 24px -12px rgba(0, 0, 0, 0.1);
+}
+
+/* آیکون با دایره رنگی */
+.icon-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
+.icon-circle {
+  width: 70px;
+  height: 70px;
+  background: linear-gradient(145deg, #eef2ff, #ffffff);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 18px -8px rgba(63, 81, 181, 0.3);
+  transition: 0.2s;
+}
+
+.dashboard-card-modern:hover .icon-circle {
+  background: linear-gradient(145deg, #3f51b5, #2c3e9e);
+  box-shadow: 0 12px 20px -6px #3f51b580;
+}
+
+.icon-circle i {
+  font-size: 34px;
+  color: #3f51b5;
+  transition: 0.2s;
+}
+
+.dashboard-card-modern:hover .icon-circle i {
+  color: white;
+}
+
+/* عنوان و توضیحات */
+.card-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1a2c6e;
+  margin-top: 12px;
+}
+
+.card-desc {
+  font-size: 0.8rem;
+  color: #6c757d;
+  line-height: 1.4;
+}
+
+.card-footer-link {
+  margin-top: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #3f51b5;
+  opacity: 0;
+  transition: 0.2s;
+  text-align: left;
+}
+
+.dashboard-card-modern:hover .card-footer-link {
+  opacity: 1;
+}
+
+/* نشانگر (Badge) گوشه کارت */
+.card-badge {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: #ff9800;
+  color: #2c2c2c;
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 4px 12px;
+  border-radius: 40px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.card-badge.secondary {
+  background: #6c757d;
+  color: white;
+}
+
+/* موبایل */
+@media (max-width: 576px) {
+  .dashboard-card-modern {
+    padding: 20px 16px;
+  }
+
+  .icon-circle {
+    width: 56px;
+    height: 56px;
+  }
+
+  .icon-circle i {
+    font-size: 28px;
+  }
+
+  .card-title {
+    font-size: 1rem;
+  }
+
+  .election-header {
+    padding: 20px 16px;
+  }
+}
+
+/* ریسپانسیو گریッド */
+.g-4 {
+  --bs-gutter-y: 1.5rem;
+}
+/* ========== کارت‌های وضعیت داوطلب ========== */
+.status-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  background: white;
+  border-radius: 24px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+  text-align: right;
+}
+
+.status-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
+}
+
+/* آیکون‌های وضعیت */
+.status-card-icon {
+  flex-shrink: 0;
+}
+
+.icon-circle-pending {
+  width: 56px;
+  height: 56px;
+  background: #fff3e0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f5a623;
+}
+
+.icon-circle-rejected {
+  width: 56px;
+  height: 56px;
+  background: #fee2e2;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ef4444;
+}
+
+.icon-circle-final-rejected {
+  width: 56px;
+  height: 56px;
+  background: #fef3f2;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #dc2626;
+}
+
+.icon-circle-approved {
+  width: 56px;
+  height: 56px;
+  background: #e0f2fe;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0ea5e9;
+}
+
+/* محتوای کارت */
+.status-card-content {
+  flex: 1;
+}
+
+.status-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.status-message {
+  font-size: 0.85rem;
+  color: #6c757d;
+  margin-bottom: 0.75rem;
+}
+
+/* دلیل رد/تایید */
+.reject-reason,
+.approve-note {
+  background: #f8f9fa;
+  padding: 0.5rem 0.75rem;
+  border-radius: 12px;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.reason-label {
+  font-weight: 600;
+  color: #495057;
+  margin-left: 0.5rem;
+}
+
+.reason-text {
+  color: #6c757d;
+}
+
+.edit-date {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.5rem;
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+/* نوار پیشرفت مراحل */
+.status-progress {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.progress-step {
+  width: 60px;
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.progress-step.active {
+  background: #f5a623;
+  width: 80px;
+}
+
+/* دکمه‌های اقدام */
+.status-card-action {
+  flex-shrink: 0;
+}
+
+.btn-action-outline,
+.btn-action-primary,
+.btn-action-warning {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 40px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  background: transparent;
+}
+
+.btn-action-outline {
+  border: 1px solid #ef4444;
+  color: #ef4444;
+  background: white;
+}
+
+.btn-action-outline:hover {
+  background: #ef4444;
+  color: white;
+}
+
+.btn-action-primary {
+  background: #e0e7ff;
+  color: #3f51b5;
+}
+
+.btn-action-primary:hover {
+  background: #3f51b5;
+  color: white;
+}
+
+.btn-action-warning {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.btn-action-warning:hover {
+  background: #d97706;
+  color: white;
+}
+
+/* موبایل */
+@media (max-width: 576px) {
+  .status-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 1rem;
+  }
+  
+  .status-progress {
+    justify-content: center;
+  }
+  
+  .status-card-action {
+    width: 100%;
+  }
+  
+  .btn-action-outline,
+  .btn-action-primary,
+  .btn-action-warning {
+    justify-content: center;
+    width: 100%;
+  }
 }
 </style>
