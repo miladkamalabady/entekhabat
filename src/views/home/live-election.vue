@@ -218,14 +218,9 @@
             </div>
 
             <div class="iran-heatmap-grid">
-              <div
-                v-for="province in provinceHeatmapData"
-                :key="`map-${province.id}`"
-                class="heat-province"
-                :style="{ backgroundColor: province.color }"
-                @mouseenter="hoveredProvince = province"
-                @mouseleave="hoveredProvince = null"
-              >
+              <div v-for="province in provinceHeatmapData" :key="`map-${province.id}`" class="heat-province"
+                :style="{ backgroundColor: province.color }" @mouseenter="hoveredProvince = province"
+                @mouseleave="hoveredProvince = null">
                 <div class="heat-province-name">{{ province.name }}</div>
                 <div class="heat-province-rate">{{ province.participation }}%</div>
               </div>
@@ -247,6 +242,7 @@
     <!-- Region Details Modal -->
     <b-modal v-model="showRegionModal" :title="selectedRegion ? selectedRegion.name : ''" size="lg" hide-footer centered
       scrollable>
+
       <div v-if="selectedRegion" class="region-details">
         <b-row class="mb-4">
           <b-col md="6">
@@ -269,13 +265,32 @@
 
         <h6 class="mb-3">توزیع آرا بر اساس مناطق استان</h6>
         <div class="candidates-distribution">
-          <div v-for="area in selectedRegion.areas" :key="area.id" class="distribution-item">
-            <div class="candidate-name">{{ area.name }}</div>
-            <div class="distribution-bar">
-              <div class="bar-fill" :style="{ width: area.percentage + '%' }"></div>
+          <div v-for="area in selectedRegion.areas" :key="area.id">
+            <div class="distribution-item">
+              <div class="candidate-name">{{ area.name }}</div>
+              <div class="distribution-bar">
+                <div class="bar-fill" :style="{ width: area.percentage + '%' }"></div>
+              </div>
+              <div class="distribution-percentage">{{ formatNumber(area.votes) }} رأی ({{ area.percentage }}%)</div>
             </div>
-            <div class="distribution-percentage">{{ formatNumber(area.votes) }} رأی ({{ area.percentage }}%)</div>
+            <div v-if="selectedReportType === 'admin'" class="mt-4">
+              <h6 class="mb-3">آمار کاندیداها در این منطقه</h6>
+              <div v-if="selectedRegion.candidateStats && selectedRegion.candidateStats.length"
+                class="table-responsive">
+                <b-table small striped hover :items="selectedRegion.candidateStats" :fields="regionCandidateFields"
+                  class="text-right mb-0">
+                  <template #cell(candidate)="data">
+                    {{ data.item.first_name }} {{ data.item.last_name }}
+                  </template>
+                  <template #cell(vote_count)="data">
+                    {{ formatNumber(data.item.vote_count) }}
+                  </template>
+                </b-table>
+              </div>
+              <p v-else class="text-muted mb-0">برای این منطقه هنوز آماری از کاندیداها ثبت نشده است.</p>
+            </div>
           </div>
+
         </div>
       </div>
     </b-modal>
@@ -346,6 +361,10 @@ export default {
         { key: 'candidate', label: 'کاندیدا', sortable: false },
         { key: 'vote_count', label: 'آرا', sortable: true },
       ],
+      regionCandidateFields: [
+        { key: 'candidate', label: 'کاندیدا', sortable: false },
+        { key: 'vote_count', label: 'تعداد رأی', sortable: true }
+      ],
 
       // Predictions
       finalParticipationPrediction: 68
@@ -373,7 +392,7 @@ export default {
       const selected = this.availableReportTypes.find(opt => opt.value === this.selectedReportType);
       return selected ? `در حال نمایش: ${selected.text}` : '';
     },
-     provinceHeatmapData() {
+    provinceHeatmapData() {
       const maxParticipation = Math.max(...this.regions.map(r => Number(r.participation) || 0), 1);
       return this.regions.map(region => {
         const ratio = (Number(region.participation) || 0) / maxParticipation;
@@ -424,7 +443,7 @@ export default {
     }
   },
   methods: {
-    ...mapActions(["getConfig", "getInfoVote","getRegions"]),
+    ...mapActions(["getConfig", "getInfoVote", "getRegions"]),
     async loadRegions() {
       const response = await this.getRegions();
       const provinces = response?.data || [];
@@ -589,9 +608,14 @@ export default {
       }));
     },
     viewRegionDetails(region) {
+      const candidateStats = this.selectedReportType === 'admin'
+        ? (this.infoVote?.candidateRegionStats?.[region.id] || [])
+        : [];
+
       this.selectedRegion = {
         ...region,
-        areas: this.buildRegionAreas(region)
+        areas: this.buildRegionAreas(region),
+        candidateStats
       };
       this.showRegionModal = true;
     },
@@ -627,7 +651,7 @@ export default {
       }
 
       this.refreshing = false;
-     },
+    },
     updateRegionLiveStats() {
       const totalVotes = Number(this.infoVote?.totalVotes || 0);
       const totalVoters = Number(this.infoVote?.totalVoters || 0);
@@ -721,6 +745,7 @@ export default {
 .live-text {
   font-size: 1rem;
 }
+
 .iran-heatmap-card {
   border-radius: 16px;
 }
@@ -749,6 +774,7 @@ export default {
   font-weight: 700;
   font-size: 0.9rem;
 }
+
 .heat-province-rate {
   font-size: 0.85rem;
   margin-top: 4px;
@@ -757,6 +783,7 @@ export default {
 .hovered-province-popup {
   border-radius: 10px;
 }
+
 .timer-card {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);

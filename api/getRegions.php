@@ -4,21 +4,41 @@ header('Content-Type: application/json; charset=utf-8');
 
 $db->connect();
 
-$sql = "SELECT DISTINCT ProvinceCode, Name AS name 
+$sql = "SELECT id, ProvinceCode, Name AS name
 FROM region 
-WHERE id LIKE '%00'
-ORDER BY ProvinceCode ASC, Name ASC;";
+ORDER BY ProvinceCode ASC, id ASC, Name ASC;";
 $res = $db->query($sql);
 
-$regions = [];
+$provincesMap = [];
+$areasByProvince = [];
 while ($row = $res->fetch_assoc()) {
-    $regions[] = [
-        'id' => (int)$row['ProvinceCode'],
-        'name' => $row['name']
+    $provinceCode = (int)$row['ProvinceCode'];
+    $regionId = (string)$row['id'];
+    $regionName = $row['name'];
+
+    // Province rows usually end with 00
+    if (substr($regionId, -2) === '00') {
+        if (!isset($provincesMap[$provinceCode])) {
+            $provincesMap[$provinceCode] = [
+                'id' => $provinceCode,
+                'name' => $regionName
+            ];
+        }
+        continue;
+    }
+
+    if (!isset($areasByProvince[$provinceCode])) {
+        $areasByProvince[$provinceCode] = [];
+    }
+
+    $areasByProvince[$provinceCode][] = [
+        'id' => $regionId,
+        'name' => $regionName
     ];
 }
-
+$provinces = array_values($provincesMap);
 echo json_encode([
     'status' => true,
-    'data' => $regions
+    'data' => $provinces,
+    'areasByProvince' => $areasByProvince
 ], JSON_UNESCAPED_UNICODE);
