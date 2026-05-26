@@ -35,7 +35,7 @@
                   <b-list-group-item class="d-flex justify-content-between align-items-center">
                     <span>کل واجدین شرایط</span>
                     <b-badge variant="primary" pill>
-                      {{ formatNumber(finalResults.totalVoters) }} 
+                      {{ formatNumber(finalResults.totalVoters) }}
                     </b-badge>
                   </b-list-group-item>
                   <b-list-group-item class="d-flex justify-content-between align-items-center">
@@ -248,15 +248,13 @@
       <b-card v-if="!this.isActive">
         <div class="align-items-center mb-4">
           <h4>تایید انتشار</h4>
-          <b-form-file v-model="document" 
-                          placeholder="صورتجلسه را انتخاب کنید یا اینجا رها کنید"
-                          drop-placeholder="فایل‌ها را اینجا رها کنید" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                          ></b-form-file>
+          <b-form-file v-model="document" placeholder="صورتجلسه را انتخاب کنید یا اینجا رها کنید"
+            drop-placeholder="فایل‌ها را اینجا رها کنید" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"></b-form-file>
           <b-button variant="success" @click="activateFinalResults">تایید و انتشار</b-button>
         </div>
 
       </b-card>
-<hr/>
+      <hr />
       <!-- Detailed Analysis -->
       <b-row class="mb-5">
         <b-col lg="6" class="mb-4">
@@ -317,7 +315,27 @@
           </b-card>
         </b-col>
       </b-row>
+      <b-card class="mb-5 iran-heatmap-card">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+          <h5 class="mb-2 mb-md-0">نقشه حرارتی ایران در نتایج نهایی</h5>
+          <small class="text-muted">استان‌های پرمشارکت با رنگ پررنگ‌تر نمایش داده می‌شوند.</small>
+        </div>
+        <div class="iran-heatmap-grid">
+          <div v-for="province in finalProvinceHeatmapData" :key="`final-map-${province.id}`" class="heat-province"
+            :style="{ backgroundColor: province.color }" @mouseenter="hoveredFinalProvince = province"
+            @mouseleave="hoveredFinalProvince = null">
+            <div class="heat-province-name">{{ province.name }}</div>
+            <div class="heat-province-rate">{{ province.participation }}%</div>
+          </div>
+        </div>
 
+        <b-alert v-if="hoveredFinalProvince" show variant="light" class="hovered-province-popup mt-3 mb-0">
+          <strong>{{ hoveredFinalProvince.name }}</strong>
+          — مشارکت: {{ hoveredFinalProvince.participation }}% |
+          آرا: {{ formatNumber(hoveredFinalProvince.votes) }} |
+          کاندیدای برتر: {{ hoveredFinalProvince.winner }}
+        </b-alert>
+      </b-card>
       <!-- Share Results -->
       <b-card class="share-card">
         <div class="text-center">
@@ -366,8 +384,8 @@ export default {
   name: "ElectionFinalResults",
   data() {
     return {
-      isActive:false,
-      document:null,
+      isActive: false,
+      document: null,
       apiUrlrtb,
       electionDate: '۱۴۰۲/۱۱/۱۵',
       viewMode: 'table',
@@ -440,6 +458,7 @@ export default {
 
       // Share Link
       shareLink: ''
+      , hoveredFinalProvince: null
     };
   },
   computed: {
@@ -455,7 +474,18 @@ export default {
 
     topCandidates() {
       return this.sortedCandidates.slice(0, 5);
-    }
+    },
+    finalProvinceHeatmapData() {
+      const maxParticipation = Math.max(...this.regionResults.map(r => Number(r.participation) || 0), 1);
+      return this.regionResults.map(region => {
+        const ratio = (Number(region.participation) || 0) / maxParticipation;
+        const alpha = 0.25 + (ratio * 0.7);
+        return {
+          ...region,
+          color: `rgba(220, 53, 69, ${alpha.toFixed(2)})`
+        };
+      });
+    },
   },
   async mounted() {
     if (!this.ConfigInfo) {
@@ -465,8 +495,8 @@ export default {
     this.generateShareLink();
 
     const response = await this.getFinalResultsApprovalStatus()
-     this.isActive=response.isActive
-      
+    this.isActive = response.isActive
+
   },
   beforeUnmount() {
     // Clean up chart instances to prevent memory leaks
@@ -481,15 +511,14 @@ export default {
     }
   },
   methods: {
-    ...mapActions(["getConfig", "getInfoVote","getFinalResultsApprovalStatus","setFinalResultsApproval"]),
+    ...mapActions(["getConfig", "getInfoVote", "getFinalResultsApprovalStatus", "setFinalResultsApproval"]),
     // Formatting
-    async activateFinalResults(){
+    async activateFinalResults() {
       const response = await this.setFinalResultsApproval()
-      if(response.status)
-      {
+      if (response.status) {
         const response1 = await this.getFinalResultsApprovalStatus()
-     this.isActive=response1.isActive
-      }      
+        this.isActive = response1.isActive
+      }
     },
     formatNumber(num) {
       return new Intl.NumberFormat('fa-IR').format(num);
@@ -874,10 +903,48 @@ export default {
       }
     }
   }
-};
+}
 </script>
 
 <style scoped>
+.iran-heatmap-card {
+  border-radius: 16px;
+}
+
+.iran-heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+.heat-province {
+  color: #fff;
+  border-radius: 10px;
+  padding: 12px 10px;
+  min-height: 72px;
+  cursor: pointer;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.heat-province:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .12);
+}
+
+.heat-province-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.heat-province-rate {
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
+
+.hovered-province-popup {
+  border-radius: 10px;
+}
+
 .election-results-page {
   background: linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 100%);
   min-height: 100vh;
