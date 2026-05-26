@@ -14,7 +14,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $input = json_decode(file_get_contents('php://input'), true) ?: [];
 $role = strtoupper(trim($input['role'] ?? ''));
-$passcode = trim($input['passcode'] ?? '');
+$passcode1 = trim($input['passcode1'] ?? '');
+$passcode2 = trim($input['passcode2'] ?? '');
 
 if (!in_array($role, ['EXECUTIVE', 'SUPERVISOR'], true)) {
     http_response_code(400);
@@ -25,12 +26,20 @@ if (!in_array($role, ['EXECUTIVE', 'SUPERVISOR'], true)) {
     exit;
 }
 
+$db->connect();
+
+$userRes = $db->query("SELECT roles,region_id FROM users WHERE national_id = '" . $db->escape($nationalId) . "' LIMIT 1");
+$user = $db->fetch_assoc($userRes);
+$userRoles = strtoupper($user['roles'] ?? '');
+
+$result = $db->query("SELECT EXECUTIVEPass, SUPERVISORPass FROM final_results_approvals WHERE region_id = {$user['region_id']}");
+$row = $result ? $db->fetch_assoc($result) : null;
 $expectedCodes = [
-    'EXECUTIVE' => 'EXEC-1404',
-    'SUPERVISOR' => 'SUP-1404'
+    'EXECUTIVE' => $row['EXECUTIVEPass'],
+    'SUPERVISOR' => $row['SUPERVISORPass']
 ];
 
-if ($passcode === '' || $passcode !== $expectedCodes[$role]) {
+if ($passcode1 === '' || $passcode2 === '' || $passcode1 !== $expectedCodes['EXECUTIVE'] || $passcode2 !== $expectedCodes['SUPERVISOR']) {
     http_response_code(400);
     echo json_encode([
         'status' => false,
@@ -39,11 +48,6 @@ if ($passcode === '' || $passcode !== $expectedCodes[$role]) {
     exit;
 }
 
-$db->connect();
-
-$userRes = $db->query("SELECT roles FROM users WHERE national_id = '" . $db->escape($nationalId) . "' LIMIT 1");
-$user = $db->fetch_assoc($userRes);
-$userRoles = strtoupper($user['roles'] ?? '');
 
 if ($userRoles === '' || strpos($userRoles, $role) === false) {
     http_response_code(403);
@@ -54,21 +58,7 @@ if ($userRoles === '' || strpos($userRoles, $role) === false) {
     exit;
 }
 
-$db->query("CREATE TABLE IF NOT EXISTS final_results_approvals (
-    id INT(11) NOT NULL,
-    executive_approved TINYINT(1) NOT NULL DEFAULT 0,
-    supervisor_approved TINYINT(1) NOT NULL DEFAULT 0,
-    is_active TINYINT(1) NOT NULL DEFAULT 0,
-    executive_approved_by VARCHAR(20) DEFAULT NULL,
-    executive_approved_at DATETIME DEFAULT NULL,
-    supervisor_approved_by VARCHAR(20) DEFAULT NULL,
-    supervisor_approved_at DATETIME DEFAULT NULL,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-
-$db->query("INSERT IGNORE INTO final_results_approvals (id) VALUES (1)");
+//$db->query("INSERT IGNORE INTO final_results_approvals (region_id) VALUES ({$user['region_id']} )");
 
 $db->query("SET autocommit=0");
 $db->query("START TRANSACTION");
@@ -76,36 +66,39 @@ $db->query("START TRANSACTION");
 try {
     $nationalIdEsc = $db->escape($nationalId);
 
-    if ($role === 'EXECUTIVE') {
+    if ($role === 'EXECUTIVE' || $role === 'SUPERVISOR') {
         $db->query("UPDATE final_results_approvals
                    SET executive_approved = 1,
+                   supervisor_approved = 1,
                        executive_approved_by = '{$nationalIdEsc}',
-                       executive_approved_at = NOW()
-                   WHERE id = 1");
-    }
-
-    if ($role === 'SUPERVISOR') {
-        $db->query("UPDATE final_results_approvals
-                   SET supervisor_approved = 1,
+                       executive_approved_at = NOW(),
                        supervisor_approved_by = '{$nationalIdEsc}',
                        supervisor_approved_at = NOW()
-                   WHERE id = 1");
+                   WHERE region_id = {$user['region_id']} ");
     }
 
-    $rowRes = $db->query("SELECT executive_approved, supervisor_approved FROM final_results_approvals WHERE id = 1 FOR UPDATE");
+    // if ($role === 'SUPERVISOR') {
+    //     $db->query("UPDATE final_results_approvals
+    //                SET supervisor_approved = 1,
+    //                    supervisor_approved_by = '{$nationalIdEsc}',
+    //                    supervisor_approved_at = NOW()
+    //                WHERE id = 1");
+    // }
+
+    $rowRes = $db->query("SELECT executive_approved, supervisor_approved FROM final_results_approvals WHERE region_id = {$user['region_id']} FOR UPDATE");
     $row = $db->fetch_assoc($rowRes);
 
     $executiveApproved = (int)($row['executive_approved'] ?? 0);
     $supervisorApproved = (int)($row['supervisor_approved'] ?? 0);
-    $isActive = ($executiveApproved === 1 && $supervisorApproved === 1) ? 1 : 0;
+    $isActive = ($executiveApproved === 1 && $supervisorApproved === 1) ? 0 : 0;
 
-    $db->query("UPDATE final_results_approvals SET is_active = {$isActive} WHERE id = 1");
+    $db->query("UPDATE final_results_approvals SET is_active = {$isActive} WHERE region_id = {$user['region_id']} ");
 
     $db->query("COMMIT");
 
     echo json_encode([
         'status' => true,
-        'message' => 'تایید با موفقیت ثبت شد.',
+        'message' => ' با موفقیت ثبت شد.',
         'data' => [
             'executiveApproved' => (bool)$executiveApproved,
             'supervisorApproved' => (bool)$supervisorApproved,

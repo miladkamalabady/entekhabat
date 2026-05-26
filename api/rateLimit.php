@@ -31,7 +31,7 @@ global $db;
     if($row = $result->fetch_assoc()){
 
         // اگر بلاک است
-        if($row['blocked_until'] && $row['blocked_until'] > $now){
+        if(false && $row['blocked_until'] && $row['blocked_until'] > $now){
             http_response_code(429);
             echo json_encode([
                 "status"=>false,
@@ -43,7 +43,7 @@ global $db;
         $last = strtotime($row['last_request']);
         $diff = time() - $last;
 
-        if($diff <= $perSeconds){
+        if(false && $diff <= $perSeconds){
 
             $count = $row['request_count'] + 1;
 

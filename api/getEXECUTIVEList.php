@@ -27,7 +27,7 @@ $currentUserRole = $row['roles'];
 $currentUserRegionId = (int)$row['region_id'];
 
 
-$sql = "SELECT tracking_code,requestStatus,f.create_date,u.id,u.national_Id,u.first_name,u.last_name,u.persian_birth_date,u.personnel_code,u.gender,u.father_name,u.org_position_desc,yearsOfService,education,u.user_type,u.region_id,re.name as regname,u.roles,ud.user_photo,ud.education_doc,ud.employment_cert,ud.soPishine_cert,ud.ravan_cert,ud.document_reviews,ud.updated_at as datepic,ua.post_code,ua.address,f.reson FROM final_submissions as f join users as u on u.national_id=f.nationalId left join region as re on re.id=u.region_id  join user_documents as ud on ud.nationalId=f.nationalId left join user_addresses as ua on ua.user_id=u.id WHERE u.region_id = {$currentUserRegionId} ORDER BY create_date DESC;";
+$sql = "SELECT f.id as codeentekhabati, tracking_code,requestStatus,f.create_date,u.id,u.national_Id,u.first_name,u.last_name,u.persian_birth_date,u.personnel_code,u.gender,u.father_name,u.org_position_desc,yearsOfService,education,u.user_type,u.region_id,re.name as regname,u.roles,ud.user_photo,ud.education_doc,ud.employment_cert,ud.soPishine_cert,ud.ravan_cert,ud.document_reviews,ud.updated_at as datepic,ua.post_code,ua.address,f.reson FROM final_submissions as f join users as u on u.national_id=f.nationalId left join region as re on re.id=u.region_id  join user_documents as ud on ud.nationalId=f.nationalId left join user_addresses as ua on ua.user_id=u.id WHERE u.region_id = {$currentUserRegionId} ORDER BY create_date DESC;";
 $res = $db->query($sql);
 
 $list = [];

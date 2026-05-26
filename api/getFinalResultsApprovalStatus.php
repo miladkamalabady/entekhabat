@@ -12,12 +12,33 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     exit;
 }
 
+// تابع ساخت پسورد رندوم ۶ کاراکتری (حروف بزرگ + اعداد)
+function generateRandomPassword($region_id) {
+    $characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    $password = '';
+    for ($i = 0; $i < 6; $i++) {
+        $password .= $characters[rand(0, strlen($characters) - 1)];
+    }
+    // ترکیب region_id به صورت دلخواه، مثلاً ابتدا یا انتها یا درهم
+    // اینجا یک نمونه: قرار دادن region_id در ابتدا و سپس ۶ کاراکتر رندوم
+    return $region_id . $password;
+}
+
 $db->connect();
-$db->query("INSERT IGNORE INTO final_results_approvals (region_id) VALUES ({$user['region_id']} )");
 
-$result = $db->query("SELECT executive_approved, supervisor_approved, is_active FROM final_results_approvals WHERE id = 1 LIMIT 1");
-$row = $db->fetch_assoc($result);
+$userRes = $db->query("SELECT roles,region_id FROM users WHERE national_id = '" . $db->escape($nationalId) . "' LIMIT 1");
+$user = $db->fetch_assoc($userRes);
+$userRoles = strtoupper($user['roles'] ?? '');
 
+$EXECUTIVEPass1 = generateRandomPassword($user['region_id']);
+$SUPERVISORPass1 = generateRandomPassword($user['region_id']);
+
+$result = $db->query("SELECT executive_approved, supervisor_approved, is_active FROM final_results_approvals WHERE region_id = {$user['region_id']}");
+$row = $result ? $db->fetch_assoc($result) : null;
+if(!($row))
+$db->query("INSERT IGNORE INTO final_results_approvals (region_id,EXECUTIVEPass,SUPERVISORPass) VALUES ({$user['region_id']},'{$EXECUTIVEPass1}','{$SUPERVISORPass1}')");
+// if (in_array($userRoles, ['EXECUTIVE', 'SUPERVISOR'], true)) 
+//     $row['is_active']=true;
 $data = [
     'executiveApproved' => (bool)($row['executive_approved'] ?? 0),
     'supervisorApproved' => (bool)($row['supervisor_approved'] ?? 0),

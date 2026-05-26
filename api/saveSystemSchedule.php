@@ -72,6 +72,7 @@ try {
             throw new Exception("فرمت تاریخ پایان برای رویداد {$eventName} نامعتبر است.");
         }
 
+        /* غیر فعال زمان تست
         if ($startTimestamp && $endTimestamp && $startTimestamp > $endTimestamp) {
             throw new Exception("در رویداد {$eventName} تاریخ شروع نمی‌تواند بعد از تاریخ پایان باشد.");
         }
@@ -79,7 +80,7 @@ try {
         $canOverlapWithPrevious = $previousEventKey === 'candidate_registration' && $eventKey === 'supervision_review';
         if (!$canOverlapWithPrevious && $previousEndTimestamp && $startTimestamp && $startTimestamp < $previousEndTimestamp) {
             throw new Exception("تاریخ شروع {$eventName} باید بعد از پایان مرحله قبل ({$previousEventName}) باشد.");
-        }
+        }*/
 
         $eventKeySql = $db->escape($eventKey);
         $eventNameSql = $db->escape($eventName);

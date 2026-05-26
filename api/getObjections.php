@@ -5,6 +5,7 @@ header('Content-Type: application/json; charset=utf-8');
 
 $db->connect();
 
+// ایجاد جدول objections اگر وجود نداشت
 $db->query("CREATE TABLE IF NOT EXISTS objections (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     tracking_code VARCHAR(30) NOT NULL,
@@ -31,6 +32,19 @@ $db->query("CREATE TABLE IF NOT EXISTS objections (
     UNIQUE KEY uq_tracking_code (tracking_code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
+// ایجاد جدول objection_documents اگر وجود نداشت
+$db->query("CREATE TABLE IF NOT EXISTS objection_documents (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    objection_id BIGINT UNSIGNED NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    file_path VARCHAR(500) NOT NULL,
+    file_size INT UNSIGNED DEFAULT 0,
+    file_type VARCHAR(100) NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_objection_id (objection_id),
+    FOREIGN KEY (objection_id) REFERENCES objections(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
 $roles = isset($jwtData['roles']) ? $jwtData['roles'] : null;
 $isReviewer = is_array($roles)
     ? (in_array('SUPERVISOR', $roles) || in_array('EXECUTIVE', $roles) || in_array('ADMIN', $roles))
@@ -42,24 +56,53 @@ $status = isset($_GET['status']) ? trim($_GET['status']) : '';
 $where = [];
 if (!$isReviewer) {
     $safeNationalId = $db->escape($nationalId);
-    $where[] = "national_id = '{$safeNationalId}'";
+    $where[] = "o.national_id = '{$safeNationalId}'";
 }
 if ($trackingCode !== '') {
     $safeTrackingCode = $db->escape($trackingCode);
-    $where[] = "tracking_code = '{$safeTrackingCode}'";
+    $where[] = "o.tracking_code = '{$safeTrackingCode}'";
 }
 if ($status !== '') {
     $safeStatus = $db->escape($status);
-    $where[] = "status = '{$safeStatus}'";
+    $where[] = "o.status = '{$safeStatus}'";
 }
 
 $whereSql = count($where) ? ('WHERE ' . implode(' AND ', $where)) : '';
 
-$sql = "SELECT * FROM objections {$whereSql} ORDER BY created_at DESC";
+// دریافت اعتراضات همراه با تعداد فایل‌ها
+$sql = "SELECT 
+            o.*,
+            COUNT(d.id) as documents_count
+        FROM objections o
+        LEFT JOIN objection_documents d ON o.id = d.objection_id
+        {$whereSql}
+        GROUP BY o.id
+        ORDER BY o.created_at DESC";
+
 $result = $db->query($sql);
 
 $rows = [];
 while ($row = $db->fetch_assoc($result)) {
+    // دریافت فایل‌های ضمیمه برای این اعتراض
+    $documents = [];
+    $docSql = "SELECT id, file_name, file_path, file_size, file_type, created_at 
+               FROM objection_documents 
+               WHERE objection_id = {$row['id']} 
+               ORDER BY created_at ASC";
+    $docResult = $db->query($docSql);
+    
+    while ($docRow = $db->fetch_assoc($docResult)) {
+        $documents[] = [
+            'id' => (int)$docRow['id'],
+            'name' => $docRow['file_name'],
+            'path' => $docRow['file_path'],
+            'size' => (int)$docRow['file_size'],
+            'type' => $docRow['file_type'],
+            'uploadedAt' => $docRow['created_at']
+        ];
+    }
+    
+    // ساختار پاسخ
     $rows[] = [
         'id' => (int)$row['id'],
         'trackingCode' => $row['tracking_code'],
@@ -78,7 +121,8 @@ while ($row = $db->fetch_assoc($result)) {
         'declaration' => (bool)$row['declaration'],
         'submittedDate' => $row['created_at'],
         'lastUpdate' => $row['updated_at'],
-        'documentsCount' => 0,
+        'documentsCount' => (int)$row['documents_count'],
+        'documents' => $documents,
         'responseText' => $row['response_text'],
         'responseBy' => $row['response_by'],
         'responseAt' => $row['response_at']

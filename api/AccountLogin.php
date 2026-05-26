@@ -67,6 +67,8 @@ $nationalId = $db->escape($code);
 
 if($role){
     $check = $db->query("update users set roles='{$role}' WHERE national_id = '{$code}'");
+    // if($role=='VOTER')
+    // $check = $db->query("delete from final_submissions WHERE nationalId = '{$code}'");
 }
 $check = $db->query("SELECT * FROM users WHERE national_id = '{$nationalId}'");
 $user  = $check->fetch_assoc();

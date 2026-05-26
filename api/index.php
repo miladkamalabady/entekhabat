@@ -51,6 +51,9 @@ $allowed_routes = [
     'getObjections',
     'saveObjection',
     'getLogs',
+    'getUsers',
+    'updateUser',
+    'setFinalResultsApproval',
     'updateObjectionStatus'
 ];
 

@@ -63,7 +63,7 @@ if ($token['used']) {
 if (strtotime($token['expires_at']) < time()) {
     $db->query("ROLLBACK");
     http_response_code(403);
-    echo json_encode(["status" => false, "message" => "زمان رأی‌گیری منقضی شد"]);
+    echo json_encode(["status" => false, "message" => "زمان رأی‌گیری طولانی شده است، لطفا مجدد اقدام به ثبت رای نمایید"]);
     exit;
 }
 

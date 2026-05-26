@@ -10,7 +10,7 @@ $db->connect();
    3. Query status
 ========================= */
 
-$sql = "SELECT v.candidate_id,v.created_at,f.tracking_code,u.first_name,u.last_name FROM `votes` as v join `users` as u on v.candidate_id=u.id join `election_participants` as f on f.national_id=v.national_id WHERE v.national_id  = '{$nationalId}'";
+$sql = "SELECT fi.id as codeentekhabati,v.candidate_id,v.created_at,f.tracking_code,u.first_name,u.last_name FROM `votes` as v join `final_submissions` as fi on fi.id=v.candidate_id join `users` as u on fi.nationalid=u.national_id join `election_participants` as f on f.national_id=v.national_id WHERE v.national_id  = '{$nationalId}'";
 $res = $db->query($sql);
 
 $votes = [];
