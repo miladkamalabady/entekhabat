@@ -274,11 +274,14 @@
               <div class="distribution-percentage">{{ formatNumber(area.votes) }} رأی ({{ area.percentage }}%)</div>
             </div>
             <div v-if="selectedReportType === 'admin'" class="mt-4">
-              <h6 class="mb-3">آمار کاندیداها در این منطقه</h6>
-              <div v-if="selectedRegion.candidateStats && selectedRegion.candidateStats.length"
+              <h6 class="mb-3">آمار کاندیداها در {{ area.name }}</h6>
+              <div v-if="getAreaCandidateStats(area).length"
                 class="table-responsive">
-                <b-table small striped hover :items="selectedRegion.candidateStats" :fields="regionCandidateFields"
+                 <b-table small striped hover :items="getAreaCandidateStats(area)" :fields="regionCandidateFields"
                   class="text-right mb-0">
+                  <template #cell(candidate_id)="data">
+                    {{ data.item.candidate_id }}
+                  </template>
                   <template #cell(candidate)="data">
                     {{ data.item.first_name }} {{ data.item.last_name }}
                   </template>
@@ -287,7 +290,7 @@
                   </template>
                 </b-table>
               </div>
-              <p v-else class="text-muted mb-0">برای این منطقه هنوز آماری از کاندیداها ثبت نشده است.</p>
+              <p v-else class="text-muted mb-0">برای {{ area.name }} هنوز آماری از کاندیداها ثبت نشده است.</p>
             </div>
           </div>
 
@@ -362,6 +365,7 @@ export default {
         { key: 'vote_count', label: 'آرا', sortable: true },
       ],
       regionCandidateFields: [
+        { key: 'candidate_id', label: 'کدکاندید', sortable: false },
         { key: 'candidate', label: 'کاندیدا', sortable: false },
         { key: 'vote_count', label: 'تعداد رأی', sortable: true }
       ],
@@ -453,7 +457,7 @@ export default {
       this.regions = provinces.map((province, index) => ({
         id: Number(province.id),
         name: province.name,
-        votes: (index + 1) * 1000,
+        votes: 0,
         participation: 0,
         eligibleVoters: 0,
         activeLocations: 0,
@@ -585,37 +589,38 @@ export default {
     // UI Actions
     buildRegionAreas(region) {
       const provinceAreas = this.areasByProvince?.[region.id] || [];
+      const regionVoteStats = this.infoVote?.regionVoteStats || {};
       const baseAreas = provinceAreas.length
         ? provinceAreas.map(item => item.name)
-        : ['منطقه ۱', 'منطقه ۲', 'منطقه ۳'];
+        : [];
       const rawWeights = baseAreas.map((_, idx) => (baseAreas.length - idx) * 2 + 1);
       const totalWeight = rawWeights.reduce((sum, weight) => sum + weight, 0);
 
       const areas = baseAreas.map((name, idx) => {
-        const weight = rawWeights[idx];
-        const votes = Math.round((region.votes * weight) / totalWeight);
-        return { id: `${region.id}-${idx + 1}`, name, votes, percentage: 0 };
+        const areaId = String(provinceAreas[idx]?.id || `${region.id}-${idx + 1}`);
+        const stat = regionVoteStats?.[areaId] || regionVoteStats?.[Number(areaId)] || null;
+        const votes = Number(stat?.votes || 0);
+        return { id: areaId, name, votes, percentage: 0 };
       });
 
-      const votedSum = areas.reduce((sum, area) => sum + area.votes, 0);
-      if (areas.length && votedSum !== region.votes) {
-        areas[0].votes += (region.votes - votedSum);
-      }
+      const regionVotes = Number(region.votes || 0);
 
       return areas.map(area => ({
         ...area,
-        percentage: Number(((area.votes / region.votes) * 100).toFixed(1))
+        percentage: regionVotes > 0 ? Number(((area.votes / regionVotes) * 100).toFixed(1)) : 0
       }));
     },
+     getAreaCandidateStats(area) {
+      if (this.selectedReportType !== 'admin') return [];
+      const stats = this.infoVote?.listCan.filter(x=>x.region_id==area.id) || {};
+      return stats;
+      return stats?.[area.id] || stats?.[Number(area.id)] || [];
+      
+    },
     viewRegionDetails(region) {
-      const candidateStats = this.selectedReportType === 'admin'
-        ? (this.infoVote?.candidateRegionStats?.[region.id] || [])
-        : [];
-
       this.selectedRegion = {
         ...region,
-        areas: this.buildRegionAreas(region),
-        candidateStats
+        areas: this.buildRegionAreas(region)
       };
       this.showRegionModal = true;
     },
@@ -653,20 +658,20 @@ export default {
       this.refreshing = false;
     },
     updateRegionLiveStats() {
-      const totalVotes = Number(this.infoVote?.totalVotes || 0);
-      const totalVoters = Number(this.infoVote?.totalVoters || 0);
+       const provinceVoteStats = this.infoVote?.provinceVoteStats || {};
+      const regionVoteStats = this.infoVote?.regionVoteStats || {};
       if (!this.regions.length) return;
 
-      const totalWeight = this.regions.reduce((sum, _, idx) => sum + (this.regions.length - idx), 0) || 1;
-      let usedVotes = 0;
-
       this.regions = this.regions.map((region, idx) => {
-        const weight = this.regions.length - idx;
-        const votes = Math.round((totalVotes * weight) / totalWeight);
-        usedVotes += votes;
-        const eligibleVoters = Math.round((totalVoters * weight) / totalWeight);
-        const participation = eligibleVoters ? Number(((votes / eligibleVoters) * 100).toFixed(1)) : 0;
         const areas = this.areasByProvince?.[region.id] || [];
+        const provinceStat = provinceVoteStats?.[region.id] || provinceVoteStats?.[Number(region.id)] || null;
+        const votes = Number(provinceStat?.votes || 0);
+        const eligibleVoters = Number(provinceStat?.eligible || 0);
+        const participation = eligibleVoters ? Number(((votes / eligibleVoters) * 100).toFixed(1)) : 0;
+        const areaVotes = areas.reduce((sum, area) => {
+          const stat = regionVoteStats?.[area.id] || regionVoteStats?.[Number(area.id)] || null;
+          return sum + Number(stat?.votes || 0);
+        }, 0);
 
         return {
           ...region,
@@ -674,14 +679,11 @@ export default {
           eligibleVoters,
           participation,
           activeLocations: areas.length,
-          growth: Number((Math.random() * 3).toFixed(1))
+          growth: Number((Math.random() * 3).toFixed(1)),
+          areaVotes
         };
       });
 
-      const diff = totalVotes - usedVotes;
-      if (this.regions.length && diff !== 0) {
-        this.regions[0].votes += diff;
-      }
     }
 
   }
