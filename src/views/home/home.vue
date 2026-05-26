@@ -352,7 +352,6 @@ export default {
           roles: ['EXECUTIVE', 'ADMIN', 'VOTER', 'CANDIDATE', 'SUPERVISOR'],
           electionStatusAll: 'ended',
           badge: 'نمایش نهایی',
-          visibleWhen: requiresFinalApproval => requiresFinalApproval === true,
           requiresFinalApproval: true
         },
         {

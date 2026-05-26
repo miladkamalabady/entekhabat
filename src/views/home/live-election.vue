@@ -46,6 +46,14 @@
 
     <!-- Main Content -->
     <b-container class="election-container" v-if="electionStatusAll == 'active'">
+      <b-card class="mb-4 report-type-card">
+        <div class="d-flex flex-wrap align-items-center justify-content-between">
+          <h5 class="mb-2 mb-md-0">نوع گزارش زنده</h5>
+          <b-form-radio-group v-model="selectedReportType" :options="availableReportTypes"
+            button-variant="outline-primary" buttons name="report-type-radio" class="report-type-switch" />
+        </div>
+        <small class="text-muted d-block mt-2">{{ selectedReportTypeLabel }}</small>
+      </b-card>
       <!-- Quick Stats -->
       <b-row class="mb-4">
         <b-col cols="6" md="3">
@@ -117,7 +125,7 @@
       <b-row class="mb-4">
         <!-- Candidates Ranking -->
         <b-col lg="12" class="mb-4" v-if="electionStatusAll !== 'active'">
-          <b-card class="ranking-card" >
+          <b-card class="ranking-card">
             <div class="d-flex justify-content-between align-items-center mb-4">
               <h5 class="mb-0">رتبه‌بندی کاندیداها</h5>
               <div class="ranking-actions">
@@ -182,7 +190,7 @@
         <!-- Voting Progress by Region -->
         <b-col lg="12" class="mb-4">
           <b-card class="region-card">
-            <h5 class="mb-4">مشارکت بر اساس استان</h5>
+            <h5 class="mb-4">{{ selectedReportType === "admin" ? "گزارش تجمیعی ادمین" : "مشارکت بر اساس استان" }}</h5>
 
             <div class="region-list">
               <div v-for="region in regions" :key="region.id" class="region-item" @click="viewRegionDetails(region)">
@@ -199,12 +207,6 @@
               </div>
             </div>
 
-            <div class="text-center mt-3">
-              <b-button variant="link" size="sm" @click="showAllRegions">
-                مشاهده همه استان‌ها
-                <b-icon icon="chevron-left"></b-icon>
-              </b-button>
-            </div>
           </b-card>
         </b-col>
       </b-row>
@@ -236,14 +238,14 @@
           </b-col>
         </b-row>
 
-        <h6 class="mb-3">توزیع آرا بین کاندیداها</h6>
+        <h6 class="mb-3">توزیع آرا بر اساس مناطق استان</h6>
         <div class="candidates-distribution">
-          <div v-for="candidate in selectedRegion.candidates" :key="candidate.id" class="distribution-item">
-            <div class="candidate-name">{{ candidate.name }}</div>
+          <div v-for="area in selectedRegion.areas" :key="area.id" class="distribution-item">
+            <div class="candidate-name">{{ area.name }}</div>
             <div class="distribution-bar">
-              <div class="bar-fill" :style="{ width: candidate.percentage + '%' }"></div>
+              <div class="bar-fill" :style="{ width: area.percentage + '%' }"></div>
             </div>
-            <div class="distribution-percentage">{{ candidate.percentage }}%</div>
+            <div class="distribution-percentage">{{ formatNumber(area.votes) }} رأی ({{ area.percentage }}%)</div>
           </div>
         </div>
       </div>
@@ -288,16 +290,16 @@ export default {
       candidates: [],
 
       // Regions Data
-      regions: [
-        { id: 1, name: 'تهران', votes: 25480, participation: 72.5, eligibleVoters: 35100, activeLocations: 45, topCandidate: 'دکتر محمدرضا احمدی', growth: 2.1 },
-        { id: 2, name: 'مشهد', votes: 12450, participation: 65.3, eligibleVoters: 19050, activeLocations: 28, topCandidate: 'مهندس سید علی حسینی', growth: 1.8 },
-        { id: 3, name: 'اصفهان', votes: 9870, participation: 61.2, eligibleVoters: 16100, activeLocations: 22, topCandidate: 'دکتر فاطمه کریمی', growth: 0.9 },
-        { id: 4, name: 'شیراز', votes: 7650, participation: 58.7, eligibleVoters: 13020, activeLocations: 18, topCandidate: 'دکتر محمدرضا احمدی', growth: 2.5 },
-        { id: 5, name: 'تبریز', votes: 6540, participation: 55.4, eligibleVoters: 11800, activeLocations: 16, topCandidate: 'مهندس سید علی حسینی', growth: 1.2 }
-      ],
+      regions: [],
+      areasByProvince: {},
 
 
       // UI State
+      selectedReportType: 'province',
+      reportTypeOptions: [
+        { value: 'province', text: 'گزارش استانی' },
+        { value: 'admin', text: 'گزارش ادمین' }
+      ],
       rankingView: 'table',
       showRegionModal: false,
       selectedRegion: null,
@@ -332,16 +334,27 @@ export default {
     maxVotes() {
       if (!this.candidates.length) return 1;
       return Math.max(...this.candidates.map(c => c.vote_count));
-    }
+    },
+    availableReportTypes() {
+      if (this.currentUser?.roles?.includes('ADMIN')) return this.reportTypeOptions;
+      return this.reportTypeOptions.filter(opt => opt.value !== 'admin');
+    },
+    selectedReportTypeLabel() {
+      const selected = this.availableReportTypes.find(opt => opt.value === this.selectedReportType);
+      return selected ? `در حال نمایش: ${selected.text}` : '';
+    },
   },
   async mounted() {
     if (!this.ConfigInfo)
       await this.getConfig()
+    if (this.currentUser?.roles?.includes('ADMIN')) this.selectedReportType = "admin";
     this.startTimer();
     this.startAutoRefresh();
+    await this.loadRegions();
 
     this.infoVote = await this.getInfoVote()
     this.candidates = this.infoVote?.listCan
+    this.updateRegionLiveStats();
 
     this.$nextTick(() => {
       if (this.rankingView === 'chart') {
@@ -361,10 +374,32 @@ export default {
           this.createVotesChart();
         });
       }
+    },
+    availableReportTypes(options) {
+      if (!options.some(opt => opt.value === this.selectedReportType)) {
+        this.selectedReportType = 'province';
+      }
     }
   },
   methods: {
-    ...mapActions(["getConfig", "getInfoVote"]),
+    ...mapActions(["getConfig", "getInfoVote","getRegions"]),
+    async loadRegions() {
+      const response = await this.getRegions();
+      const provinces = response?.data || [];
+      const map = response?.areasByProvince || {};
+
+      this.areasByProvince = map;
+      this.regions = provinces.map((province, index) => ({
+        id: Number(province.id),
+        name: province.name,
+        votes: (index + 1) * 1000,
+        participation: 0,
+        eligibleVoters: 0,
+        activeLocations: 0,
+        topCandidate: '-',
+        growth: 0
+      }));
+    },
     // Timer Functions
     startTimer() {
       this.updateTimer();
@@ -487,22 +522,36 @@ export default {
     },
 
     // UI Actions
+    buildRegionAreas(region) {
+      const provinceAreas = this.areasByProvince?.[region.id] || [];
+      const baseAreas = provinceAreas.length
+        ? provinceAreas.map(item => item.name)
+        : ['منطقه ۱', 'منطقه ۲', 'منطقه ۳'];
+      const rawWeights = baseAreas.map((_, idx) => (baseAreas.length - idx) * 2 + 1);
+      const totalWeight = rawWeights.reduce((sum, weight) => sum + weight, 0);
+
+      const areas = baseAreas.map((name, idx) => {
+        const weight = rawWeights[idx];
+        const votes = Math.round((region.votes * weight) / totalWeight);
+        return { id: `${region.id}-${idx + 1}`, name, votes, percentage: 0 };
+      });
+
+      const votedSum = areas.reduce((sum, area) => sum + area.votes, 0);
+      if (areas.length && votedSum !== region.votes) {
+        areas[0].votes += (region.votes - votedSum);
+      }
+
+      return areas.map(area => ({
+        ...area,
+        percentage: Number(((area.votes / region.votes) * 100).toFixed(1))
+      }));
+    },
     viewRegionDetails(region) {
-      // Add candidates distribution for the region
       this.selectedRegion = {
         ...region,
-        candidates: this.candidates.map(c => ({
-          id: c.id,
-          name: c.name,
-          percentage: Math.floor(Math.random() * 30) + 10
-        }))
+        areas: this.buildRegionAreas(region)
       };
       this.showRegionModal = true;
-    },
-
-    showAllRegions() {
-      // In real app, navigate to regions page
-      alert('صفحه استان‌ها در حال توسعه است');
     },
 
     startAutoRefresh() {
@@ -512,6 +561,7 @@ export default {
         const data = await this.getInfoVote();
         this.infoVote = data;
         this.candidates = data?.listCan || [];
+        this.updateRegionLiveStats();
 
         this.lastUpdate = new Date().toLocaleTimeString('fa-IR');
 
@@ -526,6 +576,7 @@ export default {
       const data = await this.getInfoVote();
       this.infoVote = data;
       this.candidates = data?.listCan || [];
+      this.updateRegionLiveStats();
 
       this.lastUpdate = new Date().toLocaleTimeString('fa-IR');
 
@@ -534,6 +585,37 @@ export default {
       }
 
       this.refreshing = false;
+     },
+    updateRegionLiveStats() {
+      const totalVotes = Number(this.infoVote?.totalVotes || 0);
+      const totalVoters = Number(this.infoVote?.totalVoters || 0);
+      if (!this.regions.length) return;
+
+      const totalWeight = this.regions.reduce((sum, _, idx) => sum + (this.regions.length - idx), 0) || 1;
+      let usedVotes = 0;
+
+      this.regions = this.regions.map((region, idx) => {
+        const weight = this.regions.length - idx;
+        const votes = Math.round((totalVotes * weight) / totalWeight);
+        usedVotes += votes;
+        const eligibleVoters = Math.round((totalVoters * weight) / totalWeight);
+        const participation = eligibleVoters ? Number(((votes / eligibleVoters) * 100).toFixed(1)) : 0;
+        const areas = this.areasByProvince?.[region.id] || [];
+
+        return {
+          ...region,
+          votes,
+          eligibleVoters,
+          participation,
+          activeLocations: areas.length,
+          growth: Number((Math.random() * 3).toFixed(1))
+        };
+      });
+
+      const diff = totalVotes - usedVotes;
+      if (this.regions.length && diff !== 0) {
+        this.regions[0].votes += diff;
+      }
     }
 
   }
@@ -541,6 +623,14 @@ export default {
 </script>
 
 <style scoped>
+.report-type-switch .btn {
+  min-width: 130px;
+}
+
+.report-type-card {
+  border-right: 4px solid #007bff;
+}
+
 .live-election-page {
   background: linear-gradient(135deg, #f8f9fa 0%, #e3f2fd 100%);
   min-height: 100vh;
