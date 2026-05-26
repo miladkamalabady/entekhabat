@@ -303,13 +303,8 @@ export default {
       candidates: [],
 
       // Regions Data
-      regions: [
-        { id: 1, name: 'تهران', votes: 25480, participation: 72.5, eligibleVoters: 35100, activeLocations: 45, topCandidate: 'دکتر محمدرضا احمدی', growth: 2.1, areas: ['منطقه ۱', 'منطقه ۲', 'منطقه ۳', 'منطقه ۴', 'منطقه ۵'] },
-        { id: 2, name: 'مشهد', votes: 12450, participation: 65.3, eligibleVoters: 19050, activeLocations: 28, topCandidate: 'مهندس سید علی حسینی', growth: 1.8, areas: ['منطقه مرکزی', 'منطقه غرب', 'منطقه شرق', 'منطقه شمال'] },
-        { id: 3, name: 'اصفهان', votes: 9870, participation: 61.2, eligibleVoters: 16100, activeLocations: 22, topCandidate: 'دکتر فاطمه کریمی', growth: 0.9, areas: ['منطقه شمالی', 'منطقه جنوبی', 'منطقه مرکزی'] },
-        { id: 4, name: 'شیراز', votes: 7650, participation: 58.7, eligibleVoters: 13020, activeLocations: 18, topCandidate: 'دکتر محمدرضا احمدی', growth: 2.5, areas: ['منطقه یک', 'منطقه دو', 'منطقه سه'] },
-        { id: 5, name: 'تبریز', votes: 6540, participation: 55.4, eligibleVoters: 11800, activeLocations: 16, topCandidate: 'مهندس سید علی حسینی', growth: 1.2, areas: ['منطقه شمال‌غرب', 'منطقه شمال‌شرق', 'منطقه جنوب'] }
-      ],
+      regions: [],
+      areasByProvince: {},
 
 
       // UI State
@@ -369,9 +364,11 @@ export default {
     if (this.currentUser?.role === "ADMIN") this.selectedReportType = "admin";
     this.startTimer();
     this.startAutoRefresh();
+    await this.loadRegions();
 
     this.infoVote = await this.getInfoVote()
     this.candidates = this.infoVote?.listCan
+    this.updateRegionLiveStats();
 
     this.$nextTick(() => {
       if (this.rankingView === 'chart') {
@@ -399,7 +396,24 @@ export default {
     }
   },
   methods: {
-    ...mapActions(["getConfig", "getInfoVote"]),
+    ...mapActions(["getConfig", "getInfoVote", "getRegions"]),
+    async loadRegions() {
+      const response = await this.getRegions();
+      const provinces = response?.data || [];
+      const map = response?.areasByProvince || {};
+
+      this.areasByProvince = map;
+      this.regions = provinces.map((province, index) => ({
+        id: Number(province.id),
+        name: province.name,
+        votes: (index + 1) * 1000,
+        participation: 0,
+        eligibleVoters: 0,
+        activeLocations: 0,
+        topCandidate: '-',
+        growth: 0
+      }));
+    },
     // Timer Functions
     startTimer() {
       this.updateTimer();
@@ -523,7 +537,10 @@ export default {
 
     // UI Actions
     buildRegionAreas(region) {
-      const baseAreas = region.areas && region.areas.length ? region.areas : ['منطقه ۱', 'منطقه ۲', 'منطقه ۳'];
+      const provinceAreas = this.areasByProvince?.[region.id] || [];
+      const baseAreas = provinceAreas.length
+        ? provinceAreas.map(item => item.name)
+        : ['منطقه ۱', 'منطقه ۲', 'منطقه ۳'];
       const rawWeights = baseAreas.map((_, idx) => (baseAreas.length - idx) * 2 + 1);
       const totalWeight = rawWeights.reduce((sum, weight) => sum + weight, 0);
 
@@ -563,6 +580,7 @@ export default {
         const data = await this.getInfoVote();
         this.infoVote = data;
         this.candidates = data?.listCan || [];
+        this.updateRegionLiveStats();
 
         this.lastUpdate = new Date().toLocaleTimeString('fa-IR');
 
@@ -577,6 +595,7 @@ export default {
       const data = await this.getInfoVote();
       this.infoVote = data;
       this.candidates = data?.listCan || [];
+      this.updateRegionLiveStats();
 
       this.lastUpdate = new Date().toLocaleTimeString('fa-IR');
 
@@ -585,6 +604,37 @@ export default {
       }
 
       this.refreshing = false;
+    },
+    updateRegionLiveStats() {
+      const totalVotes = Number(this.infoVote?.totalVotes || 0);
+      const totalVoters = Number(this.infoVote?.totalVoters || 0);
+      if (!this.regions.length) return;
+
+      const totalWeight = this.regions.reduce((sum, _, idx) => sum + (this.regions.length - idx), 0) || 1;
+      let usedVotes = 0;
+
+      this.regions = this.regions.map((region, idx) => {
+        const weight = this.regions.length - idx;
+        const votes = Math.round((totalVotes * weight) / totalWeight);
+        usedVotes += votes;
+        const eligibleVoters = Math.round((totalVoters * weight) / totalWeight);
+        const participation = eligibleVoters ? Number(((votes / eligibleVoters) * 100).toFixed(1)) : 0;
+        const areas = this.areasByProvince?.[region.id] || [];
+
+        return {
+          ...region,
+          votes,
+          eligibleVoters,
+          participation,
+          activeLocations: areas.length,
+          growth: Number((Math.random() * 3).toFixed(1))
+        };
+      });
+
+      const diff = totalVotes - usedVotes;
+      if (this.regions.length && diff !== 0) {
+        this.regions[0].votes += diff;
+      }
     }
 
   }
