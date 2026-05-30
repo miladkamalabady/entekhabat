@@ -48,11 +48,26 @@
     <b-container class="election-container" v-if="electionStatusAll == 'active'">
       <b-card class="mb-4 report-type-card">
         <div class="d-flex flex-wrap align-items-center justify-content-between">
-          <h5 class="mb-2 mb-md-0">نوع گزارش زنده</h5>
+          <div>
+            <h5 class="mb-1">نوع گزارش زنده</h5>
+            <small class="text-muted">یکی از نماهای تحلیلی زنده را انتخاب کنید.</small>
+          </div>
           <b-form-radio-group v-model="selectedReportType" :options="availableReportTypes"
-            button-variant="outline-primary" buttons name="report-type-radio" class="report-type-switch" />
+            button-variant="outline-primary" buttons name="report-type-radio" class="report-type-switch mt-2 mt-md-0" />
         </div>
         <small class="text-muted d-block mt-2">{{ selectedReportTypeLabel }}</small>
+        <b-row class="report-highlight-row mt-3">
+          <b-col v-for="highlight in selectedReportHighlights" :key="highlight.label" cols="12" md="4"
+            class="mb-2 mb-md-0">
+            <div class="report-highlight" :class="highlight.variant">
+              <b-icon :icon="highlight.icon" class="report-highlight-icon"></b-icon>
+              <div>
+                <div class="report-highlight-value">{{ highlight.value }}</div>
+                <div class="report-highlight-label">{{ highlight.label }}</div>
+              </div>
+            </div>
+          </b-col>
+        </b-row>
       </b-card>
       <!-- Quick Stats -->
       <b-row class="mb-4">
@@ -62,10 +77,10 @@
               <b-icon icon="people-fill"></b-icon>
             </div>
             <div class="stat-number">{{ formatNumber(infoVote?.totalVoters) }}</div>
-            <div class="stat-label">کل و1اجدین شرایط</div>
+            <div class="stat-label">کل واجدین شرایط</div>
             <div class="stat-change text-success">
               <b-icon icon="arrow-up"></b-icon>
-              {{ infoVote?.voterParticipation.toFixed(2) }}% مشارکت
+              {{ safeParticipation }}% مشارکت
             </div>
           </b-card>
         </b-col>
@@ -124,10 +139,10 @@
       <!-- Main Dashboard -->
       <b-row class="mb-4">
         <!-- Candidates Ranking -->
-        <b-col lg="12" class="mb-4" v-if="electionStatusAll !== 'active'">
+        <b-col lg="12" class="mb-4" v-if="showCandidateReport">
           <b-card class="ranking-card">
             <div class="d-flex justify-content-between align-items-center mb-4">
-              <h5 class="mb-0">رتبه‌بندی کاندیداها</h5>
+              <h5 class="mb-0">رتبه‌بندی زنده کاندیداها</h5>
               <div class="ranking-actions">
                 <b-button-group size="sm">
                   <b-button :variant="rankingView === 'table' ? 'primary' : 'outline-primary'"
@@ -171,7 +186,7 @@
                     <div class="votes-percentage">
                       <b-progress :value="data.item.vote_count" :max="maxVotes" height="4px"
                         class="votes-progress"></b-progress>
-                      <small>{{ ((data.item.vote_count / infoVote?.totalVotes) * 100).toFixed(1) }}%</small>
+                      <small>{{ getVotePercentage(data.item.vote_count) }}%</small>
                     </div>
                   </div>
                 </template>
@@ -188,13 +203,19 @@
         </b-col>
 
         <!-- Voting Progress by Region -->
-        <b-col lg="12" class="mb-4">
+        <b-col lg="12" class="mb-4" v-if="showProvinceReport">
           <b-card class="region-card">
-            <h5 class="mb-4">{{ selectedReportType === "admin" ? "گزارش تجمیعی ادمین" : "مشارکت بر اساس استان" }}</h5>
+            <h5 class="mb-4">{{ selectedReportType === "admin" ? "گزارش تجمیعی ادمین" : getReportSectionTitle() }}</h5>
 
             <div class="region-list">
-              <div v-for="region in regions" :key="region.id" class="region-item" @click="viewRegionDetails(region)">
-                <div class="region-name">{{ region.name }}</div>
+              <div v-for="region in regionDisplayData" :key="region.id" class="region-item"
+                @click="viewRegionDetails(region)">
+                <div>
+                  <div class="region-name">{{ region.name }}</div>
+                  <small class="text-muted" v-if="selectedReportType === 'participation'">
+                    {{ region.participationNote }}
+                  </small>
+                </div>
                 <div class="region-stats">
                   <div class="region-progress">
                     <b-progress :value="region.participation" :max="100" height="6px" class="mb-1"></b-progress>
@@ -210,28 +231,90 @@
           </b-card>
         </b-col>
 
-        <b-col lg="12" class="mb-4">
+        <b-col lg="12" class="mb-4" v-if="selectedReportType === 'area'">
+          <b-card class="area-report-card">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+              <h5 class="mb-2 mb-md-0">گزارش تفکیکی مناطق</h5>
+              <small class="text-muted">مناطق بر اساس تعداد رأی ثبت‌شده مرتب شده‌اند.</small>
+            </div>
+            <div class="table-responsive">
+              <b-table :items="areaReportRows" :fields="areaReportFields" striped hover class="text-right mb-0">
+                <template #cell(votes)="data">
+                  {{ formatNumber(data.item.votes) }}
+                </template>
+                <template #cell(participation)="data">
+                  <b-badge :variant="getParticipationVariant(data.item.participation)">{{ data.item.participation
+                    }}%</b-badge>
+                </template>
+              </b-table>
+            </div>
+          </b-card>
+        </b-col>
+
+        <b-col lg="12" class="mb-4" v-if="selectedReportType === 'participation'">
+          <b-card class="participation-card">
+            <h5 class="mb-4">نبض مشارکت لحظه‌ای</h5>
+            <b-row>
+              <b-col md="4" class="mb-3" v-for="item in participationPulseCards" :key="item.title">
+                <div class="pulse-card" :class="item.variant">
+                  <b-icon :icon="item.icon" class="pulse-card-icon"></b-icon>
+                  <div class="pulse-card-title">{{ item.title }}</div>
+                  <div class="pulse-card-value">{{ item.value }}</div>
+                  <small>{{ item.description }}</small>
+                </div>
+              </b-col>
+            </b-row>
+          </b-card>
+        </b-col>
+        <!-- جایگزین بخش ایران Heatmap Grid با نقشه SVG -->
+        <b-col lg="12" class="mb-4" v-if="showHeatmapReport">
           <b-card class="iran-heatmap-card">
             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
-              <h5 class="mb-2 mb-md-0">نقشه حرارتی ایران (استان‌ها و مناطق)</h5>
-              <small class="text-muted">با حرکت موس روی هر استان، جزئیات نمایش داده می‌شود.</small>
+              <h5 class="mb-2 mb-md-0">🗺️ نقشه حرارتی ایران (استان‌ها)</h5>
+              <small class="text-muted">با حرکت موس روی هر استان، جزئیات نمایش داده می‌شود</small>
             </div>
 
-            <div class="iran-heatmap-grid">
-              <div v-for="province in provinceHeatmapData" :key="`map-${province.id}`" class="heat-province"
-                :style="{ backgroundColor: province.color }" @mouseenter="hoveredProvince = province"
-                @mouseleave="hoveredProvince = null">
-                <div class="heat-province-name">{{ province.name }}</div>
-                <div class="heat-province-rate">{{ province.participation }}%</div>
-              </div>
+            <!-- نقشه SVG ایران -->
+            <div class="iran-map-container">
+              <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+                viewBox="0 0 800 600" class="iran-map-svg"
+                style="width: 100%; height: auto; max-width: 800px; margin: 0 auto; display: block;">
+                <!-- آذربایجان شرقی -->
+                <path v-for="province in provincePaths" :key="province.id" :id="`province-${province.id}`"
+                  :data-id="province.id" :data-name="province.name" :d="province.path" class="province-path" :class="{
+                    'province-hover': hoveredProvinceId === province.id,
+                    'province-selected': selectedProvinceId === province.id
+                  }" :fill="getProvinceColor(province)" @mouseenter="onProvinceHover(province)" @mouseleave="onProvinceLeave"
+                  @click="onProvinceClick(province)">
+                  <title>{{ province.name }} - مشارکت: {{ getProvinceParticipation(province) }}%</title>
+                </path>
+              </svg>
             </div>
 
-            <b-alert v-if="hoveredProvince" show variant="warning" class="hovered-province-popup mt-3 mb-0">
-              <strong>{{ hoveredProvince.name }}</strong>
-              — مشارکت: {{ hoveredProvince.participation }}% |
-              آرا: {{ formatNumber(hoveredProvince.votes) }} |
-              مناطق: {{ hoveredProvince.areasCount }}
-            </b-alert>
+            <!-- خلاصه آماری استان انتخاب شده -->
+            <div v-if="selectedProvinceForMap" class="selected-province-stats mt-4">
+              <b-alert :variant="getParticipationVariant(getProvinceParticipation(selectedProvinceForMap))" show
+                class="mb-0">
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                  <div>
+                    <strong class="fs-5">{{ selectedProvinceForMap.name }}</strong>
+                    <div class="mt-2">
+                      <span class="badge bg-light text-dark me-2">مشارکت: {{
+                        getProvinceParticipation(selectedProvinceForMap)
+                        }}%</span>
+                      <span class="badge bg-light text-dark me-2">آرا: {{
+                        formatNumber(getProvinceVotes(selectedProvinceForMap))
+                        }}</span>
+                      <span class="badge bg-light text-dark">مناطق: {{ getProvinceAreasCount(selectedProvinceForMap)
+                        }}</span>
+                    </div>
+                  </div>
+                  <b-button size="sm" variant="outline-primary" @click="viewProvinceDetails(selectedProvinceForMap)">
+                    مشاهده جزئیات استان
+                  </b-button>
+                </div>
+              </b-alert>
+            </div>
           </b-card>
         </b-col>
       </b-row>
@@ -275,9 +358,8 @@
             </div>
             <div v-if="selectedReportType === 'admin'" class="mt-4">
               <h6 class="mb-3">آمار کاندیداها در {{ area.name }}</h6>
-              <div v-if="getAreaCandidateStats(area).length"
-                class="table-responsive">
-                 <b-table small striped hover :items="getAreaCandidateStats(area)" :fields="regionCandidateFields"
+              <div v-if="getAreaCandidateStats(area).length" class="table-responsive">
+                <b-table small striped hover :items="getAreaCandidateStats(area)" :fields="regionCandidateFields"
                   class="text-right mb-0">
                   <template #cell(candidate_id)="data">
                     {{ data.item.candidate_id }}
@@ -321,6 +403,45 @@ export default {
   name: "LiveElectionDashboard",
   data() {
     return {
+      // نقشه
+      hoveredProvinceId: null,
+      selectedProvinceId: null,
+      selectedProvinceForMap: null,
+
+      // مسیرهای استان‌ها (SVG Path)
+      provincePaths: [
+        { id: 1, name: 'آذربایجان شرقی', path: 'M 320 80 L 340 70 L 360 80 L 355 100 L 330 105 L 315 95 Z' },
+        { id: 2, name: 'آذربایجان غربی', path: 'M 290 85 L 315 80 L 320 95 L 305 105 L 285 100 Z' },
+        { id: 3, name: 'اردبیل', path: 'M 350 65 L 370 60 L 375 75 L 360 85 L 345 75 Z' },
+        { id: 4, name: 'اصفهان', path: 'M 440 200 L 470 190 L 475 220 L 450 230 L 435 215 Z' },
+        { id: 5, name: 'البرز', path: 'M 385 130 L 400 125 L 405 140 L 390 145 L 380 138 Z' },
+        { id: 6, name: 'ایلام', path: 'M 355 300 L 380 290 L 385 310 L 365 320 L 350 310 Z' },
+        { id: 7, name: 'بوشهر', path: 'M 430 400 L 460 390 L 465 420 L 440 430 L 425 415 Z' },
+        { id: 8, name: 'تهران', path: 'M 395 125 L 415 120 L 420 135 L 400 140 L 390 132 Z' },
+        { id: 9, name: 'چهارمحال و بختیاری', path: 'M 420 280 L 445 270 L 450 295 L 430 305 L 415 290 Z' },
+        { id: 10, name: 'خراسان جنوبی', path: 'M 620 380 L 650 370 L 660 400 L 640 410 L 615 395 Z' },
+        { id: 11, name: 'خراسان رضوی', path: 'M 590 220 L 630 210 L 640 250 L 610 260 L 585 240 Z' },
+        { id: 12, name: 'خراسان شمالی', path: 'M 570 160 L 600 150 L 610 180 L 585 190 L 565 175 Z' },
+        { id: 13, name: 'خوزستان', path: 'M 380 350 L 420 340 L 430 370 L 400 390 L 370 375 Z' },
+        { id: 14, name: 'زنجان', path: 'M 340 115 L 365 108 L 370 125 L 350 130 L 335 120 Z' },
+        { id: 15, name: 'سمنان', path: 'M 480 160 L 520 150 L 530 180 L 500 190 L 475 175 Z' },
+        { id: 16, name: 'سیستان و بلوچستان', path: 'M 680 460 L 720 450 L 730 500 L 700 520 L 670 490 Z' },
+        { id: 17, name: 'فارس', path: 'M 500 330 L 540 320 L 550 360 L 520 380 L 490 360 Z' },
+        { id: 18, name: 'قزوین', path: 'M 360 135 L 380 128 L 385 145 L 365 150 L 355 140 Z' },
+        { id: 19, name: 'قم', path: 'M 420 170 L 440 165 L 445 180 L 425 185 L 415 175 Z' },
+        { id: 20, name: 'کردستان', path: 'M 310 140 L 335 130 L 340 155 L 320 160 L 305 150 Z' },
+        { id: 21, name: 'کرمان', path: 'M 580 380 L 620 370 L 630 410 L 600 430 L 570 400 Z' },
+        { id: 22, name: 'کرمانشاه', path: 'M 300 180 L 325 170 L 330 195 L 310 205 L 295 190 Z' },
+        { id: 23, name: 'کهگیلویه و بویراحمد', path: 'M 450 310 L 480 300 L 485 330 L 460 340 L 445 320 Z' },
+        { id: 24, name: 'گلستان', path: 'M 540 130 L 570 120 L 580 145 L 555 155 L 535 140 Z' },
+        { id: 25, name: 'گیلان', path: 'M 340 55 L 365 48 L 370 65 L 350 70 L 335 62 Z' },
+        { id: 26, name: 'لرستان', path: 'M 370 240 L 400 230 L 405 255 L 385 265 L 365 250 Z' },
+        { id: 27, name: 'مازندران', path: 'M 430 100 L 470 90 L 480 115 L 450 125 L 425 110 Z' },
+        { id: 28, name: 'مرکزی', path: 'M 390 195 L 415 185 L 420 210 L 400 220 L 385 205 Z' },
+        { id: 29, name: 'هرمزگان', path: 'M 590 480 L 630 470 L 640 510 L 610 530 L 580 500 Z' },
+        { id: 30, name: 'همدان', path: 'M 350 185 L 375 175 L 380 195 L 360 205 L 345 195 Z' },
+        { id: 31, name: 'یزد', path: 'M 510 250 L 540 240 L 545 270 L 520 280 L 505 260 Z' }
+      ],
       apiUrlrtb,
       infoVote: null,
       timeRemaining: {
@@ -345,6 +466,10 @@ export default {
       selectedReportType: 'province',
       reportTypeOptions: [
         { value: 'province', text: 'گزارش استانی' },
+        { value: 'area', text: 'گزارش مناطق' },
+        { value: 'candidate', text: 'گزارش کاندیداها' },
+        { value: 'participation', text: 'نبض مشارکت' },
+        { value: 'heatmap', text: 'نقشه حرارتی' },
         { value: 'admin', text: 'گزارش ادمین' }
       ],
       rankingView: 'table',
@@ -368,6 +493,11 @@ export default {
         { key: 'candidate_id', label: 'کدکاندید', sortable: false },
         { key: 'candidate', label: 'کاندیدا', sortable: false },
         { key: 'vote_count', label: 'تعداد رأی', sortable: true }
+      ], areaReportFields: [
+        { key: 'provinceName', label: 'استان', sortable: true },
+        { key: 'name', label: 'منطقه', sortable: true },
+        { key: 'votes', label: 'آرای ثبت شده', sortable: true },
+        { key: 'participation', label: 'مشارکت', sortable: true }
       ],
 
       // Predictions
@@ -379,6 +509,20 @@ export default {
     avgVotesPerPerson() {
       if (!this.infoVote || !this.infoVote.participants) return 0;
       return (this.infoVote.totalVotes / this.infoVote.participants).toFixed(2);
+    },
+    provinceMapData() {
+      return this.provincePaths.map(province => {
+        const regionData = this.regions.find(r => r.id === province.id) || {};
+        const participation = regionData.participation || 0;
+        return {
+          ...province,
+          votes: regionData.votes || 0,
+          participation: participation,
+          eligibleVoters: regionData.eligibleVoters || 0,
+          areasCount: (this.areasByProvince?.[province.id] || []).length,
+          color: this.getHeatmapColor(participation)
+        };
+      });
     },
     sortedCandidates() {
       return [...this.candidates].sort((a, b) => b.vote_count - a.vote_count);
@@ -407,6 +551,117 @@ export default {
           color: `rgba(220, 53, 69, ${alpha.toFixed(2)})`
         };
       });
+    },
+    safeTotalVotes() {
+      return Number(this.infoVote?.totalVotes || 0);
+    },
+    safeTotalVoters() {
+      return Number(this.infoVote?.totalVoters || 0);
+    },
+    safeParticipation() {
+      if (this.infoVote?.voterParticipation !== undefined && this.infoVote?.voterParticipation !== null) {
+        return Number(this.infoVote.voterParticipation).toFixed(2);
+      }
+      return this.safeTotalVoters ? ((this.safeTotalVotes / this.safeTotalVoters) * 100).toFixed(2) : '0.00';
+    },
+    topRegion() {
+      return [...this.regions].sort((a, b) => Number(b.participation) - Number(a.participation))[0] || null;
+    },
+    lowestRegion() {
+      return [...this.regions].filter(region => Number(region.eligibleVoters) || Number(region.votes))
+        .sort((a, b) => Number(a.participation) - Number(b.participation))[0] || null;
+    },
+    regionDisplayData() {
+      if (this.selectedReportType !== 'participation') return this.regions;
+      return [...this.regions]
+        .sort((a, b) => Number(b.participation) - Number(a.participation))
+        .map((region, index) => ({
+          ...region,
+          participationNote: index === 0 ? 'بالاترین مشارکت فعلی' : `${index + 1} در رتبه مشارکت`
+        }));
+    },
+    areaReportRows() {
+      return this.regions.flatMap(region => this.buildRegionAreas(region).map(area => ({
+        ...area,
+        provinceName: region.name,
+        participation: region.eligibleVoters ? Number(((area.votes / region.eligibleVoters) * 100).toFixed(1)) : 0
+      }))).sort((a, b) => Number(b.votes) - Number(a.votes));
+    },
+    showCandidateReport() {
+      return ['candidate', 'admin'].includes(this.selectedReportType);
+    },
+    showProvinceReport() {
+      return ['province', 'participation', 'admin'].includes(this.selectedReportType);
+    },
+    showHeatmapReport() {
+      return ['province', 'heatmap', 'admin'].includes(this.selectedReportType);
+    },
+    participationPulseCards() {
+      const top = this.topRegion;
+      const low = this.lowestRegion;
+      const gap = top && low ? Math.max(Number(top.participation) - Number(low.participation), 0).toFixed(1) : '0.0';
+
+      return [
+        {
+          title: 'پیشتاز مشارکت',
+          value: top ? `${top.name} - ${top.participation}%` : '-',
+          description: 'استانی که در این لحظه بالاترین نرخ مشارکت را دارد.',
+          icon: 'trophy-fill',
+          variant: 'success'
+        },
+        {
+          title: 'نیازمند پیگیری',
+          value: low ? `${low.name} - ${low.participation}%` : '-',
+          description: 'کمترین نرخ مشارکت بین استان‌های دارای داده.',
+          icon: 'exclamation-triangle-fill',
+          variant: 'warning'
+        },
+        {
+          title: 'فاصله مشارکت',
+          value: `${gap}%`,
+          description: 'اختلاف مشارکت بین بالاترین و پایین‌ترین استان.',
+          icon: 'activity',
+          variant: 'info'
+        }
+      ];
+    },
+    selectedReportHighlights() {
+      const topCandidate = this.sortedCandidates[0];
+      const topRegion = this.topRegion;
+      const topArea = this.areaReportRows[0];
+      const highlightsByType = {
+        province: [
+          { label: 'استان‌های دارای داده', value: this.formatNumber(this.regions.length), icon: 'geo-alt-fill', variant: 'primary' },
+          { label: 'بیشترین مشارکت استانی', value: topRegion ? `${topRegion.name} (${topRegion.participation}%)` : '-', icon: 'graph-up', variant: 'success' },
+          { label: 'کل آرای زنده', value: this.formatNumber(this.safeTotalVotes), icon: 'check2-circle', variant: 'info' }
+        ],
+        area: [
+          { label: 'مناطق پوشش داده‌شده', value: this.formatNumber(this.areaReportRows.length), icon: 'diagram3-fill', variant: 'primary' },
+          { label: 'فعال‌ترین منطقه', value: topArea ? `${topArea.name} (${this.formatNumber(topArea.votes)})` : '-', icon: 'pin-map-fill', variant: 'success' },
+          { label: 'استان فعال‌ترین منطقه', value: topArea?.provinceName || '-', icon: 'map-fill', variant: 'info' }
+        ],
+        candidate: [
+          { label: 'کاندیداهای فعال', value: this.formatNumber(this.infoVote?.activeCandidates || this.candidates.length), icon: 'person-badge-fill', variant: 'primary' },
+          { label: 'پیشتاز فعلی', value: topCandidate ? `${topCandidate.first_name} ${topCandidate.last_name}` : '-', icon: 'award-fill', variant: 'success' },
+          { label: 'آرای پیشتاز', value: this.formatNumber(topCandidate?.vote_count || 0), icon: 'bar-chart-fill', variant: 'info' }
+        ],
+        participation: [
+          { label: 'مشارکت کل', value: `${this.safeParticipation}%`, icon: 'people-fill', variant: 'primary' },
+          { label: 'شرکت‌کنندگان', value: this.formatNumber(this.infoVote?.participants || 0), icon: 'person-check-fill', variant: 'success' },
+          { label: 'میانگین انتخاب هر نفر', value: this.avgVotesPerPerson, icon: 'calculator-fill', variant: 'info' }
+        ],
+        heatmap: [
+          { label: 'نقاط نقشه', value: this.formatNumber(this.provinceHeatmapData.length), icon: 'grid3x3-gap-fill', variant: 'primary' },
+          { label: 'پررنگ‌ترین استان', value: topRegion ? topRegion.name : '-', icon: 'fire', variant: 'danger' },
+          { label: 'آخرین بروزرسانی', value: this.lastUpdate, icon: 'clock-history', variant: 'info' }
+        ],
+        admin: [
+          { label: 'کل آرا', value: this.formatNumber(this.safeTotalVotes), icon: 'shield-lock-fill', variant: 'primary' },
+          { label: 'کاندیداها', value: this.formatNumber(this.candidates.length), icon: 'people-fill', variant: 'success' },
+          { label: 'مناطق', value: this.formatNumber(this.areaReportRows.length), icon: 'diagram3-fill', variant: 'info' }
+        ]
+      };
+      return highlightsByType[this.selectedReportType] || highlightsByType.province;
     }
   },
   async mounted() {
@@ -418,7 +673,7 @@ export default {
     await this.loadRegions();
 
     this.infoVote = await this.getInfoVote()
-    this.candidates = this.infoVote?.listCan
+    this.candidates = this.infoVote?.listCan || []
     this.updateRegionLiveStats();
 
     this.$nextTick(() => {
@@ -444,10 +699,56 @@ export default {
       if (!options.some(opt => opt.value === this.selectedReportType)) {
         this.selectedReportType = 'province';
       }
+    },
+    selectedReportType(val) {
+      if (['candidate', 'admin'].includes(val) && this.rankingView === 'chart') {
+        this.$nextTick(() => this.createVotesChart());
+      }
     }
   },
   methods: {
     ...mapActions(["getConfig", "getInfoVote", "getRegions"]),
+    // دریافت رنگ استان بر اساس نرخ مشارکت
+  getHeatmapColor(participation) {
+    if (participation >= 70) return '#dc3545';      // قرمز تیره (مشارکت بالا)
+    if (participation >= 50) return '#fd7e14';      // نارنجی
+    if (participation >= 30) return '#ffc107';      // زرد
+    if (participation >= 10) return '#20c997';      // سبز
+    return '#6c757d';                                // خاکستری (مشارکت کم)
+  },
+  
+  // دریافت رنگ استان (برای نقشه SVG)
+  getProvinceColor(province) {
+    const regionData = this.regions.find(r => r.id === province.id) || {};
+    const participation = regionData.participation || 0;
+    return this.getHeatmapColor(participation);
+  },
+  
+  // دریافت نرخ مشارکت استان
+  getProvinceParticipation(province) {
+    const regionData = this.regions.find(r => r.id === province.id) || {};
+    return regionData.participation || 0;
+  },// دریافت تعداد آرای استان
+  getProvinceVotes(province) {
+    const regionData = this.regions.find(r => r.id === province.id) || {};
+    return regionData.votes || 0;
+  },
+  
+  // دریافت تعداد مناطق استان
+  getProvinceAreasCount(province) {
+    return (this.areasByProvince?.[province.id] || []).length;
+  },
+  
+  // رویداد hover روی استان
+  onProvinceHover(province) {
+    this.hoveredProvinceId = province.id;
+    // می‌توانید tooltip هم اضافه کنید
+  },
+  
+  // رویداد خروج hover
+  onProvinceLeave() {
+    this.hoveredProvinceId = null;
+  },
     async loadRegions() {
       const response = await this.getRegions();
       const provinces = response?.data || [];
@@ -557,7 +858,19 @@ export default {
 
     // Data Functions
     formatNumber(num) {
-      return new Intl.NumberFormat('fa-IR').format(num);
+      return new Intl.NumberFormat('fa-IR').format(Number(num || 0));
+    },
+
+    getVotePercentage(votes) {
+      return this.safeTotalVotes ? ((Number(votes || 0) / this.safeTotalVotes) * 100).toFixed(1) : '0.0';
+    },
+
+    getReportSectionTitle() {
+      const titles = {
+        province: 'مشارکت بر اساس استان',
+        participation: 'رتبه‌بندی استان‌ها بر اساس مشارکت'
+      };
+      return titles[this.selectedReportType] || 'مشارکت بر اساس استان';
     },
 
 
@@ -610,12 +923,13 @@ export default {
         percentage: regionVotes > 0 ? Number(((area.votes / regionVotes) * 100).toFixed(1)) : 0
       }));
     },
-     getAreaCandidateStats(area) {
+    getAreaCandidateStats(area) {
       if (this.selectedReportType !== 'admin') return [];
-      const stats = this.infoVote?.listCan.filter(x=>x.region_id==area.id) || {};
-      return stats;
-      return stats?.[area.id] || stats?.[Number(area.id)] || [];
-      
+      return (this.infoVote?.listCan || []).filter(candidate => String(candidate.region_id) === String(area.id));
+      // const stats = this.infoVote?.listCan.filter(x=>x.region_id==area.id) || {};
+      // return stats;
+      // return stats?.[area.id] || stats?.[Number(area.id)] || [];
+
     },
     viewRegionDetails(region) {
       this.selectedRegion = {
@@ -658,7 +972,7 @@ export default {
       this.refreshing = false;
     },
     updateRegionLiveStats() {
-       const provinceVoteStats = this.infoVote?.provinceVoteStats || {};
+      const provinceVoteStats = this.infoVote?.provinceVoteStats || {};
       const regionVoteStats = this.infoVote?.regionVoteStats || {};
       if (!this.regions.length) return;
 
@@ -692,7 +1006,104 @@ export default {
 
 <style scoped>
 .report-type-switch .btn {
-  min-width: 130px;
+  min-width: 120px;
+  margin-bottom: 4px;
+}
+
+.report-highlight-row {
+  border-top: 1px solid #eef1f5;
+  padding-top: 14px;
+}
+
+.report-highlight {
+  min-height: 82px;
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f8fafc;
+  border: 1px solid #eef1f5;
+}
+
+.report-highlight.primary {
+  background: rgba(0, 123, 255, 0.09);
+  color: #0056b3;
+}
+
+.report-highlight.success {
+  background: rgba(40, 167, 69, 0.09);
+  color: #1e7e34;
+}
+
+.report-highlight.info {
+  background: rgba(23, 162, 184, 0.09);
+  color: #117a8b;
+}
+
+.report-highlight.danger {
+  background: rgba(220, 53, 69, 0.09);
+  color: #bd2130;
+}
+
+.report-highlight-icon {
+  font-size: 1.8rem;
+  flex: 0 0 auto;
+}
+
+.report-highlight-value {
+  font-weight: 800;
+  color: #2c3e50;
+  line-height: 1.7;
+}
+
+.report-highlight-label {
+  color: #6c757d;
+  font-size: 0.82rem;
+}
+
+.area-report-card,
+.participation-card {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+}
+
+.pulse-card {
+  min-height: 170px;
+  padding: 18px;
+  border-radius: 16px;
+  color: #2c3e50;
+  border: 1px solid #edf0f4;
+  background: #fff;
+}
+
+.pulse-card.success {
+  background: linear-gradient(135deg, rgba(40, 167, 69, .12), rgba(40, 167, 69, .03));
+}
+
+.pulse-card.warning {
+  background: linear-gradient(135deg, rgba(255, 193, 7, .18), rgba(255, 193, 7, .04));
+}
+
+.pulse-card.info {
+  background: linear-gradient(135deg, rgba(23, 162, 184, .14), rgba(23, 162, 184, .04));
+}
+
+.pulse-card-icon {
+  font-size: 2rem;
+  margin-bottom: 12px;
+}
+
+.pulse-card-title {
+  color: #6c757d;
+  font-size: .88rem;
+}
+
+.pulse-card-value {
+  font-size: 1.2rem;
+  font-weight: 800;
+  margin: 6px 0;
 }
 
 .report-type-card {
