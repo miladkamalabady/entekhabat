@@ -18,13 +18,13 @@ while ($row = $res->fetch_assoc()) {
 
     // Province rows usually end with 00
     if (substr($regionId, -2) === '00') {
-        if (!isset($provincesMap[$provinceCode])) {
+        // if (!isset($provincesMap[$provinceCode])) {
             $provincesMap[$provinceCode] = [
                 'id' => $provinceCode,
                 'name' => $regionName
             ];
-        }
-        continue;
+        // }
+        // continue;
     }
 
     if (!isset($areasByProvince[$provinceCode])) {

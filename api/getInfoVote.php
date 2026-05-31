@@ -59,6 +59,8 @@ $totalCandidates = $res2->fetch_assoc()['totalCandidates'];
    آمار کاندیداها بر اساس منطقه رأی‌دهندگان (برای ادمین)
 --------------------------- */
 $candidateRegionStats = [];
+$regionVoteStats = [];
+$provinceVoteStats = [];
 if ($isAdmin) {
     $sqlCandidateRegion = "
     SELECT
@@ -90,6 +92,54 @@ if ($isAdmin) {
     }
 }
 /* ---------------------------
+   آمار رأی بر اساس منطقه/استان
+--------------------------- */
+$regionVoteFilter = $isAdmin ? '' : " WHERE vu.region_id = {$user['region_id']}";
+$sqlRegionVotes = "
+SELECT
+    vu.region_id,
+    COUNT(v.id) as votes,
+    COALESCE(fra.totalEligible, 0) as total_eligible
+FROM users as vu
+LEFT JOIN votes as v ON v.national_id = vu.national_id
+LEFT JOIN final_results_approvals as fra ON fra.region_id = vu.region_id
+{$regionVoteFilter}
+GROUP BY vu.region_id, fra.totalEligible
+";
+
+$resRegionVotes = $db->query($sqlRegionVotes);
+while ($row = $resRegionVotes->fetch_assoc()) {
+    $regionId = (int)$row['region_id'];
+    $votes = (int)$row['votes'];
+    $eligible = (int)$row['total_eligible'];
+    $provinceId = (int)substr((string)$regionId, 0, -2);
+
+    $regionVoteStats[$regionId] = [
+        'region_id' => $regionId,
+        'province_id' => $provinceId,
+        'votes' => $votes,
+        'eligible' => $eligible,
+        'participation' => $eligible > 0 ? ($votes / $eligible) : 0
+    ];
+
+    if (!isset($provinceVoteStats[$provinceId])) {
+        $provinceVoteStats[$provinceId] = [
+            'province_id' => $provinceId,
+            'votes' => 0,
+            'eligible' => 0,
+            'participation' => 0
+        ];
+    }
+
+    $provinceVoteStats[$provinceId]['votes'] += $votes;
+    $provinceVoteStats[$provinceId]['eligible'] += $eligible;
+}
+
+foreach ($provinceVoteStats as $provinceId => $provinceStat) {
+    $eligible = (int)$provinceStat['eligible'];
+    $provinceVoteStats[$provinceId]['participation'] = $eligible > 0 ? ($provinceStat['votes'] / $eligible) : 0;
+}
+/* ---------------------------
    خروجی
 --------------------------- */
 
@@ -109,7 +159,9 @@ $data = [
     'activeCandidates'   => count($list),
     'Candidates'         => $totalCandidates,
     'listCan'            => $list,
-    'candidateRegionStats' => $candidateRegionStats
+    'candidateRegionStats' => $candidateRegionStats,
+    'regionVoteStats'      => $regionVoteStats,
+    'provinceVoteStats'    => $provinceVoteStats
 ];
 
 echo json_encode([

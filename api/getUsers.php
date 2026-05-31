@@ -6,12 +6,21 @@ require_once 'jdf.php';
 header('Content-Type: application/json; charset=utf-8');
 
 $db->connect();
-
-$sqlUser = "SELECT roles FROM users WHERE national_id = '{$nationalId}' LIMIT 1";
+$sqlUser = "SELECT u.roles, u.region_id, r.ProvinceCode
+FROM users u
+LEFT JOIN region r ON r.id = u.region_id
+WHERE u.national_id = '" . $db->escape($nationalId) . "'
+LIMIT 1";
 $resUser = $db->query($sqlUser);
 $user = $resUser ? $resUser->fetch_assoc() : null;
 
-if (!$user || $user['roles'] !== 'ADMIN') {
+$isAdmin = $user && $user['roles'] === 'ADMIN';
+$isProvinceSupervisor = $user
+    && $user['roles'] === 'SUPERVISOR'
+    && substr((string)$user['region_id'], -2) === '00'
+    && $user['ProvinceCode'] !== null;
+
+if (!$isAdmin && !$isProvinceSupervisor) {
     http_response_code(403);
     echo json_encode([
         'status' => false,
@@ -27,10 +36,15 @@ if ($limit <= 0) {
 if ($limit > 1000) {
     $limit = 1000;
 }
-
+$where = '';
+if ($isProvinceSupervisor) {
+    $provinceCode = (int)$user['ProvinceCode'];
+    $where = "WHERE r.ProvinceCode = {$provinceCode}";
+}
 $sql = "SELECT 
     u.id,
     u.national_id,
+    u.first_name,u.last_name,
     u.personnel_code,
     u.region_id,
     u.roles,
@@ -38,13 +52,12 @@ $sql = "SELECT
     u.yearsOfService,
     u.created_at,
     r.name as regionName,
-    -- استخراج کد استان (دو رقم اول + 00)
-    CONCAT(LEFT(u.region_id, LENGTH(u.region_id) - 2), '00') as province_code,
-    -- دریافت نام استان
-    p.name as provinceName
+    r.ProvinceCode as provinceCode,
+    p.Name as provinceName
 FROM users as u 
 JOIN region as r ON r.id = u.region_id
-LEFT JOIN region as p ON p.id = CONCAT(LEFT(u.region_id, LENGTH(u.region_id) - 2), '00')
+LEFT JOIN region as p ON p.id = (r.ProvinceCode * 100)
+{$where}
 ORDER BY u.id DESC 
 LIMIT {$limit}";
 $res = $db->query($sql);
@@ -52,7 +65,6 @@ $res = $db->query($sql);
 $list = [];
 if ($res) {
     while ($row = $res->fetch_assoc()) {
-        
         $row['created_at'] = jdate('H:i Y-n-j', strtotime($row['created_at']), '', '', 'en');
         $list[] = $row;
     }
