@@ -360,6 +360,13 @@ export default {
           icon: 'bi bi-bar-chart',
           roles: ['ADMIN'],
           badge: 'استانی و کشوری'
+        },
+        {
+          title: 'مدیریت کاربران',
+          route: '/supervisor/UsersManagment',
+          icon: 'bi bi-people',
+          roles: ['ADMIN'],
+          badge: 'دسترسی و منطقه'
         }
       ],
       showFinalResultActivation: false,
