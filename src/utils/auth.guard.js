@@ -28,7 +28,14 @@ export default (to, from, next) => {
   ) {
     return next('/unauthorized')
   }
-
+ const requiresProvinceSupervisor = to.matched.some(r => r.meta.provinceSupervisorOnly)
+  if (
+    requiresProvinceSupervisor &&
+    !user.roles.includes('ADMIN') &&
+    !(user.roles.includes('SUPERVISOR') && String(user.regionId || '').endsWith('00'))
+  ) {
+    return next('/unauthorized')
+  }
   // 🔁 RequestStatus check
   const allowedStatuses = to.matched
     .filter(r => r.meta.allowedStatuses)

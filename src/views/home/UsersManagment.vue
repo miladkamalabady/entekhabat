@@ -3,7 +3,7 @@
     <div class="page-header">
       <div>
         <h2>مدیریت دسترسی و منطقه کاربران</h2>
-        <p>در این صفحه ادمین می‌تواند نقش کاربر و منطقه انتسابی او را از اطلاعات دیتابیس ویرایش کند.</p>
+        <p>در این صفحه ادمین یا عضو هیأت نظارت استانی می‌تواند نقش و منطقه کاربران مجاز را ویرایش کند.</p>
       </div>
       <button class="btn btn-outline-primary" :disabled="loading" @click="loadInitialData">
         {{ loading ? 'در حال بروزرسانی...' : 'بروزرسانی لیست' }}
@@ -29,7 +29,7 @@
         <label>فیلتر استان</label>
         <select v-model="filters.provinceCode">
           <option value="">همه استان‌ها</option>
-          <option v-for="province in provinces" :key="province.id" :value="String(province.id)">
+          <option v-for="province in visibleProvinces" :key="province.id" :value="String(province.id)">
             {{ province.name }}
           </option>
         </select>
@@ -58,7 +58,7 @@
           <label>استان</label>
           <select v-model="selectedProvinceCode" required @change="onProvinceChange">
             <option value="" disabled>انتخاب استان</option>
-            <option v-for="province in provinces" :key="province.id" :value="String(province.id)">
+            <option v-for="province in visibleProvinces" :key="province.id" :value="String(province.id)">
               {{ province.name }}
             </option>
           </select>
@@ -98,6 +98,8 @@
           <thead>
             <tr>
               <th>کد ملی</th>
+              <th>نام</th>
+              <th>نام خانوادگی</th>
               <th>کد پرسنلی</th>
               <th>استان</th>
               <th>منطقه</th>
@@ -111,6 +113,8 @@
           <tbody>
             <tr v-for="user in filteredUsers" :key="user.id">
               <td>{{ user.national_id }}</td>
+              <td>{{ user.first_name }}</td>
+              <td>{{ user.last_name }}</td>
               <td>{{ user.personnel_code || '---' }}</td>
               <td>{{ user.provinceName || '---' }}</td>
               <td>{{ user.regionName || '---' }}</td>
@@ -155,14 +159,31 @@ export default {
       },
       roleOptions: [
         { value: 'ADMIN', text: 'کاربر ادمین' },
-        { value: 'SUPERVISOR', text: 'کاربر نظارت منطقه' },
-        { value: 'EXECUTIVE', text: 'کاربر اجرایی منطقه' },
+        { value: 'SUPERVISOR', text: 'کاربر نظارت' },
+        { value: 'EXECUTIVE', text: 'کاربر اجرایی' },
         { value: 'CANDIDATE', text: 'کاندید' },
         { value: 'VOTER', text: 'کاربر عادی' }
       ]
     }
   },
   computed: {
+    ...mapGetters(["currentUser"]),
+    currentUserRole() {
+      return this.currentUser?.roles?.[0] || '';
+    },
+    currentUserRegionId() {
+      return String(this.currentUser?.regionId || '');
+    },
+    isProvinceSupervisor() {
+      return this.currentUserRole === 'SUPERVISOR' && this.currentUserRegionId.endsWith('00');
+    },
+    currentUserProvinceCode() {
+      return this.isProvinceSupervisor ? this.currentUserRegionId.slice(0, -2) : '';
+    },
+    visibleProvinces() {
+      if (!this.isProvinceSupervisor) return this.provinces;
+      return this.provinces.filter(province => String(province.id) === this.currentUserProvinceCode);
+    },
     selectedProvinceAreas() {
       return this.areasByProvince[this.selectedProvinceCode] || [];
     },
@@ -174,6 +195,9 @@ export default {
         const matchesProvince = !this.filters.provinceCode || String(user.provinceCode) === this.filters.provinceCode;
         const searchableText = [
           user.national_id,
+          user.first_name,
+          user.last_name,
+          user.regionName,
           user.personnel_code,
           user.regionName,
           user.provinceName,
@@ -202,6 +226,9 @@ export default {
         this.users = Array.isArray(users) ? users : [];
         this.provinces = regionsResponse?.data || [];
         this.areasByProvince = regionsResponse?.areasByProvince || {};
+        if (this.isProvinceSupervisor) {
+          this.filters.provinceCode = this.currentUserProvinceCode;
+        }
       } catch (error) {
         console.error("Error loading advertisements:", error);
         this.$bvToast.toast("خطا در بارگذاری کاربران", {
@@ -230,12 +257,16 @@ export default {
     },
     findProvinceCodeByRegion(regionId) {
       const region = String(regionId || '');
-      const province = this.provinces.find(item => region.startsWith(String(item.id)));
+      const province = this.visibleProvinces.find(item => region.startsWith(String(item.id)));
       return province ? String(province.id) : '';
     },
     async saveUser() {
       if (!this.formData.national_id || !this.formData.region_id || !this.formData.roles) {
         this.showToast('لطفاً نقش و منطقه کاربر را کامل انتخاب کنید.', 'warning');
+        return;
+      }
+      if (this.isProvinceSupervisor && String(this.selectedProvinceCode) !== this.currentUserProvinceCode) {
+        this.showToast('اعضای هیأت نظارت استانی فقط مجاز به ویرایش کاربران استان خود هستند.', 'warning');
         return;
       }
 
@@ -269,8 +300,8 @@ export default {
     },
     getRoleName(role) {
       const roles = {
-        EXECUTIVE: 'کاربر اجرایی منطقه',
-        SUPERVISOR: 'کاربر نظارت منطقه',
+        EXECUTIVE: 'کاربر اجرایی',
+        SUPERVISOR: 'کاربر نظارت',
         VOTER: 'کاربر عادی',
         CANDIDATE: 'کاندید',
         ADMIN: 'کاربر ادمین'

@@ -69,7 +69,7 @@ const routes = [
         component: () => import(/* webpackChunkName: "UsersManagment" */ "./views/home/UsersManagment"),
         meta: {
           loginRequired: true,
-          roles: [UserRole.ADMIN]
+         roles: [UserRole.ADMIN, UserRole.SUPERVISOR],
         }
       },{
         name: "logs",
