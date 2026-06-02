@@ -329,7 +329,7 @@
           </div>
         </div>
 
-        <b-alert v-if="hoveredFinalProvince" show variant="light" class="hovered-province-popup mt-3 mb-0">
+        <b-alert v-if="hoveredFinalProvince" show variant="info" class="hovered-province-popup mt-3 mb-0">
           <strong>{{ hoveredFinalProvince.name }}</strong>
           — مشارکت: {{ hoveredFinalProvince.participation }}% |
           آرا: {{ formatNumber(hoveredFinalProvince.votes) }} |
