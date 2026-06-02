@@ -324,6 +324,31 @@ export default {
       if (response?.status)
         commit('clearError');
       return response?.data || [];
+    }, async searchUserVotes({ commit }, payload) {
+      const response = await apiservice({ name: "searchUserVotes", params: payload || {} }, { commit });
+      if (response?.status)
+        commit('clearError');
+      return response?.data || { items: [], summary: [] };
+    }, async getSupportTickets({ commit }, payload) {
+      const response = await apiservice({ name: "getSupportTickets", params: payload || {} }, { commit });
+      if (response?.status)
+        commit('clearError');
+      return response || { items: [], summary: [] };
+    }, async saveSupportTicket({ commit }, payload) {
+      const response = await apiservice({ name: "saveSupportTicket", params: payload || {} }, { commit });
+      if (response?.status)
+        commit('clearError');
+      return response || { items: [], summary: [] };
+    }, async replySupportTicket({ commit }, payload) {
+      const response = await apiservice({ name: "replySupportTicket", params: payload || {} }, { commit });
+      if (response?.status)
+        commit('clearError');
+      return response || { items: [], summary: [] };
+    }, async saveRegionMaxVotes({ commit }, payload) {
+      const response = await apiservice({ name: "saveRegionMaxVotes", params: payload || {} }, { commit });
+      if (response?.status)
+        commit('clearError');
+      return response || { items: [], summary: [] };
     }, async getObjections({ commit }, payload) {
       const response = await apiservice({ name: "getObjections", params: payload || {} }, { commit });
       if (response?.status)

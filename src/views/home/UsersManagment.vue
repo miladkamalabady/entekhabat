@@ -35,7 +35,56 @@
         </select>
       </div>
     </div>
+    <div v-if="canManageRegionMaxVotes" class="region-votes-card">
+      <div class="list-header">
+        <div>
+          <h3>تنظیم تعداد رأی مجاز مناطق</h3>
+          <p>ناظر استان می‌تواند مشخص کند کاربران هر منطقه حداکثر به چند نفر رأی بدهند. </p>
+        </div>
+        <button class="btn btn-outline-primary" :disabled="loading" @click="loadInitialData">بروزرسانی مناطق</button>
+      </div>
 
+      <div class="region-votes-controls">
+        <div class="form-group">
+          <label>استان</label>
+          <select v-model="maxVotesProvinceCode" :disabled="isProvinceSupervisor" @change="syncRegionVoteDefaults">
+            <option value="" disabled>انتخاب استان</option>
+            <option v-for="province in visibleProvinces" :key="province.id" :value="String(province.id)">
+              {{ province.name }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <div v-if="!maxVotesProvinceAreas.length" class="state-message">برای این استان منطقه‌ای یافت نشد.</div>
+      <div v-else class="table-responsive">
+        <table class="region-votes-table">
+          <thead>
+            <tr>
+              <th>کد منطقه</th>
+              <th>نام منطقه</th>
+              <th>تعداد رأی مجاز</th>
+              <th>عملیات</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="area in maxVotesProvinceAreas" :key="area.id">
+              <td>{{ area.id }}</td>
+              <td>{{ area.name }}</td>
+              <td>
+                <input v-model.number="area.maxVotes" class="max-votes-input" type="number" min="1" max="50">
+              </td>
+              <td>
+                <button class="btn btn-sm btn-success" :disabled="regionMaxVotesSaving === String(area.id)"
+                  @click="saveAreaMaxVotes(area)">
+                  {{ regionMaxVotesSaving === String(area.id) ? 'در حال ذخیره...' : 'ذخیره' }}
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
     <div v-if="editMode" class="edit-card">
       <div class="edit-card-header">
         <div>
@@ -146,6 +195,8 @@ export default {
       saving: false,
       editMode: false,
       selectedProvinceCode: '',
+      maxVotesProvinceCode: '',
+      regionMaxVotesSaving: '',
       filters: {
         search: '',
         role: '',
@@ -169,13 +220,16 @@ export default {
   computed: {
     ...mapGetters(["currentUser"]),
     currentUserRole() {
-      return this.currentUser?.roles?.[0] || '';
+      const roles = this.currentUser?.roles;
+      return Array.isArray(roles) ? (roles[0] || '') : (roles || '');
     },
     currentUserRegionId() {
       return String(this.currentUser?.regionId || '');
     },
     isProvinceSupervisor() {
       return this.currentUserRole === 'SUPERVISOR' && this.currentUserRegionId.endsWith('00');
+    },canManageRegionMaxVotes() {
+      return this.currentUserRole === 'ADMIN' || this.isProvinceSupervisor;
     },
     currentUserProvinceCode() {
       return this.isProvinceSupervisor ? this.currentUserRegionId.slice(0, -2) : '';
@@ -186,6 +240,8 @@ export default {
     },
     selectedProvinceAreas() {
       return this.areasByProvince[this.selectedProvinceCode] || [];
+    }, maxVotesProvinceAreas() {
+      return this.areasByProvince[this.maxVotesProvinceCode] || [];
     },
     filteredUsers() {
       const search = this.filters.search.toLowerCase();
@@ -214,7 +270,7 @@ export default {
   },
   methods: {
     ...mapMutations(["setsidebarVisible"]),
-    ...mapActions(["getUsers", "updateUser", "getRegions"]),
+    ...mapActions(["getUsers", "updateUser", "getRegions","saveRegionMaxVotes"]),
     async loadInitialData() {
       this.loading = true;
       try {
@@ -228,7 +284,11 @@ export default {
         this.areasByProvince = regionsResponse?.areasByProvince || {};
         if (this.isProvinceSupervisor) {
           this.filters.provinceCode = this.currentUserProvinceCode;
+          this.maxVotesProvinceCode = this.currentUserProvinceCode;
+        } else if (!this.maxVotesProvinceCode && this.visibleProvinces.length) {
+          this.maxVotesProvinceCode = String(this.visibleProvinces[0].id);
         }
+        this.syncRegionVoteDefaults();
       } catch (error) {
         console.error("Error loading advertisements:", error);
         this.$bvToast.toast("خطا در بارگذاری کاربران", {
@@ -238,6 +298,43 @@ export default {
         });
       } finally {
         this.loading = false;
+      }
+    },
+    syncRegionVoteDefaults() {
+      this.maxVotesProvinceAreas.forEach(area => {
+        const parsedMaxVotes = Number(area.maxVotes);
+        if (!parsedMaxVotes || parsedMaxVotes < 1) {
+          this.$set(area, 'maxVotes', 1);
+        }
+      });
+    },
+    async saveAreaMaxVotes(area) {
+      const maxVotes = Number(area.maxVotes);
+      if (!area?.id || !Number.isInteger(maxVotes) || maxVotes < 1 || maxVotes > 50) {
+        this.showToast('تعداد رأی مجاز باید عددی بین ۱ تا ۵۰ باشد.', 'warning');
+        return;
+      }
+      if (this.isProvinceSupervisor && String(this.maxVotesProvinceCode) !== this.currentUserProvinceCode) {
+        this.showToast('اعضای هیأت نظارت استانی فقط مجاز به ویرایش مناطق استان خود هستند.', 'warning');
+        return;
+      }
+
+      this.regionMaxVotesSaving = String(area.id);
+      try {
+        const response = await this.saveRegionMaxVotes({
+          region_id: area.id,
+          maxVotes
+        });
+        if (!response?.status) {
+          throw new Error('Save max votes failed');
+        }
+        this.$set(area, 'maxVotes', maxVotes);
+        this.showToast('تعداد رأی مجاز منطقه ذخیره شد.', 'success');
+      } catch (error) {
+        
+        this.showToast('ذخیره تعداد رأی مجاز انجام نشد. دوباره تلاش کنید.', 'danger');
+      } finally {
+        this.regionMaxVotesSaving = '';
       }
     },
     editUser(user) {
@@ -332,6 +429,7 @@ export default {
 
 .page-header,
 .filters-card,
+.region-votes-card,
 .edit-card,
 .user-list-card {
   background: #fff;
@@ -353,6 +451,7 @@ export default {
 
 .page-header h2,
 .edit-card h3,
+.region-votes-card h3,
 .user-list-card h3 {
   margin: 0 0 8px;
   font-weight: 700;
@@ -372,7 +471,38 @@ export default {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
 }
+.region-votes-controls {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px);
+  gap: 16px;
+  margin-bottom: 16px;
+}
 
+.region-votes-card p {
+  margin: 0;
+  color: #6c757d;
+}
+
+.region-votes-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 620px;
+}
+
+.region-votes-table th,
+.region-votes-table td {
+  padding: 12px;
+  border-bottom: 1px solid #eef1f5;
+  text-align: right;
+}
+
+.max-votes-input {
+  width: 110px;
+  min-height: 38px;
+  border: 1px solid #d9dee7;
+  border-radius: 10px;
+  padding: 6px 10px;
+}
 .search-box {
   grid-column: span 2;
 }

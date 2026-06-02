@@ -95,6 +95,21 @@ const global = {
     },getLogs: {
         url: "/getLogs",
         method: 'GET'
+    },searchUserVotes: {
+        url: "/searchUserVotes",
+        method: 'GET'
+    },saveRegionMaxVotes: {
+        url: "/saveRegionMaxVotes",
+        method: 'POST'
+    },getSupportTickets: {
+        url: "/getSupportTickets",
+        method: 'GET'
+    }, saveSupportTicket: {
+        url: "/saveSupportTicket",
+        method: 'POST'
+    }, replySupportTicket: {
+        url: "/replySupportTicket",
+        method: 'POST'
     }
 
 };

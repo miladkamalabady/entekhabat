@@ -36,8 +36,8 @@
             <div class="action-icon tickets">
               <b-icon icon="ticket-detailed"></b-icon>
             </div>
-            <h5 class="mt-3">تیکت‌های من</h5>
-            <p class="text-muted small">پیگیری درخواست‌های قبلی</p>
+            <h5 class="mt-3">{{ ticketsTitle }}</h5>
+            <p class="text-muted small">پیگیری و پاسخ‌گویی درخواست‌ها</p>
             <b-badge variant="info" pill>{{ ticketStats.total }}</b-badge>
           </b-card>
         </b-col>
@@ -84,39 +84,41 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
               <h5 class="mb-0">
                 <b-icon icon="ticket-detailed" class="ml-2"></b-icon>
-                تیکت‌های من
+                {{ ticketsTitle }}
               </h5>
               <div class="ticket-filters">
                 <b-button-group size="sm">
-                  <b-button
-                    :variant="ticketFilter === 'all' ? 'primary' : 'outline-primary'"
-                    @click="ticketFilter = 'all'"
-                  >
+                  <b-button :variant="ticketFilter === 'all' ? 'primary' : 'outline-primary'"
+                    @click="ticketFilter = 'all'">
                     همه
                   </b-button>
-                  <b-button
-                    :variant="ticketFilter === 'open' ? 'primary' : 'outline-primary'"
-                    @click="ticketFilter = 'open'"
-                  >
+                  <b-button :variant="ticketFilter === 'open' ? 'primary' : 'outline-primary'"
+                    @click="ticketFilter = 'open'">
                     باز
                   </b-button>
-                  <b-button
-                    :variant="ticketFilter === 'closed' ? 'primary' : 'outline-primary'"
-                    @click="ticketFilter = 'closed'"
-                  >
+                  <b-button :variant="ticketFilter === 'closed' ? 'primary' : 'outline-primary'"
+                    @click="ticketFilter = 'closed'">
                     بسته
                   </b-button>
                 </b-button-group>
               </div>
             </div>
 
-            <div v-if="filteredTickets.length > 0">
-              <div
-                v-for="ticket in filteredTickets"
-                :key="ticket.id"
-                class="ticket-item"
-                @click="viewTicketDetails(ticket)"
-              >
+            <b-alert v-if="isSupportAgent" show variant="info" class="support-scope-alert">
+              <b-icon icon="shield-check" class="ml-1"></b-icon>
+              شما با نقش <strong>{{ supportScope.roleLabel }}</strong> در سطح
+              <strong>{{ supportScope.levelLabel }}</strong> تیکت‌های مرتبط با محدوده
+              <strong>{{ supportScope.regionName || 'ستاد' }}</strong> را مشاهده و پاسخ می‌دهید.
+            </b-alert>
+
+            <div v-if="loadingTickets" class="text-center py-4">
+              <b-spinner variant="primary" class="ml-2"></b-spinner>
+              در حال دریافت تیکت‌ها...
+            </div>
+
+            <div v-else-if="filteredTickets.length > 0">
+              <div v-for="ticket in filteredTickets" :key="ticket.id" class="ticket-item"
+                @click="viewTicketDetails(ticket)">
                 <div class="ticket-header">
                   <div class="ticket-title">
                     <strong>{{ ticket.title }}</strong>
@@ -140,6 +142,15 @@
                       <b-icon icon="clock" class="ml-1"></b-icon>
                       آخرین پاسخ: {{ ticket.lastReply }}
                     </span>
+                    <span class="category">
+                      <b-icon icon="people" class="ml-1"></b-icon>
+                      {{ ticket.targetRoleLabel || getRoleText(ticket.target_role) }} / {{ ticket.supportLevelLabel ||
+                        getLevelText(ticket.support_level) }}
+                    </span>
+                    <span v-if="isSupportAgent" class="category">
+                      <b-icon icon="geo-alt" class="ml-1"></b-icon>
+                      {{ ticket.requester_region_name || ticket.regionName || '---' }}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -148,7 +159,7 @@
             <div v-else class="text-center py-5">
               <b-icon icon="inbox" font-scale="4" variant="secondary"></b-icon>
               <h5 class="mt-3">تیکتی یافت نشد</h5>
-              <p class="text-muted">شما هنوز هیچ درخواست پشتیبانی ثبت نکرده‌اید.</p>
+              <p class="text-muted">در محدوده فعلی تیکتی یافت نشد.</p>
               <b-button variant="primary" @click="scrollToSection('new-ticket')">
                 <b-icon icon="plus" class="ml-1"></b-icon>
                 ثبت درخواست جدید
@@ -170,10 +181,7 @@
                     <b-icon icon="search"></b-icon>
                   </b-input-group-text>
                 </template>
-                <b-form-input
-                  v-model="faqSearch"
-                  placeholder="جستجو در سؤالات متداول..."
-                ></b-form-input>
+                <b-form-input v-model="faqSearch" placeholder="جستجو در سؤالات متداول..."></b-form-input>
               </b-input-group>
             </b-form-group>
 
@@ -181,17 +189,11 @@
               <div v-for="(category, index) in filteredFaq" :key="category.id">
                 <b-accordion-item :title="category.title" :id="`faq-category-${index}`">
                   <div class="faq-category-items">
-                    <div
-                      v-for="(item, itemIndex) in category.items"
-                      :key="item.id"
-                      class="faq-item"
-                      @click="toggleFaqItem(item.id)"
-                    >
+                    <div v-for="(item, itemIndex) in category.items" :key="item.id" class="faq-item"
+                      @click="toggleFaqItem(item.id)">
                       <div class="faq-question">
-                        <b-icon
-                          :icon="openFaqItems.includes(item.id) ? 'chevron-down' : 'chevron-left'"
-                          class="ml-2"
-                        ></b-icon>
+                        <b-icon :icon="openFaqItems.includes(item.id) ? 'chevron-down' : 'chevron-left'"
+                          class="ml-2"></b-icon>
                         {{ item.question }}
                       </div>
                       <b-collapse :id="`faq-answer-${item.id}`" :visible="isFaqOpen(item.id)">
@@ -233,39 +235,30 @@
 
             <b-form @submit.prevent="submitNewTicket">
               <b-form-group label="موضوع درخواست" label-for="ticket-subject">
-                <b-form-input
-                  id="ticket-subject"
-                  v-model="newTicket.subject"
-                  :state="ticketValidation.subject"
-                  placeholder="موضوع درخواست خود را وارد کنید"
-                  required
-                ></b-form-input>
+                <b-form-input id="ticket-subject" v-model="newTicket.subject" :state="ticketValidation.subject"
+                  placeholder="موضوع درخواست خود را وارد کنید" required></b-form-input>
                 <b-form-invalid-feedback>
                   لطفاً موضوع درخواست را وارد کنید
                 </b-form-invalid-feedback>
               </b-form-group>
 
               <b-form-group label="دسته‌بندی" label-for="ticket-category">
-                <b-form-select
-                  id="ticket-category"
-                  v-model="newTicket.category"
-                  :options="ticketCategories"
-                  required
-                  :state="ticketValidation.category"
-                ></b-form-select>
+                <b-form-select id="ticket-category" v-model="newTicket.category" :options="ticketCategories" required
+                  :state="ticketValidation.category"></b-form-select>
                 <b-form-invalid-feedback>
                   لطفاً دسته‌بندی را انتخاب کنید
                 </b-form-invalid-feedback>
               </b-form-group>
-
+              <b-form-group label="واحد پاسخگو" label-for="ticket-target-role">
+                <b-form-select id="ticket-target-role" v-model="newTicket.targetRole" :options="targetRoleOptions"
+                  required></b-form-select>
+                <small class="form-text text-muted">
+                  تیکت بر اساس منطقه/استان شما فقط برای واحد انتخاب‌شده در همان سطح قابل مشاهده خواهد بود.
+                </small>
+              </b-form-group>
               <b-form-group label="اولویت" label-for="ticket-priority">
-                <b-form-select
-                  id="ticket-priority"
-                  v-model="newTicket.priority"
-                  :options="priorityOptions"
-                  required
-                  :state="ticketValidation.priority"
-                ></b-form-select>
+                <b-form-select id="ticket-priority" v-model="newTicket.priority" :options="priorityOptions" required
+                  :state="ticketValidation.priority"></b-form-select>
                 <small class="form-text text-muted">
                   <b-icon :icon="getPriorityIcon(newTicket.priority)" class="ml-1"></b-icon>
                   {{ getPriorityDescription(newTicket.priority) }}
@@ -273,14 +266,9 @@
               </b-form-group>
 
               <b-form-group label="شرح کامل مشکل" label-for="ticket-description">
-                <b-form-textarea
-                  id="ticket-description"
-                  v-model="newTicket.description"
-                  rows="5"
-                  :state="ticketValidation.description"
-                  placeholder="شرح کامل مشکل یا سؤال خود را وارد کنید..."
-                  required
-                ></b-form-textarea>
+                <b-form-textarea id="ticket-description" v-model="newTicket.description" rows="5"
+                  :state="ticketValidation.description" placeholder="شرح کامل مشکل یا سؤال خود را وارد کنید..."
+                  required></b-form-textarea>
                 <b-form-invalid-feedback>
                   لطفاً شرح درخواست را وارد کنید
                 </b-form-invalid-feedback>
@@ -291,15 +279,10 @@
 
               <!-- File Upload -->
               <b-form-group label="ضمیمه (اختیاری)" label-for="ticket-attachments">
-                <b-form-file
-                  id="ticket-attachments"
-                  v-model="newTicket.attachments"
-                  multiple
-                  accept="image/*,.pdf,.doc,.docx,.txt"
-                  :file-name-formatter="formatFileNames"
+                <b-form-file id="ticket-attachments" v-model="newTicket.attachments" multiple
+                  accept="image/*,.pdf,.doc,.docx,.txt" :file-name-formatter="formatFileNames"
                   placeholder="فایل‌ها را انتخاب کنید یا اینجا بکشید"
-                  drop-placeholder="فایل‌ها را اینجا رها کنید"
-                ></b-form-file>
+                  drop-placeholder="فایل‌ها را اینجا رها کنید"></b-form-file>
                 <small class="form-text text-muted">
                   حداکثر ۵ فایل، هر کدام تا ۵ مگابایت (تصویر، PDF، Word، متن)
                 </small>
@@ -312,11 +295,7 @@
                       <span class="file-name">{{ file.name }}</span>
                       <span class="file-size">{{ formatFileSize(file.size) }}</span>
                     </div>
-                    <b-button
-                      size="sm"
-                      variant="outline-danger"
-                      @click="removeAttachment(index)"
-                    >
+                    <b-button size="sm" variant="outline-danger" @click="removeAttachment(index)">
                       <b-icon icon="x"></b-icon>
                     </b-button>
                   </div>
@@ -324,12 +303,7 @@
               </b-form-group>
 
               <div class="text-center mt-4">
-                <b-button
-                  type="submit"
-                  variant="primary"
-                  :disabled="submittingTicket"
-                  block
-                >
+                <b-button type="submit" variant="primary" :disabled="submittingTicket" block>
                   <b-spinner small v-if="submittingTicket" class="ml-1"></b-spinner>
                   <span v-else>
                     <b-icon icon="send" class="ml-1"></b-icon>
@@ -361,7 +335,7 @@
                 </div>
               </div>
 
-              <div class="contact-item email">
+              <!-- <div class="contact-item email">
                 <div class="contact-icon">
                   <b-icon icon="envelope-fill"></b-icon>
                 </div>
@@ -372,7 +346,7 @@
                     <small class="text-muted">پاسخ‌دهی در ۲۴ ساعت</small>
                   </div>
                 </div>
-              </div>
+              </div> -->
 
               <div class="contact-item address">
                 <div class="contact-icon">
@@ -413,14 +387,7 @@
     </b-container>
 
     <!-- Live Chat Modal -->
-    <b-modal
-      v-model="showLiveChat"
-      title="چت آنلاین پشتیبانی"
-      hide-footer
-      size="lg"
-      centered
-      @hide="endChat"
-    >
+    <b-modal v-model="showLiveChat" title="چت آنلاین پشتیبانی" hide-footer size="lg" centered @hide="endChat">
       <div class="live-chat-container">
         <!-- Chat Header -->
         <div class="chat-header">
@@ -459,19 +426,15 @@
         <!-- Chat Input -->
         <div class="chat-input">
           <b-input-group>
-            <b-form-input
-              v-model="chatInput"
-              placeholder="پیام خود را بنویسید..."
-              @keyup.enter="sendChatMessage"
-              :disabled="!chatActive"
-            ></b-form-input>
+            <b-form-input v-model="chatInput" placeholder="پیام خود را بنویسید..." @keyup.enter="sendChatMessage"
+              :disabled="!chatActive"></b-form-input>
             <template #append>
               <b-button variant="primary" @click="sendChatMessage" :disabled="!chatInput.trim() || !chatActive">
                 <b-icon icon="send"></b-icon>
               </b-button>
             </template>
           </b-input-group>
-          
+
           <div class="chat-options mt-2">
             <b-button size="sm" variant="outline-secondary" @click="sendQuickResponse('در حال انتظار برای پشتیبان...')">
               <b-icon icon="clock"></b-icon>
@@ -491,14 +454,7 @@
     </b-modal>
 
     <!-- Ticket Details Modal -->
-    <b-modal
-      v-model="showTicketModal"
-      :title="`تیکت #${selectedTicket?.id}`"
-      size="lg"
-      hide-footer
-      centered
-      scrollable
-    >
+    <b-modal v-model="showTicketModal" :title="`تیکت #${selectedTicket?.id}`" size="lg" hide-footer centered scrollable>
       <div v-if="selectedTicket" class="ticket-details">
         <!-- Ticket Header -->
         <div class="ticket-detail-header mb-4">
@@ -509,21 +465,21 @@
             </b-badge>
             <span class="text-muted ml-3">تاریخ ایجاد: {{ selectedTicket.date }}</span>
             <span class="text-muted ml-3">اولویت: {{ getPriorityText(selectedTicket.priority) }}</span>
+            <span class="text-muted ml-3">واحد پاسخگو: {{ selectedTicket.targetRoleLabel ||
+              getRoleText(selectedTicket.target_role) }}</span>
+            <span class="text-muted ml-3">سطح: {{ selectedTicket.supportLevelLabel ||
+              getLevelText(selectedTicket.support_level) }}</span>
           </div>
         </div>
 
         <!-- Ticket Conversation -->
         <div class="ticket-conversation">
-          <div
-            v-for="message in selectedTicket.conversation"
-            :key="message.id"
-            class="conversation-message"
-            :class="`message-${message.sender}`"
-          >
+          <div v-for="message in selectedTicket.conversation" :key="message.id" class="conversation-message"
+            :class="`message-${message.sender}`">
             <div class="message-header">
               <div class="sender-info">
                 <b-icon :icon="message.sender === 'user' ? 'person' : 'headset'" class="ml-2"></b-icon>
-                <strong>{{ message.sender === 'user' ? 'شما' : 'پشتیبان' }}</strong>
+                <strong>{{ getMessageSenderText(message) }}</strong>
               </div>
               <div class="message-time">{{ message.time }}</div>
             </div>
@@ -543,37 +499,22 @@
         <div class="ticket-reply mt-4">
           <h6 class="mb-3">پاسخ جدید</h6>
           <b-form @submit.prevent="submitTicketReply">
-            <b-form-textarea
-              v-model="ticketReply"
-              rows="3"
-              placeholder="پاسخ خود را بنویسید..."
-              :disabled="selectedTicket.status === 'closed'"
-              required
-            ></b-form-textarea>
-            
+            <b-form-textarea v-model="ticketReply" rows="3" placeholder="پاسخ خود را بنویسید..."
+              :disabled="selectedTicket.status === 'closed' || !selectedTicket.canReply" required></b-form-textarea>
+
             <div class="d-flex justify-content-between align-items-center mt-3">
               <div>
-                <b-form-checkbox
-                  v-model="closeTicketAfterReply"
-                  :disabled="selectedTicket.status === 'closed'"
-                >
+                <b-form-checkbox v-model="closeTicketAfterReply" :disabled="selectedTicket.status === 'closed'">
                   بستن تیکت پس از پاسخ
                 </b-form-checkbox>
               </div>
               <div>
-                <b-button
-                  type="submit"
-                  variant="primary"
-                  :disabled="!ticketReply.trim() || selectedTicket.status === 'closed'"
-                >
+                <b-button type="submit" variant="primary"
+                  :disabled="!ticketReply.trim() || selectedTicket.status === 'closed' || !selectedTicket.canReply">
                   ارسال پاسخ
                 </b-button>
-                <b-button
-                  variant="outline-secondary"
-                  class="mr-3"
-                  @click="closeTicket"
-                  v-if="selectedTicket.status !== 'closed'"
-                >
+                <b-button variant="outline-secondary" class="mr-3" @click="closeTicket"
+                  v-if="selectedTicket.status !== 'closed' || !selectedTicket.canReply">
                   بستن تیکت
                 </b-button>
               </div>
@@ -616,6 +557,7 @@
 </template>
 
 <script>
+import { mapGetters, mapMutations, mapActions } from "vuex";
 export default {
   name: "SupportPage",
   data() {
@@ -627,7 +569,8 @@ export default {
         satisfactionRate: 94,
         onlineAgents: 3
       },
-      
+      loadingTickets: false,
+      supportScope: {},
       // Ticket Statistics
       ticketStats: {
         total: 5,
@@ -635,108 +578,22 @@ export default {
         closed: 3,
         pending: 0
       },
-      
+
       // Tickets Data
       tickets: [
-        {
-          id: 'T20231115001',
-          title: 'مشکل در احراز هویت رأی‌گیری',
-          category: 'authentication',
-          priority: 'high',
-          status: 'open',
-          date: '۱۴۰۲/۱۱/۱۵',
-          lastReply: 'دقایقی پیش',
-          preview: 'در مرحله احراز هویت با کد ملی مشکل دارم. کد تأیید برای من ارسال نمی‌شود.',
-          conversation: [
-            {
-              id: 1,
-              sender: 'user',
-              text: 'در مرحله احراز هویت با کد ملی مشکل دارم. کد تأیید برای من ارسال نمی‌شود.',
-              time: '۱۰:۳۰',
-              attachments: []
-            },
-            {
-              id: 2,
-              sender: 'support',
-              text: 'سلام، لطفاً شماره همراه خود را بررسی کنید. همچنین از فعال بودن سیم‌کارت اطمینان حاصل فرمایید. در صورت ادامه مشکل، شماره خود را برای بررسی بیشتر اعلام کنید.',
-              time: '۱۰:۴۵',
-              attachments: []
-            }
-          ]
-        },
-        {
-          id: 'T20231114002',
-          title: 'سؤال درباره شرایط کاندیداتوری',
-          category: 'candidates',
-          priority: 'medium',
-          status: 'closed',
-          date: '۱۴۰۲/۱۱/۱۴',
-          lastReply: '۲ روز پیش',
-          preview: 'می‌خواستم درباره شرایط و مدارک مورد نیاز برای کاندیداتوری اطلاعات کسب کنم.',
-          conversation: [
-            {
-              id: 1,
-              sender: 'user',
-              text: 'می‌خواستم درباره شرایط و مدارک مورد نیاز برای کاندیداتوری اطلاعات کسب کنم.',
-              time: '۱۴:۲۰',
-              attachments: []
-            },
-            {
-              id: 2,
-              sender: 'support',
-              text: 'شرایط کاندیداتوری در صفحه مربوطه در سایت به طور کامل توضیح داده شده است. همچنین می‌توانید از طریق لینک زیر مدارک مورد نیاز را مشاهده کنید.',
-              time: '۱۵:۱۰',
-              attachments: [
-                { name: 'شرایط_کاندیداتوری.pdf', url: '#' }
-              ]
-            },
-            {
-              id: 3,
-              sender: 'user',
-              text: 'ممنون از راهنمایی شما. مدارک را دریافت کردم.',
-              time: '۱۵:۳۰',
-              attachments: []
-            }
-          ]
-        },
-        {
-          id: 'T20231112003',
-          title: 'خطا در ثبت رأی نهایی',
-          category: 'voting',
-          priority: 'high',
-          status: 'open',
-          date: '۱۴۰۲/۱۱/۱۲',
-          lastReply: '۱ ساعت پیش',
-          preview: 'پس از انتخاب کاندیدا و تأیید نهایی، صفحه خطا نمایش داده می‌شود.',
-          conversation: [
-            {
-              id: 1,
-              sender: 'user',
-              text: 'پس از انتخاب کاندیدا و تأیید نهایی، صفحه خطا نمایش داده می‌شود.',
-              time: '۱۱:۱۵',
-              attachments: []
-            },
-            {
-              id: 2,
-              sender: 'support',
-              text: 'لطفاً مرورگر خود را آپدیت کرده و کوکی‌ها را پاک کنید. اگر مشکل ادامه داشت، از طریق مرورگر دیگری اقدام کنید.',
-              time: '۱۲:۰۰',
-              attachments: []
-            }
-          ]
-        }
       ],
-      
+
       // Ticket Filter
       ticketFilter: 'all',
-      
+
       // New Ticket Form
       newTicket: {
         subject: '',
         category: null,
         priority: 'medium',
         description: '',
-        attachments: []
+        attachments: [],
+        targetRole: 'EXECUTIVE'
       },
       ticketValidation: {
         subject: null,
@@ -745,7 +602,7 @@ export default {
         description: null
       },
       submittingTicket: false,
-      
+
       // Ticket Categories
       ticketCategories: [
         { value: null, text: 'انتخاب دسته‌بندی', disabled: true },
@@ -756,7 +613,11 @@ export default {
         { value: 'account', text: 'حساب کاربری' },
         { value: 'other', text: 'سایر موارد' }
       ],
-      
+      targetRoleOptions: [
+        { value: 'EXECUTIVE', text: 'اجرایی' },
+        { value: 'SUPERVISOR', text: 'نظارت' },
+        { value: 'ADMIN', text: 'ستاد/ادمین' }
+      ],
       // Priority Options
       priorityOptions: [
         { value: 'low', text: 'کم' },
@@ -764,7 +625,7 @@ export default {
         { value: 'high', text: 'بالا' },
         { value: 'urgent', text: 'فوری' }
       ],
-      
+
       // FAQ Data
       faqData: [
         {
@@ -847,13 +708,13 @@ export default {
           ]
         }
       ],
-      
+
       // FAQ State
       faqSearch: '',
       faqOpenItems: [],
       openFaqItems: [],
       loadingFaq: false,
-      
+
       // Live Chat
       showLiveChat: false,
       chatActive: false,
@@ -867,7 +728,7 @@ export default {
         }
       ],
       onlineAgents: 3,
-      
+
       // Ticket Modal
       showTicketModal: false,
       selectedTicket: null,
@@ -876,26 +737,41 @@ export default {
     };
   },
   computed: {
+    ...mapGetters(["currentUser"]),
+
+    userRole() {
+      const roles = this.currentUser?.roles;
+      return Array.isArray(roles) ? roles[0] : roles;
+    },
+
+    isSupportAgent() {
+      return ['ADMIN', 'SUPERVISOR', 'EXECUTIVE'].includes(this.userRole);
+    },
+
+    ticketsTitle() {
+      return this.isSupportAgent ? 'تیکت‌های قابل پاسخ' : 'تیکت‌های من';
+    },
+
     filteredTickets() {
       if (this.ticketFilter === 'all') {
         return this.tickets;
       }
       return this.tickets.filter(ticket => ticket.status === this.ticketFilter);
     },
-    
+
     filteredFaq() {
       if (!this.faqSearch) {
         return this.faqData;
       }
-      
+
       const query = this.faqSearch.toLowerCase();
       return this.faqData
         .map(category => {
-          const filteredItems = category.items.filter(item => 
+          const filteredItems = category.items.filter(item =>
             item.question.toLowerCase().includes(query) ||
             item.answer.toLowerCase().includes(query)
           );
-          
+
           if (filteredItems.length > 0) {
             return {
               ...category,
@@ -907,11 +783,62 @@ export default {
         .filter(category => category !== null);
     }
   },
+  mounted() {
+    this.loadSupportTickets();
+  },
   methods: {
+    ...mapActions(["getSupportTickets", "saveSupportTicket", "replySupportTicket"]),
+    async loadSupportTickets() {
+      this.loadingTickets = true;
+      try {
+        const response = await this.getSupportTickets()
+        if (response && response.status) {
+          this.tickets = (response.data || []).map(this.normalizeTicket);
+          this.ticketStats = response.stats || this.calculateTicketStats(this.tickets);
+          this.supportScope = response.scope || {};
+          this.supportStats.totalTickets = this.ticketStats.total;
+        }
+      } catch (error) {
+        console.error('Load support tickets error:', error);
+      } finally {
+        this.loadingTickets = false;
+      }
+    },
+
+    normalizeTicket(ticket) {
+      const conversation = ticket.conversation || [];
+      const firstMessage = conversation[0]?.text || conversation[0]?.message || '';
+      return {
+        ...ticket,
+        id: ticket.id,
+        code: ticket.ticket_code || ticket.code || ticket.id,
+        title: ticket.subject || ticket.title,
+        target_role: ticket.target_role || ticket.targetRole,
+        support_level: ticket.support_level || ticket.supportLevel,
+        preview: ticket.preview || (firstMessage ? firstMessage.substring(0, 100) + (firstMessage.length > 100 ? '...' : '') : ''),
+        date: ticket.date || ticket.created_at,
+        lastReply: ticket.lastReply || ticket.updated_at,
+        canReply: ticket.canReply !== false,
+        conversation: conversation.map(message => ({
+          ...message,
+          text: message.text || message.message,
+          sender: message.sender || (message.sender_role === 'USER' ? 'user' : 'support'),
+          attachments: message.attachments || []
+        }))
+      };
+    },
+
+    calculateTicketStats(tickets) {
+      return tickets.reduce((stats, ticket) => {
+        stats.total++;
+        if (stats[ticket.status] !== undefined) stats[ticket.status]++;
+        return stats;
+      }, { total: 0, open: 0, closed: 0, pending: 0 });
+    },
     isFaqOpen(itemId) {
       return this.openFaqItems.includes(itemId);
     },
-    
+
     // Navigation
     scrollToSection(sectionId) {
       const element = document.getElementById(sectionId + '-section');
@@ -919,7 +846,7 @@ export default {
         element.scrollIntoView({ behavior: 'smooth' });
       }
     },
-    
+
     // Ticket Methods
     getTicketStatusVariant(status) {
       const variants = {
@@ -929,7 +856,7 @@ export default {
       };
       return variants[status] || 'secondary';
     },
-    
+
     getTicketStatusText(status) {
       const texts = {
         open: 'باز',
@@ -938,7 +865,7 @@ export default {
       };
       return texts[status] || status;
     },
-    
+
     getCategoryText(category) {
       const categoryMap = {
         authentication: 'احراز هویت',
@@ -950,101 +877,104 @@ export default {
       };
       return categoryMap[category] || category;
     },
-    
+    getRoleText(role) {
+      const roleMap = {
+        ADMIN: 'ستاد/ادمین',
+        SUPERVISOR: 'نظارت',
+        EXECUTIVE: 'اجرایی',
+        USER: 'کاربر'
+      };
+      return roleMap[role] || role || '---';
+    },
+
+    getLevelText(level) {
+      const levelMap = {
+        headquarters: 'ستاد',
+        province: 'استان',
+        region: 'منطقه'
+      };
+      return levelMap[level] || level || '---';
+    },
+
+    getMessageSenderText(message) {
+      if (message.senderLabel) return message.senderLabel;
+      if (message.sender === 'user') return 'کاربر/شما';
+      return 'پشتیبان';
+    },
+
     viewTicketDetails(ticket) {
       this.selectedTicket = ticket;
       this.ticketReply = '';
       this.closeTicketAfterReply = false;
       this.showTicketModal = true;
     },
-    
+
     // New Ticket Submission
     async submitNewTicket() {
       // Validate form
       let valid = true;
-      
+
       if (!this.newTicket.subject.trim()) {
         this.ticketValidation.subject = false;
         valid = false;
       } else {
         this.ticketValidation.subject = true;
       }
-      
+
       if (!this.newTicket.category) {
         this.ticketValidation.category = false;
         valid = false;
       } else {
         this.ticketValidation.category = true;
       }
-      
+
       if (!this.newTicket.priority) {
         this.ticketValidation.priority = false;
         valid = false;
       } else {
         this.ticketValidation.priority = true;
       }
-      
+
       if (!this.newTicket.description.trim() || this.newTicket.description.length < 10) {
         this.ticketValidation.description = false;
         valid = false;
       } else {
         this.ticketValidation.description = true;
       }
-      
+
       if (!valid) return;
-      
+
       this.submittingTicket = true;
-      
+
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Create new ticket
-        const newId = 'T' + new Date().getTime().toString().slice(-8);
-        const newTicket = {
-          id: newId,
-          title: this.newTicket.subject,
+        const response = await this.saveSupportTicket({
+          subject: this.newTicket.subject,
           category: this.newTicket.category,
           priority: this.newTicket.priority,
-          status: 'open',
-          date: this.getCurrentDate(),
-          lastReply: 'همین لحظه',
-          preview: this.newTicket.description.substring(0, 100) + '...',
-          conversation: [
-            {
-              id: 1,
-              sender: 'user',
-              text: this.newTicket.description,
-              time: this.getCurrentTime(),
-              attachments: this.newTicket.attachments.map(file => ({
-                name: file.name,
-                url: URL.createObjectURL(file)
-              }))
-            }
-          ]
-        };
-        
-        // Add to tickets list
-        this.tickets.unshift(newTicket);
-        this.ticketStats.total++;
-        this.ticketStats.open++;
-        
+          description: this.newTicket.description,
+          targetRole: this.newTicket.targetRole
+        });
+
+        if (!response || !response.status) {
+          throw new Error(response?.message || 'خطا در ثبت درخواست');
+        }
+
         // Reset form
         this.resetNewTicketForm();
-        
+        await this.loadSupportTickets();
         // Show success message
         this.$bvToast.toast('تیکت شما با موفقیت ثبت شد', {
           title: 'ثبت درخواست',
           variant: 'success',
           solid: true
         });
-        
+
         // Scroll to tickets section
         this.scrollToSection('tickets');
-        
+
       } catch (error) {
         console.error('Ticket submission error:', error);
-        this.$bvToast.toast('خطا در ثبت درخواست', {
+        this.$bvToast.toast(error.message || 'خطا در ثبت درخواست', {
           title: 'خطا',
           variant: 'danger',
           solid: true
@@ -1053,14 +983,15 @@ export default {
         this.submittingTicket = false;
       }
     },
-    
+
     resetNewTicketForm() {
       this.newTicket = {
         subject: '',
         category: null,
         priority: 'medium',
         description: '',
-        attachments: []
+        attachments: [],
+        targetRole: 'EXECUTIVE'
       };
       this.ticketValidation = {
         subject: null,
@@ -1069,7 +1000,7 @@ export default {
         description: null
       };
     },
-    
+
     // File Methods
     formatFileNames(files) {
       if (files.length === 1) {
@@ -1078,7 +1009,7 @@ export default {
         return `${files.length} فایل انتخاب شده`;
       }
     },
-    
+
     getFileIcon(filename) {
       const extension = filename.split('.').pop().toLowerCase();
       const iconMap = {
@@ -1093,7 +1024,7 @@ export default {
       };
       return iconMap[extension] || 'file-earmark';
     },
-    
+
     formatFileSize(bytes) {
       if (bytes === 0) return '0 بایت';
       const k = 1024;
@@ -1101,11 +1032,11 @@ export default {
       const i = Math.floor(Math.log(bytes) / Math.log(k));
       return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
     },
-    
+
     removeAttachment(index) {
       this.newTicket.attachments.splice(index, 1);
     },
-    
+
     // Priority Methods
     getPriorityIcon(priority) {
       const icons = {
@@ -1116,7 +1047,7 @@ export default {
       };
       return icons[priority] || 'dash';
     },
-    
+
     getPriorityDescription(priority) {
       const descriptions = {
         low: 'پاسخ‌دهی در ۴۸ ساعت',
@@ -1126,7 +1057,7 @@ export default {
       };
       return descriptions[priority] || '';
     },
-    
+
     getPriorityText(priority) {
       const texts = {
         low: 'کم',
@@ -1136,7 +1067,7 @@ export default {
       };
       return texts[priority] || priority;
     },
-    
+
     // FAQ Methods
     toggleFaqItem(itemId) {
       const index = this.openFaqItems.indexOf(itemId);
@@ -1146,13 +1077,13 @@ export default {
         this.openFaqItems.push(itemId);
       }
     },
-    
+
     async loadMoreFaq() {
       this.loadingFaq = true;
-      
+
       // Simulate loading more FAQ
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
+
       // Add more categories (in real app, load from API)
       this.faqData.push({
         id: 4,
@@ -1168,7 +1099,7 @@ export default {
           }
         ]
       });
-      
+
       this.loadingFaq = false;
       this.$bvToast.toast('سؤالات بیشتر بارگذاری شد', {
         title: 'بارگذاری موفق',
@@ -1176,12 +1107,12 @@ export default {
         solid: true
       });
     },
-    
+
     // Live Chat Methods
     startLiveChat() {
       this.showLiveChat = true;
       this.chatActive = true;
-      
+
       // Auto reply after 2 seconds
       setTimeout(() => {
         this.chatMessages.push({
@@ -1193,10 +1124,10 @@ export default {
         this.scrollToChatBottom();
       }, 2000);
     },
-    
+
     sendChatMessage() {
       if (!this.chatInput.trim()) return;
-      
+
       // Add user message
       this.chatMessages.push({
         id: this.chatMessages.length + 1,
@@ -1204,13 +1135,13 @@ export default {
         text: this.chatInput,
         time: this.getCurrentTime()
       });
-      
+
       const userMessage = this.chatInput;
       this.chatInput = '';
-      
+
       // Scroll to bottom
       this.scrollToChatBottom();
-      
+
       // Simulate auto-reply after 3 seconds
       setTimeout(() => {
         const response = this.generateChatResponse(userMessage);
@@ -1223,10 +1154,10 @@ export default {
         this.scrollToChatBottom();
       }, 3000);
     },
-    
+
     generateChatResponse(message) {
       const lowerMessage = message.toLowerCase();
-      
+
       if (lowerMessage.includes('احراز') || lowerMessage.includes('ورود')) {
         return 'برای مشکلات احراز هویت، لطفاً شماره همراه و کد ملی خود را بررسی کنید. اگر کد تأیید دریافت نمی‌کنید، دکمه "ارسال مجدد" را بزنید.';
       } else if (lowerMessage.includes('رأی') || lowerMessage.includes('انتخاب')) {
@@ -1237,12 +1168,12 @@ export default {
         return 'متوجه شدم. برای بررسی دقیق‌تر، لطفاً تیکت پشتیبانی ثبت کنید تا همکاران ما به صورت تخصصی مشکل شما را پیگیری کنند.';
       }
     },
-    
+
     sendQuickResponse(text) {
       this.chatInput = text;
       this.sendChatMessage();
     },
-    
+
     attachFileToChat() {
       // In real app, implement file attachment
       this.$bvToast.toast('امکان ارسال فایل در نسخه دمو وجود ندارد', {
@@ -1251,12 +1182,12 @@ export default {
         solid: true
       });
     },
-    
+
     downloadChat() {
-      const chatContent = this.chatMessages.map(msg => 
+      const chatContent = this.chatMessages.map(msg =>
         `${msg.sender === 'user' ? 'شما' : 'پشتیبان'} (${msg.time}): ${msg.text}`
       ).join('\n\n');
-      
+
       const blob = new Blob([chatContent], { type: 'text/plain' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -1267,7 +1198,7 @@ export default {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     },
-    
+
     endChat() {
       this.showLiveChat = false;
       this.chatMessages = [{
@@ -1278,7 +1209,7 @@ export default {
       }];
       this.chatInput = '';
     },
-    
+
     scrollToChatBottom() {
       this.$nextTick(() => {
         const container = this.$refs.chatMessages;
@@ -1287,71 +1218,72 @@ export default {
         }
       });
     },
-    
+
     // Ticket Reply Methods
     async submitTicketReply() {
-      if (!this.ticketReply.trim()) return;
-      
-      // Add reply to conversation
-      const reply = {
-        id: this.selectedTicket.conversation.length + 1,
-        sender: 'user',
-        text: this.ticketReply,
-        time: this.getCurrentTime(),
-        attachments: []
-      };
-      
-      this.selectedTicket.conversation.push(reply);
-      this.selectedTicket.lastReply = 'همین لحظه';
-      
-      // Update ticket status
-      if (this.closeTicketAfterReply) {
-        this.selectedTicket.status = 'closed';
-        this.ticketStats.open--;
-        this.ticketStats.closed++;
-      }
-      
-      // Reset reply input
-      this.ticketReply = '';
-      
-      // Show success message
-      this.$bvToast.toast('پاسخ شما ارسال شد', {
-        title: 'ارسال موفق',
-        variant: 'success',
-        solid: true
-      });
-      
-      // Simulate support reply after 1 minute
-      setTimeout(() => {
-        if (this.selectedTicket && this.selectedTicket.status !== 'closed') {
-          const supportReply = {
-            id: this.selectedTicket.conversation.length + 1,
-            sender: 'support',
-            text: 'پاسخ شما دریافت شد. همکاران ما در حال بررسی هستند و به زودی پاسخ نهایی را دریافت خواهید کرد.',
-            time: this.getCurrentTime(),
-            attachments: []
-          };
-          
-          this.selectedTicket.conversation.push(supportReply);
-          this.selectedTicket.lastReply = 'دقایقی پیش';
+
+      if (!this.ticketReply.trim() || !this.selectedTicket?.canReply) return;
+      try {
+        const response = await this.replySupportTicket({
+          ticketId: this.selectedTicket.id,
+          message: this.ticketReply,
+          closeTicket: this.closeTicketAfterReply
+        });
+        if (!response || !response.status) {
+          throw new Error(response?.message || 'خطا در ارسال پاسخ');
         }
-      }, 60000);
-    },
-    
-    closeTicket() {
-      if (this.selectedTicket) {
-        this.selectedTicket.status = 'closed';
-        this.ticketStats.open--;
-        this.ticketStats.closed++;
-        
-        this.$bvToast.toaste('تیکت با موفقیت بسته شد', {
-          title: 'بستن تیکت',
+        this.ticketReply = '';
+        this.closeTicketAfterReply = false;
+        await this.loadSupportTickets();
+        const refreshedTicket = this.tickets.find(ticket => String(ticket.id) === String(this.selectedTicket.id));
+        if (refreshedTicket) this.selectedTicket = refreshedTicket;
+        this.$bvToast.toast('پاسخ شما ارسال شد', {
+          title: 'ارسال موفق',
           variant: 'success',
+          solid: true
+        });
+      } catch (error) {
+        console.error('Ticket reply error:', error);
+        this.$bvToast.toast(error.message || 'خطا در ارسال پاسخ', {
+          title: 'خطا',
+          variant: 'danger',
           solid: true
         });
       }
     },
-    
+
+    async closeTicket() {
+      if (!this.selectedTicket?.canReply) return;
+      try {
+        const response = await this.replySupportTicket({
+          ticketId: this.selectedTicket.id,
+          message: this.ticketReply,
+          closeTicket: true
+        });
+
+        if (!response || !response.status) {
+          throw new Error(response?.message || 'خطا در بستن تیکت');
+        }
+
+        this.ticketReply = '';
+        await this.loadSupportTickets();
+        const refreshedTicket = this.tickets.find(ticket => String(ticket.id) === String(this.selectedTicket.id));
+        if (refreshedTicket) this.selectedTicket = refreshedTicket;
+        this.$bvToast.toast('تیکت با موفقیت بسته شد', {
+          title: 'بستن تیکت',
+          variant: 'success',
+          solid: true
+        });
+      } catch (error) {
+        console.error('Close ticket error:', error);
+        this.$bvToast.toast(error.message || 'خطا در بستن تیکت', {
+          title: 'خطا',
+          variant: 'danger',
+          solid: true
+        });
+      }
+    },
+
     // Contact Methods
     openSocial(platform) {
       const urls = {
@@ -1360,17 +1292,17 @@ export default {
         twitter: 'https://twitter.com/farhangian_vote',
         whatsapp: 'https://wa.me/989123456789'
       };
-      
+
       if (urls[platform]) {
         window.open(urls[platform], '_blank');
       }
     },
-    
+
     // Utility Methods
     getCurrentDate() {
       return new Date().toLocaleDateString('fa-IR');
     },
-    
+
     getCurrentTime() {
       return new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
     }
@@ -1522,7 +1454,8 @@ export default {
   padding-top: 10px;
 }
 
-.category, .last-update {
+.category,
+.last-update {
   display: flex;
   align-items: center;
 }
@@ -1917,42 +1850,42 @@ export default {
     margin-top: 15px;
     text-align: center;
   }
-  
+
   .ticket-header {
     flex-direction: column;
     align-items: flex-start;
   }
-  
+
   .ticket-meta {
     margin-top: 10px;
     flex-direction: column;
     align-items: flex-start;
     gap: 5px;
   }
-  
+
   .ticket-info {
     flex-direction: column;
     gap: 10px;
   }
-  
+
   .contact-item {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .contact-icon {
     margin-left: 0;
     margin-bottom: 15px;
   }
-  
+
   .social-icons {
     flex-wrap: wrap;
   }
-  
+
   .live-chat-container {
     height: 400px;
   }
-  
+
   .message {
     max-width: 90%;
   }
