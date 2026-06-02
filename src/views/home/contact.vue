@@ -387,7 +387,8 @@
     </b-container>
 
     <!-- Live Chat Modal -->
-    <b-modal v-model="showLiveChat" title="چت آنلاین پشتیبانی" hide-footer size="lg" centered @hide="endChat">
+    <b-modal v-model="showLiveChat" title="چت آنلاین پشتیبانی" hide-footer size="lg" centered
+      @hide="handleLiveChatModalHide">
       <div class="live-chat-container">
         <!-- Chat Header -->
         <div class="chat-header">
@@ -397,8 +398,10 @@
             </div>
             <div class="agent-details">
               <div class="agent-name">
-                <strong>پشتیبان آنلاین</strong>
-                <b-badge variant="success" class="mr-2">آنلاین</b-badge>
+                <strong>{{ chatHeaderTitle }}</strong>
+                <b-badge :variant="currentChatSession?.status === 'closed' ? 'secondary' : 'success'" class="mr-2">
+                  {{ getChatStatusText(currentChatSession?.status) }}
+                </b-badge>
               </div>
               <div class="agent-status">در حال تایپ...</div>
             </div>
@@ -413,10 +416,39 @@
           </div>
         </div>
 
+        <div v-if="isSupportAgent" class="chat-session-list mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong>گفتگوهای زنده</strong>
+            <b-button size="sm" variant="outline-primary" @click="loadLiveChatSessions" :disabled="loadingChatSessions">
+              <b-spinner small v-if="loadingChatSessions" class="ml-1"></b-spinner>
+              بروزرسانی
+            </b-button>
+          </div>
+          <div v-if="liveChatSessions.length === 0" class="text-muted small text-center py-2">گفتگوی در انتظار پاسخ وجود
+            ندارد.</div>
+          <div v-for="session in liveChatSessions" :key="session.id" class="chat-session-item"
+            :class="{ active: currentChatSession && currentChatSession.id === session.id }"
+            @click="selectLiveChatSession(session)">
+            <div class="d-flex justify-content-between">
+              <strong>{{ session.userName || session.userNationalId }}</strong>
+              <b-badge
+                :variant="session.status === 'waiting' ? 'warning' : session.status === 'active' ? 'success' : 'secondary'">
+                {{ getChatStatusText(session.status) }}
+              </b-badge>
+            </div>
+            <div class="small text-muted">{{ session.subject || 'گفتگوی پشتیبانی' }}</div>
+            <div class="small text-truncate">{{ session.lastMessage }}</div>
+          </div>
+        </div>
+
         <!-- Chat Messages -->
         <div class="chat-messages" ref="chatMessages">
+          <div v-if="!currentChatSession" class="text-center text-muted py-5">
+            برای شروع پاسخ‌گویی، یک گفتگو را انتخاب کنید.
+          </div>
           <div v-for="message in chatMessages" :key="message.id" :class="`message ${message.sender}`">
             <div class="message-content">
+              <div class="message-author" v-if="message.senderName">{{ message.senderName }}</div>
               <div class="message-text">{{ message.text }}</div>
               <div class="message-time">{{ message.time }}</div>
             </div>
@@ -427,16 +459,18 @@
         <div class="chat-input">
           <b-input-group>
             <b-form-input v-model="chatInput" placeholder="پیام خود را بنویسید..." @keyup.enter="sendChatMessage"
-              :disabled="!chatActive"></b-form-input>
+              :disabled="!chatActive || !currentChatSession || currentChatSession.status === 'closed'"></b-form-input>
             <template #append>
-              <b-button variant="primary" @click="sendChatMessage" :disabled="!chatInput.trim() || !chatActive">
+              <b-button variant="primary" @click="sendChatMessage"
+                :disabled="!chatInput.trim() || !chatActive || !currentChatSession || currentChatSession.status === 'closed'">
                 <b-icon icon="send"></b-icon>
               </b-button>
             </template>
           </b-input-group>
 
           <div class="chat-options mt-2">
-            <b-button size="sm" variant="outline-secondary" @click="sendQuickResponse('در حال انتظار برای پشتیبان...')">
+            <b-button size="sm" variant="outline-secondary"
+              @click="sendQuickResponse(isSupportAgent ? 'سلام، من پشتیبان آنلاین هستم. لطفاً مشکل را توضیح دهید.' : 'در حال انتظار برای پشتیبان...')">
               <b-icon icon="clock"></b-icon>
             </b-button>
             <b-button size="sm" variant="outline-secondary" @click="sendQuickResponse('مشکل فنی دارم')">
@@ -719,15 +753,12 @@ export default {
       showLiveChat: false,
       chatActive: false,
       chatInput: '',
-      chatMessages: [
-        {
-          id: 1,
-          sender: 'support',
-          text: 'سلام، به پشتیبانی آنلاین انتخابات فرهنگیان خوش آمدید. چگونه می‌توانم کمک کنم؟',
-          time: '۱۰:۰۰'
-        }
-      ],
-      onlineAgents: 3,
+      chatMessages: [],
+      liveChatSessions: [],
+      currentChatSession: null,
+      liveChatPollingId: null,
+      loadingChatSessions: false,
+      onlineAgents: 0,
 
       // Ticket Modal
       showTicketModal: false,
@@ -751,7 +782,19 @@ export default {
     ticketsTitle() {
       return this.isSupportAgent ? 'تیکت‌های قابل پاسخ' : 'تیکت‌های من';
     },
+    chatHeaderTitle() {
+      if (!this.currentChatSession) return this.isSupportAgent ? 'میز پاسخ‌گویی زنده' : 'پشتیبان آنلاین';
+      return this.isSupportAgent
+        ? (this.currentChatSession.userName || this.currentChatSession.userNationalId || 'کاربر')
+        : (this.currentChatSession.assignedAgentName || 'پشتیبان آنلاین');
+    },
 
+    chatHeaderSubtitle() {
+      if (!this.currentChatSession) return this.isSupportAgent ? 'گفتگوی در انتظار پاسخ را انتخاب کنید' : 'در انتظار اتصال به پشتیبان';
+      if (this.currentChatSession.status === 'waiting') return 'در صف پاسخ‌گویی زنده';
+      if (this.currentChatSession.status === 'active') return 'گفتگو فعال است و پیام‌ها به صورت خودکار بروزرسانی می‌شوند';
+      return 'گفتگو بسته شده است';
+    },
     filteredTickets() {
       if (this.ticketFilter === 'all') {
         return this.tickets;
@@ -785,9 +828,20 @@ export default {
   },
   mounted() {
     this.loadSupportTickets();
+  }, beforeDestroy() {
+    this.stopLiveChatPolling();
   },
   methods: {
-    ...mapActions(["getSupportTickets", "saveSupportTicket", "replySupportTicket"]),
+    ...mapActions({
+      getSupportTickets: "getSupportTickets",
+      saveSupportTicket: "saveSupportTicket",
+      replySupportTicket: "replySupportTicket",
+      startLiveChatSession: "startLiveChat",
+      getLiveChatSessions: "getLiveChatSessions",
+      getLiveChatMessages: "getLiveChatMessages",
+      sendLiveChatMessage: "sendLiveChatMessage",
+      closeLiveChatSession: "closeLiveChat"
+    }),
     async loadSupportTickets() {
       this.loadingTickets = true;
       try {
@@ -1109,63 +1163,103 @@ export default {
     },
 
     // Live Chat Methods
-    startLiveChat() {
+    async startLiveChat() {
       this.showLiveChat = true;
       this.chatActive = true;
+      if (this.isSupportAgent) {
+        await this.loadLiveChatSessions();
+        this.startLiveChatPolling();
+        return;
+      }
 
       // Auto reply after 2 seconds
-      setTimeout(() => {
-        this.chatMessages.push({
-          id: this.chatMessages.length + 1,
-          sender: 'support',
-          text: 'لطفاً مشکل یا سؤال خود را شرح دهید.',
-          time: this.getCurrentTime()
+      try {
+        const response = await this.startLiveChatSession({ subject: 'درخواست چت آنلاین' });
+        if (!response || !response.status) throw new Error(response?.message || 'خطا در شروع گفتگوی آنلاین');
+        this.currentChatSession = response.data;
+        this.onlineAgents = response.onlineAgents || this.onlineAgents;
+        await this.loadLiveChatMessages(false);
+        this.startLiveChatPolling();
+      } catch (error) {
+        this.$bvToast.toast(error.message || 'خطا در شروع گفتگوی آنلاین', {
+          title: 'چت آنلاین',
+          variant: 'danger',
+          solid: true
         });
-        this.scrollToChatBottom();
-      }, 2000);
+      }
     },
 
-    sendChatMessage() {
-      if (!this.chatInput.trim()) return;
-
-      // Add user message
-      this.chatMessages.push({
-        id: this.chatMessages.length + 1,
-        sender: 'user',
-        text: this.chatInput,
-        time: this.getCurrentTime()
+    async loadLiveChatSessions() {
+      this.loadingChatSessions = true;
+      try {
+        const response = await this.getLiveChatSessions({ limit: 50 });
+        if (response && response.status) {
+          this.liveChatSessions = response.data || [];
+          this.onlineAgents = response.onlineAgents || this.onlineAgents;
+          if (this.currentChatSession) {
+            const freshSession = this.liveChatSessions.find(item => item.id === this.currentChatSession.id);
+            if (freshSession) this.currentChatSession = freshSession;
+          }
+        }
+      } finally {
+        this.loadingChatSessions = false;
+      }
+    },
+    async selectLiveChatSession(session) {
+      this.currentChatSession = session;
+      this.chatActive = session.status !== 'closed';
+      this.chatMessages = [];
+      await this.loadLiveChatMessages(false);
+    },
+    async loadLiveChatMessages(onlyNew = true) {
+      if (!this.currentChatSession?.id) return;
+      const lastId = onlyNew && this.chatMessages.length ? this.chatMessages[this.chatMessages.length - 1].id : 0;
+      const response = await this.getLiveChatMessages({
+        sessionId: this.currentChatSession.id,
+        afterId: lastId
       });
+      if (response && response.status) {
+        const messages = (response.data || []).map(this.normalizeLiveChatMessage);
+        this.currentChatSession = response.session || this.currentChatSession;
+        this.chatMessages = onlyNew ? this.chatMessages.concat(messages) : messages;
+        this.scrollToChatBottom();
+      }
+    },
 
-      const userMessage = this.chatInput;
+    normalizeLiveChatMessage(message) {
+      const currentNationalId = this.currentUser?.national_id || this.currentUser?.nationalId || this.currentUser?.id;
+      const mine = message.senderNationalId && String(message.senderNationalId) === String(currentNationalId);
+      const isSystem = message.senderType === 'system';
+      return {
+        id: message.id,
+        sender: isSystem ? 'support' : mine ? 'user' : 'support',
+        senderName: isSystem ? 'سامانه' : message.senderName,
+        text: message.text,
+        time: this.formatChatTime(message.createdAt)
+      };
+    },
+
+    async sendChatMessage() {
+      if (!this.chatInput.trim() || !this.currentChatSession?.id) return;
+      const userMessage = this.chatInput.trim();
       this.chatInput = '';
 
-      // Scroll to bottom
-      this.scrollToChatBottom();
-
-      // Simulate auto-reply after 3 seconds
-      setTimeout(() => {
-        const response = this.generateChatResponse(userMessage);
-        this.chatMessages.push({
-          id: this.chatMessages.length + 1,
-          sender: 'support',
-          text: response,
-          time: this.getCurrentTime()
+      try {
+        const response = await this.sendLiveChatMessage({
+          sessionId: this.currentChatSession.id,
+          message: userMessage
         });
-        this.scrollToChatBottom();
-      }, 3000);
-    },
-
-    generateChatResponse(message) {
-      const lowerMessage = message.toLowerCase();
-
-      if (lowerMessage.includes('احراز') || lowerMessage.includes('ورود')) {
-        return 'برای مشکلات احراز هویت، لطفاً شماره همراه و کد ملی خود را بررسی کنید. اگر کد تأیید دریافت نمی‌کنید، دکمه "ارسال مجدد" را بزنید.';
-      } else if (lowerMessage.includes('رأی') || lowerMessage.includes('انتخاب')) {
-        return 'برای مشکلات رأی‌گیری، مرورگر خود را آپدیت کنید و از مرورگرهای Chrome یا Firefox استفاده نمایید.';
-      } else if (lowerMessage.includes('کاندید')) {
-        return 'اطلاعات کامل کاندیداها در صفحه مربوطه موجود است. همچنین می‌توانید شرایط کاندیداتوری را در صفحه شرایط مطالعه کنید.';
-      } else {
-        return 'متوجه شدم. برای بررسی دقیق‌تر، لطفاً تیکت پشتیبانی ثبت کنید تا همکاران ما به صورت تخصصی مشکل شما را پیگیری کنند.';
+        if (!response || !response.status) throw new Error(response?.message || 'خطا در ارسال پیام');
+        this.chatMessages.push(this.normalizeLiveChatMessage(response.data));
+        await this.loadLiveChatMessages(true);
+        if (this.isSupportAgent) await this.loadLiveChatSessions();
+      } catch (error) {
+        this.chatInput = userMessage;
+        this.$bvToast.toast(error.message || 'خطا در ارسال پیام', {
+          title: 'چت آنلاین',
+          variant: 'danger',
+          solid: true
+        });
       }
     },
 
@@ -1176,7 +1270,7 @@ export default {
 
     attachFileToChat() {
       // In real app, implement file attachment
-      this.$bvToast.toast('امکان ارسال فایل در نسخه دمو وجود ندارد', {
+      this.$bvToast.toast('ارسال فایل در گفتگوی آنلاین فعال نیست؛ برای فایل، تیکت ثبت کنید.', {
         title: 'اطلاع',
         variant: 'info',
         solid: true
@@ -1185,31 +1279,69 @@ export default {
 
     downloadChat() {
       const chatContent = this.chatMessages.map(msg =>
-        `${msg.sender === 'user' ? 'شما' : 'پشتیبان'} (${msg.time}): ${msg.text}`
+        `${msg.senderName || (msg.sender === 'user' ? 'شما' : 'پشتیبان')} (${msg.time}): ${msg.text}`
       ).join('\n\n');
 
-      const blob = new Blob([chatContent], { type: 'text/plain' });
+      const blob = new Blob([chatContent], { type: 'text/plain;charset=utf-8' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `chat_${new Date().getTime()}.txt`;
+      a.download = `live_chat_${this.currentChatSession?.id || new Date().getTime()}.txt`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     },
 
-    endChat() {
+    async endChat() {
+      if (this.currentChatSession?.id && this.currentChatSession.status !== 'closed') {
+        await this.closeLiveChatSession({ sessionId: this.currentChatSession.id });
+      }
+      this.stopLiveChatPolling();
       this.showLiveChat = false;
-      this.chatMessages = [{
-        id: 1,
-        sender: 'support',
-        text: 'سلام، به پشتیبانی آنلاین انتخابات فرهنگیان خوش آمدید. چگونه می‌توانم کمک کنم؟',
-        time: '۱۰:۰۰'
-      }];
+      this.chatMessages = [];
+      this.currentChatSession = null;
       this.chatInput = '';
+      this.chatActive = false;
+    },
+    handleLiveChatModalHide() {
+      this.stopLiveChatPolling();
+      this.chatMessages = [];
+      this.currentChatSession = null;
+      this.chatInput = '';
+      this.chatActive = false;
+    },
+    startLiveChatPolling() {
+      this.stopLiveChatPolling();
+      this.liveChatPollingId = setInterval(async () => {
+        if (!this.showLiveChat) return;
+        if (this.isSupportAgent) await this.loadLiveChatSessions();
+        await this.loadLiveChatMessages(true);
+      }, 5000);
     },
 
+    stopLiveChatPolling() {
+      if (this.liveChatPollingId) {
+        clearInterval(this.liveChatPollingId);
+        this.liveChatPollingId = null;
+      }
+    },
+
+    getChatStatusText(status) {
+      const statuses = {
+        waiting: 'در انتظار پاسخ',
+        active: 'آنلاین',
+        closed: 'بسته شده'
+      };
+      return statuses[status] || 'آماده';
+    },
+
+    formatChatTime(value) {
+      if (!value) return this.getCurrentTime();
+      const date = new Date(String(value).replace(' ', 'T'));
+      if (Number.isNaN(date.getTime())) return this.getCurrentTime();
+      return date.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+    },
     scrollToChatBottom() {
       this.$nextTick(() => {
         const container = this.$refs.chatMessages;
@@ -1686,6 +1818,39 @@ export default {
 .chat-actions {
   display: flex;
   gap: 5px;
+}
+
+.chat-session-list {
+  max-height: 150px;
+  overflow-y: auto;
+  border: 1px solid #e3e7ef;
+  border-radius: 10px;
+  padding: 10px;
+  background: #fbfcff;
+}
+
+.chat-session-item {
+  padding: 10px 12px;
+  border: 1px solid #e0e6f2;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+}
+
+.chat-session-item:hover,
+.chat-session-item.active {
+  border-color: #2196F3;
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.12);
+  transform: translateY(-1px);
+}
+
+.message-author {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #4b5d73;
+  margin-bottom: 4px;
 }
 
 .chat-messages {

@@ -95,7 +95,7 @@ export default {
         { title: "مدیریت کاربران", link: "UsersManagment", icon: "bi bi-people", type: "3", cate: 2, roles: ['ADMIN', 'SUPERVISOR'], provinceSupervisorOnly: true },
                 { title: "جستجوی آرای کاربران", link: "user-vote-search", icon: "bi bi-search", type: "3", cate: 2, roles: ['ADMIN', 'SUPERVISOR']},
         { title: "گزارش لاگ", link: "logs", icon: "bi bi-journal-text", type: "3", cate: 2, roles: ['ADMIN'] },
-        { title: "پشتیبانی", link: "Contact", icon: "bi bi-headset", type: "3", cate: 2, roles: ['VOTER','CANDIDATE', 'SUPERVISOR'] },
+        { title: "پشتیبانی", link: "Contact", icon: "bi bi-headset", type: "3", cate: 2, roles: ['VOTER','CANDIDATE', 'SUPERVISOR','ADMIN'] },
       ],
     };
   },

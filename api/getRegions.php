@@ -4,9 +4,14 @@ header('Content-Type: application/json; charset=utf-8');
 
 $db->connect();
 
-$sql = "SELECT id, ProvinceCode, Name AS name
-FROM region 
-ORDER BY ProvinceCode ASC, id ASC, Name ASC;";
+$sql = "SELECT r.id, r.ProvinceCode, r.Name AS name, COALESCE(mv.maxVotes, 1) AS maxVotes
+FROM region r
+LEFT JOIN (
+    SELECT region_id, MAX(maxVotes) AS maxVotes
+    FROM maxvotes
+    GROUP BY region_id
+) mv ON mv.region_id = r.id
+ORDER BY r.ProvinceCode ASC, r.id ASC, r.Name ASC;";
 $res = $db->query($sql);
 
 $provincesMap = [];
@@ -33,7 +38,8 @@ while ($row = $res->fetch_assoc()) {
 
     $areasByProvince[$provinceCode][] = [
         'id' => $regionId,
-        'name' => $regionName
+        'name' => $regionName,
+                'maxVotes' => (int)$row['maxVotes']
     ];
 }
 $provinces = array_values($provincesMap);

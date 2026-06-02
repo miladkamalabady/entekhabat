@@ -110,6 +110,21 @@ const global = {
     }, replySupportTicket: {
         url: "/replySupportTicket",
         method: 'POST'
+    }, startLiveChat: {
+        url: "/startLiveChat",
+        method: 'POST'
+    }, getLiveChatSessions: {
+        url: "/getLiveChatSessions",
+        method: 'GET'
+    }, getLiveChatMessages: {
+        url: "/getLiveChatMessages",
+        method: 'GET'
+    }, sendLiveChatMessage: {
+        url: "/sendLiveChatMessage",
+        method: 'POST'
+    }, closeLiveChat: {
+        url: "/closeLiveChat",
+        method: 'POST'
     }
 
 };

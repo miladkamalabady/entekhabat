@@ -334,7 +334,36 @@ export default {
       if (response?.status)
         commit('clearError');
       return response || { items: [], summary: [] };
-    }, async saveSupportTicket({ commit }, payload) {
+    },
+    
+     async startLiveChat({ commit }, payload) {
+      const response = await apiservice({ name: "startLiveChat", params: payload || {} }, { commit });
+      if (response?.status)
+        commit('clearError');
+      return response || { items: [], summary: [] };
+    }, async getLiveChatSessions({ commit }, payload) {
+      const response = await apiservice({ name: "getLiveChatSessions", params: payload || {} }, { commit });
+      if (response?.status)
+        commit('clearError');
+      return response || { items: [], summary: [] };
+    }, async getLiveChatMessages({ commit }, payload) {
+      const response = await apiservice({ name: "getLiveChatMessages", params: payload || {} }, { commit });
+      if (response?.status)
+        commit('clearError');
+      return response || { items: [], summary: [] };
+    }, async sendLiveChatMessage({ commit }, payload) {
+      const response = await apiservice({ name: "sendLiveChatMessage", params: payload || {} }, { commit });
+      if (response?.status)
+        commit('clearError');
+      return response || { items: [], summary: [] };
+    }, async closeLiveChat({ commit }, payload) {
+      const response = await apiservice({ name: "closeLiveChat", params: payload || {} }, { commit });
+      if (response?.status)
+        commit('clearError');
+      return response || { items: [], summary: [] };
+    },
+
+    async saveSupportTicket({ commit }, payload) {
       const response = await apiservice({ name: "saveSupportTicket", params: payload || {} }, { commit });
       if (response?.status)
         commit('clearError');
