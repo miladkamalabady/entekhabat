@@ -1,0 +1,25 @@
+{
+  "Files": [
+    {
+      "Id": "E:\\oldwin\\entekhabat\\api-dotnet\\wwwroot\\uploads\\.gitkeep",
+      "PackagePath": "staticwebassets\\uploads\\.gitkeep"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.EntekhabatApi.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.build.EntekhabatApi.props",
+      "PackagePath": "build\\EntekhabatApi.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildMultiTargeting.EntekhabatApi.props",
+      "PackagePath": "buildMultiTargeting\\EntekhabatApi.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildTransitive.EntekhabatApi.props",
+      "PackagePath": "buildTransitive\\EntekhabatApi.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

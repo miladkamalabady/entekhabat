@@ -1,0 +1,39 @@
+{
+  "Version": 1,
+  "Hash": "gLWUJKHoNl6TT9Y/LweoCYfCjsi7iEOt10px33SpX8o=",
+  "Source": "EntekhabatApi",
+  "BasePath": "_content/EntekhabatApi",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [
+    {
+      "Name": "EntekhabatApi\\wwwroot",
+      "Source": "EntekhabatApi",
+      "ContentRoot": "E:\\oldwin\\entekhabat\\api-dotnet\\wwwroot\\",
+      "BasePath": "_content/EntekhabatApi",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": [
+    {
+      "Identity": "E:\\oldwin\\entekhabat\\api-dotnet\\wwwroot\\uploads\\.gitkeep",
+      "SourceId": "EntekhabatApi",
+      "SourceType": "Discovered",
+      "ContentRoot": "E:\\oldwin\\entekhabat\\api-dotnet\\wwwroot\\",
+      "BasePath": "_content/EntekhabatApi",
+      "RelativePath": "uploads/.gitkeep",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\uploads\\.gitkeep"
+    }
+  ]
+}

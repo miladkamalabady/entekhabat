@@ -23,11 +23,18 @@ module.exports = {
     open: true,
     overlay: { warnings: false, errors: true },
     publicPath: '/',
-    port: 2000, 
+    port: 2000,
     quiet: true,
     watchOptions: {
       poll: false,
       ignored: /node_modules/
+    },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5050',
+        changeOrigin: true,
+        logLevel: 'debug'
+      }
     }
   },
   css: {
