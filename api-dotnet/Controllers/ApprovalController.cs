@@ -31,23 +31,21 @@ public class ApprovalController : ControllerBase
     {
         await using var conn = _db.CreateConnection();
 
-        var user = await conn.QueryFirstOrDefaultAsync<dynamic>(
+        var user = await conn.QueryRowDict(
             "SELECT roles, region_id FROM users WHERE national_id=@nid LIMIT 1", new { nid = NationalId });
         if (user == null) return Unauthorized();
 
-        int regionId = (int)(user.region_id ?? 0);
+        int regionId = user.Int("region_id");
 
-        var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
+        var row = await conn.QueryRowDict(
             "SELECT executive_approved, supervisor_approved, is_active FROM final_results_approvals WHERE region_id=@rid",
             new { rid = regionId });
 
         if (row == null)
         {
-            string ep = GeneratePass(regionId);
-            string sp = GeneratePass(regionId);
             await conn.ExecuteAsync(
                 "INSERT IGNORE INTO final_results_approvals (region_id, EXECUTIVEPass, SUPERVISORPass) VALUES (@rid,@ep,@sp)",
-                new { rid = regionId, ep, sp });
+                new { rid = regionId, ep = GeneratePass(regionId), sp = GeneratePass(regionId) });
         }
 
         return Ok(new
@@ -55,9 +53,9 @@ public class ApprovalController : ControllerBase
             status = true,
             data = new
             {
-                executiveApproved = (bool)((int)(row?.executive_approved ?? 0) == 1),
-                supervisorApproved = (bool)((int)(row?.supervisor_approved ?? 0) == 1),
-                isActive = (bool)((int)(row?.is_active ?? 0) == 1)
+                executiveApproved  = Convert.ToBoolean(row?.GetValueOrDefault("executive_approved")  ?? false),
+                supervisorApproved = Convert.ToBoolean(row?.GetValueOrDefault("supervisor_approved") ?? false),
+                isActive           = Convert.ToBoolean(row?.GetValueOrDefault("is_active")           ?? false)
             }
         });
     }
@@ -70,31 +68,29 @@ public class ApprovalController : ControllerBase
             return BadRequest(new { status = false, message = "نقش تایید نامعتبر است." });
 
         string role = req.role!.ToUpper();
-
         await using var conn = _db.CreateConnection();
 
-        var user = await conn.QueryFirstOrDefaultAsync<dynamic>(
+        var user = await conn.QueryRowDict(
             "SELECT roles, region_id FROM users WHERE national_id=@nid LIMIT 1", new { nid = NationalId });
         if (user == null) return Unauthorized();
 
-        int regionId = (int)(user.region_id ?? 0);
+        int    regionId  = user.Int("region_id");
+        string userRoles = user.Str("roles").ToUpper();
 
-        var passCodes = await conn.QueryFirstOrDefaultAsync<dynamic>(
+        var passCodes = await conn.QueryRowDict(
             "SELECT EXECUTIVEPass, SUPERVISORPass FROM final_results_approvals WHERE region_id=@rid",
             new { rid = regionId });
 
         if (passCodes == null
             || string.IsNullOrWhiteSpace(req.passcode1) || string.IsNullOrWhiteSpace(req.passcode2)
-            || req.passcode1 != (string)passCodes.EXECUTIVEPass
-            || req.passcode2 != (string)passCodes.SUPERVISORPass)
+            || req.passcode1 != passCodes.Str("EXECUTIVEPass")
+            || req.passcode2 != passCodes.Str("SUPERVISORPass"))
             return BadRequest(new { status = false, message = "رمز وارد شده صحیح نیست." });
 
-        string userRoles = ((string)(user.roles ?? "")).ToUpper();
         if (!userRoles.Contains(role))
             return StatusCode(403, new { status = false, message = "شما مجوز تایید با این نقش را ندارید." });
 
-        await using var tx = await conn.BeginTransactionAsync();
-        try
+        return await DbHelper.WithTransaction(conn, async tx =>
         {
             await conn.ExecuteAsync(
                 @"UPDATE final_results_approvals
@@ -103,31 +99,24 @@ public class ApprovalController : ControllerBase
                   WHERE region_id=@rid",
                 new { nid = NationalId, rid = regionId }, tx);
 
-            var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            var row = await conn.QueryRowDict(
                 "SELECT executive_approved, supervisor_approved FROM final_results_approvals WHERE region_id=@rid FOR UPDATE",
-                new { rid = regionId }, tx);
+                tx: tx);
 
-            int ea = (int)(row?.executive_approved ?? 0);
-            int sa = (int)(row?.supervisor_approved ?? 0);
-            int isActive = 0; // stays 0 per original logic
+            bool ea = Convert.ToBoolean(row?.GetValueOrDefault("executive_approved") ?? false);
+            bool sa = Convert.ToBoolean(row?.GetValueOrDefault("supervisor_approved") ?? false);
 
             await conn.ExecuteAsync(
-                "UPDATE final_results_approvals SET is_active=@ia WHERE region_id=@rid",
-                new { ia = isActive, rid = regionId }, tx);
+                "UPDATE final_results_approvals SET is_active=0 WHERE region_id=@rid",
+                new { rid = regionId }, tx);
 
-            await tx.CommitAsync();
             return Ok(new
             {
                 status = true,
                 message = "با موفقیت ثبت شد.",
-                data = new { executiveApproved = ea == 1, supervisorApproved = sa == 1, isActive = isActive == 1 }
+                data = new { executiveApproved = ea, supervisorApproved = sa, isActive = false }
             });
-        }
-        catch
-        {
-            await tx.RollbackAsync();
-            throw;
-        }
+        });
     }
 
     // POST /api/setFinalResultsApproval
@@ -136,44 +125,37 @@ public class ApprovalController : ControllerBase
     {
         await using var conn = _db.CreateConnection();
 
-        var user = await conn.QueryFirstOrDefaultAsync<dynamic>(
+        var user = await conn.QueryRowDict(
             "SELECT roles, region_id FROM users WHERE national_id=@nid LIMIT 1", new { nid = NationalId });
         if (user == null) return Unauthorized();
 
-        string userRoles = ((string)(user.roles ?? "")).ToUpper();
+        string userRoles = user.Str("roles").ToUpper();
         if (!new[] { "EXECUTIVE", "SUPERVISOR" }.Contains(userRoles))
             return BadRequest(new { status = false, message = "نقش تایید نامعتبر است." });
 
-        int regionId = (int)(user.region_id ?? 0);
+        int regionId = user.Int("region_id");
 
-        await using var tx = await conn.BeginTransactionAsync();
-        try
+        return await DbHelper.WithTransaction(conn, async tx =>
         {
-            var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            var row = await conn.QueryRowDict(
                 "SELECT executive_approved, supervisor_approved FROM final_results_approvals WHERE region_id=@rid FOR UPDATE",
-                new { rid = regionId }, tx);
+                tx: tx);
 
-            int ea = (int)(row?.executive_approved ?? 0);
-            int sa = (int)(row?.supervisor_approved ?? 0);
-            int isActive = ea == 1 && sa == 1 ? 1 : 0;
+            bool ea = Convert.ToBoolean(row?.GetValueOrDefault("executive_approved") ?? false);
+            bool sa = Convert.ToBoolean(row?.GetValueOrDefault("supervisor_approved") ?? false);
+            bool isActive = ea && sa;
 
             await conn.ExecuteAsync(
                 "UPDATE final_results_approvals SET is_active=@ia WHERE region_id=@rid",
-                new { ia = isActive, rid = regionId }, tx);
+                new { ia = isActive ? 1 : 0, rid = regionId }, tx);
 
-            await tx.CommitAsync();
             return Ok(new
             {
                 status = true,
                 message = "با موفقیت ثبت شد.",
-                data = new { executiveApproved = ea == 1, supervisorApproved = sa == 1, isActive = isActive == 1 }
+                data = new { executiveApproved = ea, supervisorApproved = sa, isActive }
             });
-        }
-        catch
-        {
-            await tx.RollbackAsync();
-            throw;
-        }
+        });
     }
 }
 

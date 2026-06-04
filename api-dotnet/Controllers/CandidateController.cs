@@ -27,15 +27,14 @@ public class CandidateController : ControllerBase
     {
         await using var conn = _db.CreateConnection();
 
-        // Check voting schedule
-        var schedule = await conn.QueryFirstOrDefaultAsync<dynamic>(
+        var schedule = await conn.QueryRowDict(
             "SELECT start_date, end_date FROM election_schedule_events WHERE event_key='voting' LIMIT 1");
 
         if (schedule == null)
             return BadRequest(new { status = false, message = "زمان‌بندی انتخابات تنظیم نشده است" });
 
-        var startDt = _jalali.NormalizeToGregorian((string?)schedule.start_date);
-        var endDt = _jalali.NormalizeToGregorian((string?)schedule.end_date);
+        var startDt = _jalali.NormalizeToGregorian(schedule.Str("start_date"));
+        var endDt   = _jalali.NormalizeToGregorian(schedule.Str("end_date"));
 
         if (!startDt.HasValue || !endDt.HasValue)
             return BadRequest(new { status = false, message = "زمان‌بندی انتخابات تنظیم نشده است" });
@@ -43,22 +42,22 @@ public class CandidateController : ControllerBase
         var now = DateTime.Now;
         if (now < startDt.Value)
         {
-            var remaining = startDt.Value - now;
+            var rem = startDt.Value - now;
             return BadRequest(new
             {
                 status = false,
                 message = "زمان انتخابات فرا نرسیده است",
                 remaining_time = new
                 {
-                    days = (int)remaining.TotalDays,
-                    hours = remaining.Hours,
-                    minutes = remaining.Minutes,
-                    total_seconds = (int)remaining.TotalSeconds
+                    days = (int)rem.TotalDays,
+                    hours = rem.Hours,
+                    minutes = rem.Minutes,
+                    total_seconds = (int)rem.TotalSeconds
                 }
             });
         }
 
-        var rows = (await conn.QueryAsync<dynamic>(
+        var rows = (await conn.QueryListDict(
             @"SELECT f.id AS codeentekhabati, tracking_code, f.create_date,
                      u.id, u.national_Id, u.first_name, u.last_name,
                      u.persian_birth_date, u.personnel_code, u.gender,
@@ -71,15 +70,13 @@ public class CandidateController : ControllerBase
               WHERE requestStatus='SUPERVISION_APPROVED'
               ORDER BY create_date DESC")).AsList();
 
-        var list = rows.Select(r =>
+        foreach (var r in rows)
         {
-            var d = (IDictionary<string, object>)r;
-            if (d["create_date"] is DateTime cd)
-                d["create_datesh"] = _jalali.Format(cd, "H:i Y-n-j ");
-            return d;
-        });
+            if (r.GetValueOrDefault("create_date") is DateTime cd)
+                r["create_datesh"] = _jalali.Format(cd, "H:i Y-n-j ");
+        }
 
-        return Ok(new { status = true, data = list });
+        return Ok(new { status = true, data = rows });
     }
 
     // GET /api/getstateCandid
@@ -88,29 +85,28 @@ public class CandidateController : ControllerBase
     {
         await using var conn = _db.CreateConnection();
 
-        // Check if edited_at column exists
-        var hasEditedAt = await conn.QueryFirstOrDefaultAsync<string>(
+        var hasCol = await conn.QueryFirstOrDefaultAsync<string>(
             "SHOW COLUMNS FROM final_submissions LIKE 'edited_at'");
-        var editedExpr = hasEditedAt != null ? "edited_at" : "NULL AS edited_at";
+        var editedExpr = hasCol != null ? "edited_at" : "NULL AS edited_at";
 
-        var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
+        var row = await conn.QueryRowDict(
             $"SELECT requestStatus, tracking_code, reson, {editedExpr} FROM final_submissions WHERE nationalId=@nid",
             new { nid = NationalId });
 
         if (row == null)
             return NotFound(new { status = false, message = "وضعیت یافت نشد!" });
 
-        DateTime? editedAt = row.edited_at;
+        DateTime? editedAt = row.GetValueOrDefault("edited_at") as DateTime?;
         return Ok(new
         {
             status = true,
             data = new
             {
-                requestStatus = row.requestStatus,
-                tracking_code = row.tracking_code,
-                reson = row.reson,
-                edited_at = row.edited_at,
-                edited_at_sh = editedAt.HasValue ? _jalali.Format(editedAt.Value, "H:i Y-n-j") : null
+                requestStatus = row.Str("requestStatus"),
+                tracking_code = row.Str("tracking_code"),
+                reson         = row.Str("reson"),
+                edited_at     = editedAt,
+                edited_at_sh  = editedAt.HasValue ? _jalali.Format(editedAt.Value, "H:i Y-n-j") : null
             }
         });
     }
@@ -123,40 +119,29 @@ public class CandidateController : ControllerBase
             return BadRequest(new { status = false, message = "پارامتر tracking_code الزامی است." });
 
         await using var conn = _db.CreateConnection();
-        await using var tx = await conn.BeginTransactionAsync();
-        try
+
+        return await DbHelper.WithTransaction(conn, async tx =>
         {
-            // Check registration schedule
-            var ev = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            var ev = await conn.QueryRowDict(
                 "SELECT start_date, end_date FROM election_schedule_events WHERE event_key='candidate_registration' LIMIT 1",
-                transaction: tx);
+                tx: tx);
 
             if (ev == null)
                 return StatusCode(403, new { status = false, message = "زمان ثبت‌نام انتخابات در سیستم تعریف نشده است." });
 
-            var start = _jalali.ParseJalaliSchedule((string?)ev.start_date);
-            var end = _jalali.ParseJalaliSchedule((string?)ev.end_date);
-            var now = DateTime.Now;
+            var start = _jalali.ParseJalaliSchedule(ev.Str("start_date"));
+            var end   = _jalali.ParseJalaliSchedule(ev.Str("end_date"));
+            var now   = DateTime.Now;
 
             if (!start.HasValue || now < start.Value)
-            {
-                await tx.RollbackAsync();
                 return StatusCode(403, new { status = false, message = "هنوز مهلت ثبت‌نام داوطلبان آغاز نشده است." });
-            }
             if (!end.HasValue || now > end.Value)
-            {
-                await tx.RollbackAsync();
                 return StatusCode(403, new { status = false, message = "مهلت ثبت‌نام داوطلبان به پایان رسیده است." });
-            }
 
-            // Check if already submitted
             var existing = await conn.QueryFirstOrDefaultAsync<string>(
                 "SELECT nationalId FROM final_submissions WHERE nationalId=@nid", new { nid = NationalId }, tx);
             if (existing != null)
-            {
-                await tx.RollbackAsync();
                 return StatusCode(404, new { status = false, message = "این کاربر قبلا ثبت نام کرده است.!" });
-            }
 
             await conn.ExecuteAsync(
                 @"INSERT INTO final_submissions (nationalId, tracking_code, requestStatus)
@@ -164,27 +149,18 @@ public class CandidateController : ControllerBase
                   ON DUPLICATE KEY UPDATE tracking_code=VALUES(tracking_code), create_date=NOW()",
                 new { nid = NationalId, tc = req.tracking_code }, tx);
 
-            await conn.ExecuteAsync(
-                "UPDATE users SET roles='CANDIDATE' WHERE national_id=@nid",
-                new { nid = NationalId }, tx);
-
+            await conn.ExecuteAsync("UPDATE users SET roles='CANDIDATE' WHERE national_id=@nid", new { nid = NationalId }, tx);
             await conn.ExecuteAsync(
                 "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'ثبت کاندید',@desc)",
                 new { nid = NationalId, desc = $"تغییر کد {NationalId} ثبت نام کرد" }, tx);
 
-            await tx.CommitAsync();
             return Ok(new
             {
                 status = true,
                 message = "ثبت نهایی با موفقیت انجام شد.",
                 data = new { nationalId = NationalId, tracking_code = req.tracking_code }
             });
-        }
-        catch
-        {
-            await tx.RollbackAsync();
-            throw;
-        }
+        });
     }
 
     // POST /api/canselRequestCANDIDATE
@@ -192,39 +168,26 @@ public class CandidateController : ControllerBase
     public async Task<IActionResult> CancelCandidateRequest()
     {
         await using var conn = _db.CreateConnection();
-        await using var tx = await conn.BeginTransactionAsync();
-        try
+
+        return await DbHelper.WithTransaction(conn, async tx =>
         {
             var existing = await conn.QueryFirstOrDefaultAsync<string>(
                 "SELECT nationalId FROM final_submissions WHERE nationalId=@nid", new { nid = NationalId }, tx);
             if (existing == null)
-            {
-                await tx.RollbackAsync();
                 return StatusCode(403, new { status = false, message = "شما دسترسی لازم را ندارید" });
-            }
 
-            var ev = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            var ev = await conn.QueryRowDict(
                 "SELECT start_date, end_date FROM election_schedule_events WHERE event_key='voting' LIMIT 1",
-                transaction: tx);
+                tx: tx);
             if (ev == null)
-            {
-                await tx.RollbackAsync();
                 return StatusCode(403, new { status = false, message = "زمان انتخابات در سیستم تعریف نشده است." });
-            }
 
-            var votingStart = _jalali.ParseJalaliSchedule((string?)ev.start_date);
+            var votingStart = _jalali.ParseJalaliSchedule(ev.Str("start_date"));
             if (!votingStart.HasValue)
-            {
-                await tx.RollbackAsync();
                 return StatusCode(403, new { status = false, message = "زمان انتخابات در سیستم تعریف نشده است." });
-            }
 
-            var deadline = votingStart.Value.AddHours(-48);
-            if (DateTime.Now > deadline)
-            {
-                await tx.RollbackAsync();
+            if (DateTime.Now > votingStart.Value.AddHours(-48))
                 return StatusCode(403, new { status = false, message = "زمان مجاز انصراف، 48 ساعت قبل شروع انتخابات می‌باشد." });
-            }
 
             await conn.ExecuteAsync("DELETE FROM final_submissions WHERE nationalId=@nid", new { nid = NationalId }, tx);
             await conn.ExecuteAsync("UPDATE users SET roles='VOTER' WHERE national_id=@nid", new { nid = NationalId }, tx);
@@ -232,14 +195,8 @@ public class CandidateController : ControllerBase
                 "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'حذف کاندید','حذف کاندید توسط خودش')",
                 new { nid = NationalId }, tx);
 
-            await tx.CommitAsync();
-            return Ok(new { status = true, message = "با موفقیت انجام شد." + NationalId });
-        }
-        catch
-        {
-            await tx.RollbackAsync();
-            throw;
-        }
+            return Ok(new { status = true, message = "با موفقیت انجام شد." });
+        });
     }
 }
 

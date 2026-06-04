@@ -18,84 +18,80 @@ public class AuthController : ControllerBase
         _jwt = jwt;
     }
 
-    // POST /api/AccountLogin  (code, role optional)
+    // GET /api/AccountLogin?code=...&role=...
     [AllowAnonymous]
     [HttpPost("AccountLogin")]
     [HttpGet("AccountLogin")]
-    public async Task<IActionResult> AccountLogin([FromQuery] string? code, [FromQuery] string? role,
+    public async Task<IActionResult> AccountLogin(
+        [FromQuery] string? code,
+        [FromQuery] string? role,
         [FromBody] LoginRequest? body)
     {
-        // Accept from query or body
         var nationalId = code ?? body?.code;
-        var roleParam = role ?? body?.role;
+        var roleParam  = role ?? body?.role;
 
         if (string.IsNullOrWhiteSpace(nationalId))
             return BadRequest(new { status = false, message = "خطای دریافت کد!" });
 
         await using var conn = _db.CreateConnection();
-        await conn.OpenAsync();
-        await using var tx = await conn.BeginTransactionAsync();
 
-        try
+        // اگر role ارسال شده، نقش را بروز کن
+        if (!string.IsNullOrWhiteSpace(roleParam))
+            await conn.ExecuteAsync(
+                "UPDATE users SET roles=@role WHERE national_id=@nid",
+                new { role = roleParam, nid = nationalId });
+
+        // دریافت کاربر به صورت Dictionary برای دسترسی امن
+        var user = await conn.QueryRowDict(
+            "SELECT * FROM users WHERE national_id=@nid",
+            new { nid = nationalId });
+
+        if (user == null)
+            return BadRequest(new { status = false, message = "خطای دریافت کاربر!" });
+
+        // دسترسی امن با GetValueOrDefault
+        int    userId     = Convert.ToInt32(user.GetValueOrDefault("id") ?? 0);
+        string userRoles  = !string.IsNullOrWhiteSpace(roleParam)
+                                ? roleParam
+                                : (user.GetValueOrDefault("roles") as string ?? "VOTER");
+        string regionName = user.GetValueOrDefault("regionName") as string ?? "";
+
+        // upsert userstatus
+        var statusExists = await conn.QueryFirstOrDefaultAsync<int?>(
+            "SELECT user_id FROM userstatus WHERE user_id=@uid", new { uid = userId });
+
+        if (statusExists.HasValue)
+            await conn.ExecuteAsync(
+                "UPDATE userstatus SET nationalId=@nid, ozvsandogh=1, sabegheO=1, madrak=1 WHERE user_id=@uid",
+                new { nid = nationalId, uid = userId });
+        else
+            await conn.ExecuteAsync(
+                "INSERT INTO userstatus (user_Id, nationalId, ozvsandogh, sabegheO, madrak) VALUES (@uid,@nid,1,1,1)",
+                new { uid = userId, nid = nationalId });
+
+        var token = _jwt.GenerateToken(nationalId, userRoles, regionName);
+
+        string firstName = user.GetValueOrDefault("first_name") as string ?? "";
+        string lastName  = user.GetValueOrDefault("last_name")  as string ?? "";
+
+        return Ok(new
         {
-            // Optionally update role
-            if (!string.IsNullOrWhiteSpace(roleParam))
-                await conn.ExecuteAsync(
-                    "UPDATE users SET roles=@role WHERE national_id=@nid",
-                    new { role = roleParam, nid = nationalId }, tx);
-
-            var user = await conn.QueryFirstOrDefaultAsync<dynamic>(
-                "SELECT * FROM users WHERE national_id=@nid",
-                new { nid = nationalId }, tx);
-
-            if (user == null)
-                return BadRequest(new { status = false, message = "خطای دریافت کاربر!" });
-
-            int userId = (int)user.id;
-            string userRoles = !string.IsNullOrWhiteSpace(roleParam) ? roleParam : (string)user.roles;
-            string regionName = (string)(user.regionName ?? "");
-
-            // Upsert userstatus
-            var existsStatus = await conn.QueryFirstOrDefaultAsync<int?>(
-                "SELECT user_id FROM userstatus WHERE user_id=@uid", new { uid = userId }, tx);
-
-            if (existsStatus.HasValue)
-                await conn.ExecuteAsync(
-                    "UPDATE userstatus SET nationalId=@nid, ozvsandogh=1, sabegheO=1, madrak=1 WHERE user_id=@uid",
-                    new { nid = nationalId, uid = userId }, tx);
-            else
-                await conn.ExecuteAsync(
-                    "INSERT INTO userstatus (user_Id, nationalId, ozvsandogh, sabegheO, madrak) VALUES (@uid,@nid,1,1,1)",
-                    new { uid = userId, nid = nationalId }, tx);
-
-            await tx.CommitAsync();
-
-            var token = _jwt.GenerateToken(nationalId, userRoles, regionName);
-
-            return Ok(new
+            status = true,
+            action = "updated",
+            user = new
             {
-                status = true,
-                action = "updated",
-                user = new
-                {
-                    id = nationalId,
-                    national_id = nationalId,
-                    personnel_code = user.personnel_code,
-                    orgPositionDesc = user.org_position_desc,
-                    full_name = $"{user.first_name} {user.last_name}".Trim(),
-                    roles = new[] { userRoles },
-                    userType = new[] { user.user_type },
-                    regionName,
-                    regionId = user.region_id
-                },
-                token
-            });
-        }
-        catch
-        {
-            await tx.RollbackAsync();
-            throw;
-        }
+                id             = nationalId,
+                national_id    = nationalId,
+                personnel_code = user.GetValueOrDefault("personnel_code"),
+                orgPositionDesc= user.GetValueOrDefault("org_position_desc"),
+                full_name      = $"{firstName} {lastName}".Trim(),
+                roles          = new[] { userRoles },
+                userType       = new[] { user.GetValueOrDefault("user_type") },
+                regionName,
+                regionId       = user.GetValueOrDefault("region_id")
+            },
+            token
+        });
     }
 }
 

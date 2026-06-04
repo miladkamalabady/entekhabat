@@ -25,37 +25,28 @@ public class VoteController : ControllerBase
 
     // GET /api/createVoteToken
     [HttpGet("createVoteToken")]
+    [HttpPost("createVoteToken")]
     public async Task<IActionResult> CreateVoteToken()
     {
         await using var conn = _db.CreateConnection();
-        await using var tx = await conn.BeginTransactionAsync();
-        try
+
+        return await DbHelper.WithTransaction(conn, async tx =>
         {
-            // Check if already voted
             var already = await conn.QueryFirstOrDefaultAsync<string>(
                 "SELECT usernationalid FROM voters WHERE usernationalid=@nid", new { nid = NationalId }, tx);
             if (already != null)
-            {
-                await tx.RollbackAsync();
                 return StatusCode(403, new { status = false, message = "شما قبلا رأی داده‌اید" });
-            }
 
-            var rawToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+            var rawToken  = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
             var tokenHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rawToken))).ToLower();
-            var expires = DateTime.Now.AddMinutes(2).ToString("yyyy-MM-dd HH:mm:ss");
+            var expires   = DateTime.Now.AddMinutes(2).ToString("yyyy-MM-dd HH:mm:ss");
 
             await conn.ExecuteAsync(
                 "INSERT INTO voting_tokens (user_id, token_hash, expires_at) VALUES (@nid, @hash, @exp)",
                 new { nid = NationalId, hash = tokenHash, exp = expires }, tx);
 
-            await tx.CommitAsync();
             return Ok(new { status = true, vote_token = rawToken, expires_in = 120 });
-        }
-        catch
-        {
-            await tx.RollbackAsync();
-            throw;
-        }
+        });
     }
 
     // POST /api/insertVote  {candidateIds: [], vote_token: ""}
@@ -66,10 +57,10 @@ public class VoteController : ControllerBase
             return BadRequest(new { status = false, message = "پارامتر الزامی است." });
 
         await using var conn = _db.CreateConnection();
-        await using var tx = await conn.BeginTransactionAsync();
-        try
+
+        return await DbHelper.WithTransaction(conn, async tx =>
         {
-            // Generate unique tracking code
+            // کد رهگیری یکتا
             string trackingCode;
             do
             {
@@ -80,41 +71,29 @@ public class VoteController : ControllerBase
                 if (!exists.HasValue) break;
             } while (true);
 
-            // Validate vote token
+            // اعتبارسنجی توکن
             var tokenHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(req.vote_token))).ToLower();
-            var token = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            var token = await conn.QueryRowDict(
                 "SELECT * FROM voting_tokens WHERE token_hash=@hash AND user_id=@nid LIMIT 1 FOR UPDATE",
                 new { hash = tokenHash, nid = NationalId }, tx);
 
             if (token == null)
-            {
-                await tx.RollbackAsync();
                 return StatusCode(403, new { status = false, message = "توکن نامعتبر" });
-            }
-            if ((int)token.used == 1)
-            {
-                await tx.RollbackAsync();
+            if (Convert.ToInt32(token.GetValueOrDefault("used") ?? 0) == 1)
                 return StatusCode(409, new { status = false, message = "شما قبلا رأی خود را ثبت کرده‌اید" });
-            }
-            if ((DateTime)token.expires_at < DateTime.Now)
-            {
-                await tx.RollbackAsync();
+            if (token.GetValueOrDefault("expires_at") is DateTime exp && exp < DateTime.Now)
                 return StatusCode(403, new { status = false, message = "زمان رأی‌گیری طولانی شده است، لطفا مجدد اقدام به ثبت رای نمایید" });
-            }
 
-            // Check max votes
-            var maxRow = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            // حداکثر رأی مجاز
+            var maxRow = await conn.QueryRowDict(
                 "SELECT maxVotes FROM users JOIN maxvotes ON maxvotes.region_id=users.region_id WHERE national_id=@nid",
                 new { nid = NationalId }, tx);
-            int maxVotes = maxRow != null ? (int)maxRow.maxVotes : 1;
+            int maxVotes = Convert.ToInt32(maxRow?.GetValueOrDefault("maxVotes") ?? 1);
 
             if (req.candidateIds.Length > maxVotes)
-            {
-                await tx.RollbackAsync();
                 return StatusCode(403, new { status = false, message = "تعداد کاندیداهای انتخابی صحیح نمی‌باشد" });
-            }
 
-            // Register participant if not yet
+            // ثبت شرکت‌کننده
             var participant = await conn.QueryFirstOrDefaultAsync<int?>(
                 "SELECT id FROM election_participants WHERE national_id=@nid LIMIT 1", new { nid = NationalId }, tx);
             if (!participant.HasValue)
@@ -122,7 +101,7 @@ public class VoteController : ControllerBase
                     "INSERT INTO election_participants (national_id, tracking_code) VALUES (@nid,@tc)",
                     new { nid = NationalId, tc = trackingCode }, tx);
 
-            // Insert votes
+            // ثبت رأی‌ها
             foreach (var candidateId in req.candidateIds)
             {
                 var dup = await conn.QueryFirstOrDefaultAsync<int?>(
@@ -133,30 +112,24 @@ public class VoteController : ControllerBase
                 await conn.ExecuteAsync(
                     "INSERT INTO votes (national_id, candidate_id) VALUES (@nid, @cid)",
                     new { nid = NationalId, cid = candidateId }, tx);
-
                 await conn.ExecuteAsync(
                     "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'ثبت رای',@desc)",
                     new { nid = NationalId, desc = $"کد {NationalId} به {candidateId} رای داد" }, tx);
             }
 
-            // Mark token used
+            // مصرف توکن
+            int tokenId = Convert.ToInt32(token.GetValueOrDefault("id") ?? 0);
             await conn.ExecuteAsync(
                 "UPDATE voting_tokens SET used=1, used_at=NOW() WHERE id=@id",
-                new { id = (int)token.id }, tx);
+                new { id = tokenId }, tx);
 
-            await tx.CommitAsync();
             return Ok(new
             {
                 status = true,
                 message = "ثبت رای با موفقیت انجام شد.",
                 data = new { tracking_code = trackingCode }
             });
-        }
-        catch
-        {
-            await tx.RollbackAsync();
-            throw;
-        }
+        });
     }
 
     // GET /api/getVote
@@ -165,7 +138,7 @@ public class VoteController : ControllerBase
     {
         await using var conn = _db.CreateConnection();
 
-        var votes = (await conn.QueryAsync<dynamic>(
+        var votes = (await conn.QueryListDict(
             @"SELECT fi.id AS codeentekhabati, v.candidate_id, v.created_at,
                      f.tracking_code, u.first_name, u.last_name
               FROM votes v
@@ -176,29 +149,26 @@ public class VoteController : ControllerBase
 
         if (votes.Any())
         {
-            var list = votes.Select(r =>
+            foreach (var r in votes)
             {
-                var d = (IDictionary<string, object>)r;
-                if (d["created_at"] is DateTime dt)
+                if (r.GetValueOrDefault("created_at") is DateTime dt)
                 {
-                    d["date1"] = _jalali.Format(dt, "l j F Y");
-                    d["Time1"] = _jalali.Format(dt, "H:i");
+                    r["date1"] = _jalali.Format(dt, "l j F Y");
+                    r["Time1"] = _jalali.Format(dt, "H:i");
                 }
-                return d;
-            });
-            return Ok(new { status = true, message = "دریافت لیست رای‌ها با موفقیت انجام شد.", data = list });
+            }
+            return Ok(new { status = true, message = "دریافت لیست رای‌ها با موفقیت انجام شد.", data = votes });
         }
 
-        // Return max votes if no votes yet
-        var maxRow = await conn.QueryFirstOrDefaultAsync<dynamic>(
+        var maxRow = await conn.QueryRowDict(
             "SELECT maxVotes FROM users JOIN maxvotes ON maxvotes.region_id=users.region_id WHERE national_id=@nid",
             new { nid = NationalId });
-        int maxVotes = maxRow != null ? (int)maxRow.maxVotes : 1;
+        int maxVotes = Convert.ToInt32(maxRow?.GetValueOrDefault("maxVotes") ?? 1);
 
         return Ok(new { status = true, message = "دریافت لیست رای‌ها با موفقیت انجام شد.", data = maxVotes });
     }
 
-    // GET /api/getInfoVote  (alias of getVote)
+    // GET /api/getInfoVote
     [HttpGet("getInfoVote")]
     public Task<IActionResult> GetInfoVote() => GetVote();
 
@@ -208,15 +178,15 @@ public class VoteController : ControllerBase
     {
         await using var conn = _db.CreateConnection();
 
-        var currentUser = await conn.QueryFirstOrDefaultAsync<dynamic>(
+        var currentUser = await conn.QueryRowDict(
             @"SELECT u.roles, u.region_id, r.ProvinceCode
               FROM users u LEFT JOIN region r ON r.id=u.region_id
               WHERE u.national_id=@nid LIMIT 1", new { nid = NationalId });
 
         if (currentUser == null) return Forbid();
 
-        string role = ((string)currentUser.roles).ToUpper();
-        bool isAdmin = role.Contains("ADMIN");
+        string role    = (currentUser.Str("roles")).ToUpper();
+        bool isAdmin   = role.Contains("ADMIN");
         bool isSupervisor = role.Contains("SUPERVISOR");
 
         if (!isAdmin && !isSupervisor)
@@ -229,24 +199,18 @@ public class VoteController : ControllerBase
 
         var whereParts = new List<string>
         {
-            $"(vu.national_id LIKE @q OR vu.personnel_code LIKE @q OR vu.first_name LIKE @q OR vu.last_name LIKE @q OR CONCAT(COALESCE(vu.first_name,''),' ',COALESCE(vu.last_name,'')) LIKE @q)"
+            "(vu.national_id LIKE @q OR vu.personnel_code LIKE @q OR vu.first_name LIKE @q OR vu.last_name LIKE @q OR CONCAT(COALESCE(vu.first_name,''),' ',COALESCE(vu.last_name,'')) LIKE @q)"
         };
 
         string scope = "all";
         if (!isAdmin)
         {
-            int regionId = (int)currentUser.region_id;
-            int provinceCode = currentUser.ProvinceCode != null ? (int)currentUser.ProvinceCode : 0;
+            int regionId     = currentUser.Int("region_id");
+            int provinceCode = currentUser.Int("ProvinceCode");
             if (regionId.ToString().EndsWith("00") && provinceCode > 0)
-            {
-                whereParts.Add($"vr.ProvinceCode={provinceCode}");
-                scope = "province";
-            }
+            { whereParts.Add($"vr.ProvinceCode={provinceCode}"); scope = "province"; }
             else
-            {
-                whereParts.Add($"vu.region_id={regionId}");
-                scope = "region";
-            }
+            { whereParts.Add($"vu.region_id={regionId}"); scope = "region"; }
         }
 
         var sql = $@"SELECT
@@ -276,37 +240,32 @@ public class VoteController : ControllerBase
           ORDER BY vu.id DESC, v.created_at DESC
           LIMIT {limit}";
 
-        var rows = (await conn.QueryAsync<dynamic>(sql, new { q = $"%{q}%" })).AsList();
+        var rows = (await conn.QueryListDict(sql, new { q = $"%{q}%" })).AsList();
 
-        var items = rows.Select(r =>
+        foreach (var r in rows)
         {
-            var d = (IDictionary<string, object>)r;
-            if (d["voted_at"] is DateTime vt)
-                d["voted_at_shamsi"] = _jalali.FormatShort(vt);
-            if (d["participant_created_at"] is DateTime pct)
-                d["participant_created_at_shamsi"] = _jalali.FormatShort(pct);
-            return d;
-        }).ToList();
+            if (r.GetValueOrDefault("voted_at") is DateTime vt)
+                r["voted_at_shamsi"] = _jalali.FormatShort(vt);
+            if (r.GetValueOrDefault("participant_created_at") is DateTime pct)
+                r["participant_created_at_shamsi"] = _jalali.FormatShort(pct);
+        }
 
-        // Build summary
         var summary = new Dictionary<string, object>();
-        foreach (var row in items)
+        foreach (var row in rows)
         {
-            var d = (IDictionary<string, object>)row;
-            var voterId = (string)d["voter_national_id"];
+            var voterId = row.Str("voter_national_id");
             if (!summary.ContainsKey(voterId))
                 summary[voterId] = new
                 {
-                    national_id = voterId,
-                    first_name = d["voter_first_name"],
-                    last_name = d["voter_last_name"],
-                    personnel_code = d["voter_personnel_code"],
-                    region_id = d["voter_region_id"],
-                    region_name = d["voter_region_name"],
-                    province_name = d["voter_province_name"],
-                    tracking_code = d["tracking_code"],
-                    vote_count = items.Count(x => ((IDictionary<string, object>)x)["voter_national_id"]?.ToString() == voterId
-                                                && ((IDictionary<string, object>)x)["vote_id"] != null)
+                    national_id    = voterId,
+                    first_name     = row.GetValueOrDefault("voter_first_name"),
+                    last_name      = row.GetValueOrDefault("voter_last_name"),
+                    personnel_code = row.GetValueOrDefault("voter_personnel_code"),
+                    region_id      = row.GetValueOrDefault("voter_region_id"),
+                    region_name    = row.GetValueOrDefault("voter_region_name"),
+                    province_name  = row.GetValueOrDefault("voter_province_name"),
+                    tracking_code  = row.GetValueOrDefault("tracking_code"),
+                    vote_count     = rows.Count(x => x.Str("voter_national_id") == voterId && x.GetValueOrDefault("vote_id") != null)
                 };
         }
 
@@ -317,7 +276,7 @@ public class VoteController : ControllerBase
         return Ok(new
         {
             status = true,
-            data = new { scope, items, summary = summary.Values },
+            data = new { scope, items = rows, summary = summary.Values },
             message = "جستجوی آرای کاربران با موفقیت انجام شد."
         });
     }

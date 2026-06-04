@@ -58,6 +58,16 @@ var app = builder.Build();
 // پورت پیش‌فرض
 app.Urls.Add("http://localhost:5050");
 
+// نمایش جزئیات خطا در response (برای debug)
+app.UseExceptionHandler(errApp => errApp.Run(async ctx =>
+{
+    var ex = ctx.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error;
+    ctx.Response.StatusCode = 500;
+    ctx.Response.ContentType = "application/json";
+    await ctx.Response.WriteAsync(
+        System.Text.Json.JsonSerializer.Serialize(new { status = false, error = ex?.Message, trace = ex?.StackTrace }));
+}));
+
 // CORS باید قبل از routing و authentication باشد
 app.UseRouting();
 app.UseCors();

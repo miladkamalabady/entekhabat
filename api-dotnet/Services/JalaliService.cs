@@ -1,37 +1,27 @@
-using System.Globalization;
-
 namespace EntekhabatApi.Services;
 
 /// <summary>
-/// Converts between Jalali (Shamsi) and Gregorian dates.
-/// Equivalent of jdf.php in the PHP codebase.
+/// تبدیل شمسی↔میلادی — پیاده‌سازی مستقیم از jdf.php نسخه 2.55
 /// </summary>
 public class JalaliService
 {
-    private readonly PersianCalendar _persian = new();
-
     private static readonly string[] MonthNames =
     {
         "فروردین","اردیبهشت","خرداد","تیر","مرداد","شهریور",
         "مهر","آبان","آذر","دی","بهمن","اسفند"
     };
-
     private static readonly string[] DayNames =
     {
         "یکشنبه","دوشنبه","سه‌شنبه","چهارشنبه","پنجشنبه","جمعه","شنبه"
     };
 
-    // jdate() equivalent: format a DateTime as Jalali string
-    // Supported tokens: Y n j m d H i s F l
+    // ─── Format (معادل jdate) ──────────────────────────────────────
+
     public string Format(DateTime dt, string fmt)
     {
-        int jy = _persian.GetYear(dt);
-        int jm = _persian.GetMonth(dt);
-        int jd = _persian.GetDayOfMonth(dt);
-        // Saturday=6 Gregorian → index 0 in Persian week
-        int dow = ((int)dt.DayOfWeek + 1) % 7;
+        GregorianToJalali(dt.Year, dt.Month, dt.Day, out int jy, out int jm, out int jd);
+        int dow = ((int)dt.DayOfWeek + 1) % 7; // شنبه=0
 
-        // Replace longest tokens first to avoid double replacement
         return fmt
             .Replace("H", dt.Hour.ToString("D2"))
             .Replace("i", dt.Minute.ToString("D2"))
@@ -45,13 +35,23 @@ public class JalaliService
             .Replace("l", DayNames[dow]);
     }
 
-    public string FormatShort(DateTime dt) => Format(dt, "H:i Y-n-j");
-    public string FormatDate(DateTime dt) => Format(dt, "Y/m/d");
+    public string FormatShort(DateTime dt)    => Format(dt, "H:i Y-n-j");
+    public string FormatDate(DateTime dt)     => Format(dt, "Y/m/d");
     public string FormatDateTime(DateTime dt) => Format(dt, "H:i Y/m/d");
-    public string FormatLong(DateTime dt) => Format(dt, "l j F Y");
 
-    // normalizeToGregorianDateTime() equivalent
-    // Accepts Jalali OR Gregorian strings like "1402-10-15 08:00" or "2024-01-05 08:00"
+    // ─── NormalizeToGregorian ──────────────────────────────────────
+
+    // MySqlConnector تاریخ‌های شمسی ذخیره شده در DATETIME را به DateTime تبدیل می‌کند
+    // باید آن را به‌عنوان شمسی تفسیر و به میلادی تبدیل کنیم
+    public DateTime? NormalizeToGregorian(object? value)
+    {
+        if (value == null || value is DBNull) return null;
+        if (value is DateTime dt)
+            // InvariantCulture ضروری است: در locale فارسی، ToString() شمسی برمی‌گرداند
+            return NormalizeToGregorian(dt.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture));
+        return NormalizeToGregorian(value.ToString());
+    }
+
     public DateTime? NormalizeToGregorian(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return null;
@@ -60,7 +60,6 @@ public class JalaliService
         var parts = value.Split(' ', 2);
         var datePart = parts[0];
         var timePart = parts.Length > 1 ? parts[1] : "00:00:00";
-
         if (timePart.Length == 5) timePart += ":00";
 
         var seg = datePart.Split('-');
@@ -71,9 +70,11 @@ public class JalaliService
 
         if (!TimeSpan.TryParse(timePart, out var time)) time = TimeSpan.Zero;
 
-        if (y < 1700) // Jalali
+        if (y < 1700) // شمسی
         {
-            try { return _persian.ToDateTime(y, m, d, time.Hours, time.Minutes, time.Seconds, 0); }
+            var gd = JalaliToGregorianDate(y, m, d);
+            if (gd == null) return null;
+            try { return new DateTime(gd.Value.gy, gd.Value.gm, gd.Value.gd, time.Hours, time.Minutes, time.Seconds); }
             catch { return null; }
         }
 
@@ -81,29 +82,69 @@ public class JalaliService
         catch { return null; }
     }
 
-    // jalali_to_gregorian() equivalent (used for FinalSubmit schedule checking)
-    public (int gy, int gm, int gd) JalaliToGregorian(int jy, int jm, int jd)
+    public DateTime? ParseJalaliSchedule(string? dateStr) => NormalizeToGregorian(dateStr);
+
+    // ─── jalali_to_gregorian (معادل مستقیم jdf.php) ───────────────
+
+    public static (int gy, int gm, int gd)? JalaliToGregorianDate(int jy, int jm, int jd)
     {
         try
         {
-            var dt = _persian.ToDateTime(jy, jm, jd, 0, 0, 0, 0);
-            return (dt.Year, dt.Month, dt.Day);
+            int d4   = (jy + 1) % 4;
+            int doyJ = jm < 7 ? (jm - 1) * 31 + jd : (jm - 7) * 30 + jd + 186;
+            int d33  = (int)(((jy - 55) % 132) * 0.0305);
+            int a    = (d33 != 3 && d4 <= d33) ? 287 : 286;
+            int b    = ((d33 == 1 || d33 == 2) && (d33 == d4 || d4 == 1)) ? 78
+                      : ((d33 == 3 && d4 == 0) ? 80 : 79);
+            if ((jy - 19) / 63 == 20) { a--; b++; }
+
+            int gy, gd2;
+            if (doyJ <= a) { gy = jy + 621; gd2 = doyJ + b; }
+            else           { gy = jy + 622; gd2 = doyJ - a; }
+
+            // تعیین ماه و روز میلادی
+            int[] mo = { 0, 31, gy % 4 == 0 ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+            int gm2 = 0;
+            for (gm2 = 0; gm2 < mo.Length; gm2++)
+            {
+                if (gd2 <= mo[gm2]) break;
+                gd2 -= mo[gm2];
+            }
+            return (gy, gm2, gd2);
         }
-        catch { return (0, 0, 0); }
+        catch { return null; }
     }
 
-    public DateTime? ParseJalaliSchedule(string? dateStr)
+    // ─── gregorian_to_jalali (معادل مستقیم jdf.php) ───────────────
+
+    public static void GregorianToJalali(int gy, int gm, int gd, out int jy, out int jm, out int jd)
     {
-        if (string.IsNullOrWhiteSpace(dateStr)) return null;
-        var sp = dateStr.Split(' ', 2);
-        if (sp.Length != 2) return null;
-        var dateSeg = sp[0].Split('-');
-        if (dateSeg.Length != 3) return null;
-        if (!int.TryParse(dateSeg[0], out int jy) ||
-            !int.TryParse(dateSeg[1], out int jm) ||
-            !int.TryParse(dateSeg[2], out int jd)) return null;
-        if (!TimeSpan.TryParse(sp[1], out var t)) t = TimeSpan.Zero;
-        try { return _persian.ToDateTime(jy, jm, jd, t.Hours, t.Minutes, t.Seconds, 0); }
-        catch { return null; }
+        int d4 = gy % 4;
+        int[] ga = { 0, 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 };
+        int doyG = ga[gm] + gd;
+        if (d4 == 0 && gm > 2) doyG++;
+
+        int d33 = (int)(((gy - 16) % 132) * 0.0305);
+        int a   = (d33 == 3 || d33 < d4 - 1 || d4 == 0) ? 286 : 287;
+        int b   = ((d33 == 1 || d33 == 2) && (d33 == d4 || d4 == 1)) ? 78
+                 : ((d33 == 3 && d4 == 0) ? 80 : 79);
+        if ((gy - 10) / 63 == 30) { a--; b++; }
+
+        int doyJ;
+        if (doyG > b) { jy = gy - 621; doyJ = doyG - b; }
+        else          { jy = gy - 622; doyJ = doyG + a; }
+
+        if (doyJ < 187)
+        {
+            jm  = (doyJ - 1) / 31;
+            jd  = doyJ - 31 * jm;
+            jm++;
+        }
+        else
+        {
+            jm  = (doyJ - 187) / 30;
+            jd  = doyJ - 186 - jm * 30;
+            jm += 7;
+        }
     }
 }

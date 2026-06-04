@@ -1,3 +1,4 @@
+E:\oldwin\entekhabat\api-dotnet\bin\Debug\net8.0\appsettings.Development.json
 E:\oldwin\entekhabat\api-dotnet\bin\Debug\net8.0\appsettings.json
 E:\oldwin\entekhabat\api-dotnet\bin\Debug\net8.0\EntekhabatApi.staticwebassets.runtime.json
 E:\oldwin\entekhabat\api-dotnet\bin\Debug\net8.0\EntekhabatApi.exe
@@ -36,4 +37,3 @@ E:\oldwin\entekhabat\api-dotnet\obj\Debug\net8.0\refint\EntekhabatApi.dll
 E:\oldwin\entekhabat\api-dotnet\obj\Debug\net8.0\EntekhabatApi.pdb
 E:\oldwin\entekhabat\api-dotnet\obj\Debug\net8.0\EntekhabatApi.genruntimeconfig.cache
 E:\oldwin\entekhabat\api-dotnet\obj\Debug\net8.0\ref\EntekhabatApi.dll
-E:\oldwin\entekhabat\api-dotnet\bin\Debug\net8.0\appsettings.Development.json

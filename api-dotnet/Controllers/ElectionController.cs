@@ -27,22 +27,28 @@ public class ElectionController : ControllerBase
     {
         await using var conn = _db.CreateConnection();
 
-        var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
+        var row = await conn.QueryRowDict(
             "SELECT start_date, end_date FROM election_schedule_events WHERE event_key='voting' LIMIT 1");
 
         if (row == null)
             return BadRequest(new { status = false, message = "زمان‌بندی انتخابات تنظیم نشده است" });
 
+        // DEBUG: بررسی نوع و مقدار خام تاریخ
+        var rawVal = row.GetValueOrDefault("start_date");
+        var rawType = rawVal?.GetType().FullName ?? "null";
+        var rawStr  = rawVal?.ToString() ?? "null";
+
         var now = DateTime.Now;
-        var startDt = _jalali.NormalizeToGregorian((string?)row.start_date);
-        var endDt = _jalali.NormalizeToGregorian((string?)row.end_date);
+        var startDt = _jalali.NormalizeToGregorian(rawVal);
+        var endDt   = _jalali.NormalizeToGregorian(row.GetValueOrDefault("end_date"));
         int isActive = startDt.HasValue && endDt.HasValue && startDt <= now && now <= endDt ? 1 : 0;
 
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
         var cfg = new
         {
             id = 1,
-            startDate = startDt?.ToString("yyyy-MM-dd HH:mm:ss"),
-            EndDate = endDt?.ToString("yyyy-MM-dd HH:mm:ss"),
+            startDate = startDt?.ToString("yyyy-MM-dd HH:mm:ss", inv),
+            EndDate = endDt?.ToString("yyyy-MM-dd HH:mm:ss", inv),
             create_date = (string?)null,
             active = isActive
         };
@@ -50,6 +56,7 @@ public class ElectionController : ControllerBase
         return Ok(new
         {
             status = true,
+            _debug = new { rawType, rawStr, startDtValue = startDt?.ToString("yyyy-MM-dd HH:mm:ss") },
             data = new
             {
                 cfg.id, cfg.startDate, cfg.EndDate, cfg.create_date, cfg.active,
