@@ -63,6 +63,7 @@
             <tr>
               <th>کد منطقه</th>
               <th>نام منطقه</th>
+              <th>واجدین رأی</th>
               <th>تعداد رأی مجاز</th>
               <th>عملیات</th>
             </tr>
@@ -71,6 +72,7 @@
             <tr v-for="area in maxVotesProvinceAreas" :key="area.id">
               <td>{{ area.id }}</td>
               <td>{{ area.name }}</td>
+              <td>{{ voterCountByRegion[area.id] || 0 }}</td>
               <td>
                 <input v-model.number="area.maxVotes" class="max-votes-input" type="number" min="1" max="50">
               </td>
@@ -265,6 +267,16 @@ export default {
       return this.areasByProvince[this.selectedProvinceCode] || [];
     }, maxVotesProvinceAreas() {
       return this.areasByProvince[this.maxVotesProvinceCode] || [];
+    },
+    voterCountByRegion() {
+      const map = {};
+      this.users.forEach(u => {
+        if (u.roles === 'VOTER') {
+          const rid = Number(u.region_id);
+          map[rid] = (map[rid] || 0) + 1;
+        }
+      });
+      return map;
     },
     filteredUsers() {
       const search = this.filters.search.toLowerCase();
