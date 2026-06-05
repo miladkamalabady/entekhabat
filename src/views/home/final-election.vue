@@ -1,12 +1,12 @@
 <template>
   <div class="election-results-page">
-    <b-container class="ads-container mt-4" v-if="electionStatusAll !== 'ended'">
-
+    <b-container class="ads-container mt-4" v-if="electionStatusAll !== 'ended' && !isAdmin">
       <b-alert variant="danger" class="text-center" show>زمان انتخابات به اتمام نرسیده است!</b-alert>
-
     </b-container>
+
+
     <!-- Celebration Header -->
-    <b-container fluid class="celebration-header py-5" v-if="electionStatusAll === 'ended'">
+    <b-container fluid class="celebration-header py-5" v-if="electionStatusAll === 'ended' || isAdmin">
       <div class="text-center">
         <div class="celebration-icon">
           <b-icon icon="trophy-fill"></b-icon>
@@ -23,7 +23,45 @@
     </b-container>
 
     <!-- Results Summary -->
-    <b-container class="results-container" v-if="electionStatusAll === 'ended'">
+    <b-container class="results-container" v-if="electionStatusAll === 'ended' || isAdmin">
+
+      <!-- Admin Filter Panel -->
+      <b-card v-if="isAdmin" class="admin-filter-card mb-4">
+        <div class="d-flex align-items-center mb-2">
+          <b-icon icon="funnel-fill" class="ml-2 text-warning"></b-icon>
+          <strong>فیلتر نتایج بر اساس منطقه (مخصوص مدیر)</strong>
+          <b-badge v-if="electionStatusAll !== 'ended'" variant="warning" class="mr-auto">پیش‌نمایش — منتشر نشده</b-badge>
+        </div>
+        <b-row>
+          <b-col md="4" sm="6" class="mb-2">
+            <label class="mb-1 small">استان:</label>
+            <b-form-select v-model="selectedProvince" @change="onProvinceChange" size="sm">
+              <option :value="null">همه استان‌ها (کل کشور)</option>
+              <option v-for="prov in provinces" :key="prov.id" :value="prov.id">{{ prov.name }}</option>
+            </b-form-select>
+          </b-col>
+          <b-col md="4" sm="6" class="mb-2" v-if="selectedProvince">
+            <label class="mb-1 small">منطقه:</label>
+            <b-form-select v-model="selectedArea" @change="onAreaChange" size="sm">
+              <option :value="null">همه مناطق استان</option>
+              <option v-for="area in areasForSelectedProvince" :key="area.id" :value="area.id">{{ area.name }}</option>
+            </b-form-select>
+          </b-col>
+          <b-col cols="auto" class="mb-2 d-flex align-items-end" v-if="selectedProvince || selectedArea">
+            <b-button size="sm" variant="outline-secondary" @click="clearFilter">
+              <b-icon icon="x-circle" class="ml-1"></b-icon>
+              پاک کردن فیلتر
+            </b-button>
+          </b-col>
+        </b-row>
+        <div v-if="selectedArea || selectedProvince" class="mt-1">
+          <small class="text-muted">
+            نمایش نتایج برای:
+            <strong>{{ selectedArea ? (areasForSelectedProvince.find(a=>a.id===selectedArea)||{}).name : (provinces.find(p=>p.id===selectedProvince)||{}).name }}</strong>
+          </small>
+        </div>
+      </b-card>
+
       <!-- Overall Stats -->
       <b-row class="mb-5">
         <b-col cols="12">
@@ -87,8 +125,11 @@
         <b-row class="align-items-center">
           <b-col md="4" class="text-center">
             <div class="winner-photo-container">
-              <img v-if="winner.user_photo" :src="`${apiUrlrtb}/${winner.user_photo}`" :alt="winner.first_name"
+              <img v-if="winner.photo" :src="winner.photo" :alt="winner.name"
                 class="winner-photo" />
+              <div v-else class="winner-photo placeholder">
+                <b-icon icon="person-circle"></b-icon>
+              </div>
               <div class="winner-crown">
                 <b-icon icon="crown-fill"></b-icon>
               </div>
@@ -97,7 +138,7 @@
 
           <b-col md="8">
             <div class="winner-info">
-              <h2 class="winner-name">{{ winner.first_name }} {{ winner.last_name }}</h2>
+              <h2 class="winner-name">{{ winner.name }}</h2>
               <p class="winner-position">{{ winner.org_position_desc }}</p>
 
               <div class="winner-stats">
@@ -123,17 +164,13 @@
                 </b-row>
               </div>
 
-              <div class="winner-quote mt-4">
-                <b-icon icon="quote" variant="secondary" class="ml-2"></b-icon>
-                <em>{{ winner.quote }}</em>
-              </div>
             </div>
           </b-col>
         </b-row>
 
         <div class="victory-message text-center mt-4">
           <b-alert variant="success" show class="d-inline-block">
-            <h5 class="alert-heading mb-2">پیروزی با {{ winner.name.split(' ')[1] }}!</h5>
+            <h5 class="alert-heading mb-2">پیروزی با {{ winner.name }}!</h5>
             <p class="mb-0">با کسب {{ winner.percentage }}% از آراء به عنوان عضو جدید صندوق ذخیره فرهنگیان
               انتخاب شدند.</p>
           </b-alert>
@@ -179,7 +216,8 @@
 
             <template #cell(candidate)="data">
               <div class="candidate-info">
-                <img :src="`${data.item.photo}`" class="candidate-photo" :alt="data.item.name" />
+                <img v-if="data.item.photo" :src="data.item.photo" class="candidate-photo" :alt="data.item.name" />
+                <div v-else class="candidate-photo placeholder"><b-icon icon="person-circle"></b-icon></div>
                 <div class="candidate-details">
                   <strong>{{ data.item.name }} </strong>
                   <small class="text-muted d-block">{{ data.item.position }}</small>
@@ -285,17 +323,9 @@
             </h5>
             <div class="region-results">
               <b-table :items="regionResults" :fields="regionFields" small striped class="text-right">
-                <template #cell(winner)="data">
-                  <div class="region-winner">
-                    <img v-if="getCandidatePhoto(data.value)" :src="getCandidatePhoto(data.value)"
-                      class="region-winner-photo" :alt="data.value" />
-                    <div v-else class="region-winner-photo placeholder">
-                      <b-icon icon="person-circle"></b-icon>
-                    </div>
-                    <span class="region-winner-name">{{ data.value }}</span>
-                  </div>
+                <template #cell(votes)="data">
+                  {{ formatNumber(data.value) }}
                 </template>
-
                 <template #cell(participation)="data">
                   <div class="region-participation">
                     <b-progress :value="data.value" :max="100" height="4px" class="mb-1"
@@ -332,8 +362,7 @@
         <b-alert v-if="hoveredFinalProvince" show variant="info" class="hovered-province-popup mt-3 mb-0">
           <strong>{{ hoveredFinalProvince.name }}</strong>
           — مشارکت: {{ hoveredFinalProvince.participation }}% |
-          آرا: {{ formatNumber(hoveredFinalProvince.votes) }} |
-          کاندیدای برتر: {{ hoveredFinalProvince.winner }}
+          آرا: {{ formatNumber(hoveredFinalProvince.votes) }}
         </b-alert>
       </b-card>
       <!-- Share Results -->
@@ -370,7 +399,7 @@
     </b-container>
 
     <!-- Statistics Footer -->
-    <b-container fluid class="stats-footer text-center py-4" v-if="electionStatusAll === 'ended'">
+    <b-container fluid class="stats-footer text-center py-4" v-if="electionStatusAll === 'ended' || isAdmin">
       صندوق ذخیره فرهنگیان
     </b-container>
   </div>
@@ -378,7 +407,6 @@
 
 <script>
 import Chart from 'chart.js';
-import { apiUrlrtb } from '../../constants/config'
 import { mapGetters, mapActions, mapMutations } from "vuex";
 export default {
   name: "ElectionFinalResults",
@@ -386,9 +414,12 @@ export default {
     return {
       isActive: false,
       document: null,
-      apiUrlrtb,
       electionDate: '۱۴۰۲/۱۱/۱۵',
       viewMode: 'table',
+      selectedProvince: null,
+      selectedArea: null,
+      provinces: [],
+      areasByProvince: {},
 
       // Chart Instances
       participationChart: null,
@@ -411,35 +442,20 @@ export default {
 
       // Winner Data
       winner: {
-        id: 1,
+        id: null,
         name: '',
-        position: 'استاد دانشگاه - علوم تربیتی',
-        photo: 'assets/img/avatars/image1.png?text=دکتر+احمدی',
-        votes: 45680,
-        percentage: 36.4,
-        margin: 8.2,
-        quote: 'سپاسگزار اعتماد فرهنگیان عزیز هستم. این انتخاب، مسئولیتی بزرگ در قبال آینده صندوق ذخیره فرهنگیان است.'
+        position: '',
+        photo: null,
+        votes: 0,
+        percentage: 0,
+        margin: 0
       },
 
       // Candidates Data
       candidates: [],
 
-      // Region Results
-      regionResults: [
-        { id: 1, name: 'تهران', votes: 35480, participation: 72.5, winner: 'دکتر محمدرضا احمدی' },
-        { id: 2, name: 'مشهد', votes: 18450, participation: 68.3, winner: 'مهندس سید علی حسینی' },
-        { id: 3, name: 'اصفهان', votes: 13870, participation: 65.2, winner: 'دکتر فاطمه کریمی' },
-        { id: 4, name: 'شیراز', votes: 10650, participation: 61.7, winner: 'دکتر محمدرضا احمدی' },
-        { id: 5, name: 'تبریز', votes: 9540, participation: 59.4, winner: 'مهندس سید علی حسینی' },
-        { id: 6, name: 'کرج', votes: 8760, participation: 63.1, winner: 'دکتر محمدرضا احمدی' }
-      ],
-
-      // Certification Data
-      certification: {
-        protocolNumber: 'PR-۱۴۰۲-۱۱-۱۶-۰۰۱',
-        approvalDate: '۱۴۰۲/۱۱/۱۶',
-        committeeHead: 'دکتر سید حسن موسوی'
-      },
+      // Region Results (from API)
+      regionResults: [],
 
       // Table Fields
       rankingFields: [
@@ -452,8 +468,7 @@ export default {
       regionFields: [
         { key: 'name', label: 'استان', sortable: true },
         { key: 'votes', label: 'آرای معتبر', sortable: true },
-        { key: 'participation', label: 'مشارکت', sortable: true },
-        { key: 'winner', label: 'کاندیدای برتر', sortable: false }
+        { key: 'participation', label: 'مشارکت', sortable: true }
       ],
 
       // Share Link
@@ -462,7 +477,16 @@ export default {
     };
   },
   computed: {
-    ...mapGetters(["electionStatusAll", "ConfigInfo"]),
+    ...mapGetters(["electionStatusAll", "ConfigInfo", "currentUser"]),
+    isAdmin() {
+      console.log(this.currentUser);
+      
+      return this.currentUser?.roles[0] === 'ADMIN';
+    },
+    areasForSelectedProvince() {
+      if (!this.selectedProvince) return [];
+      return this.areasByProvince[this.selectedProvince] || [];
+    },
     sortedCandidates() {
       return [...this.candidates].sort((a, b) => b.votes - a.votes);
     },
@@ -511,7 +535,7 @@ export default {
     }
   },
   methods: {
-    ...mapActions(["getConfig", "getInfoVote", "getFinalResultsApprovalStatus", "setFinalResultsApproval"]),
+    ...mapActions(["getConfig", "getInfoVote", "getRegions", "getFinalResultsApprovalStatus", "setFinalResultsApproval"]),
     // Formatting
     async activateFinalResults() {
       const response = await this.setFinalResultsApproval()
@@ -523,9 +547,26 @@ export default {
     formatNumber(num) {
       return new Intl.NumberFormat('fa-IR').format(num);
     },
+    async onProvinceChange() {
+      this.selectedArea = null;
+      await this.loadFinalResults();
+    },
+    async onAreaChange() {
+      await this.loadFinalResults();
+    },
+    async clearFilter() {
+      this.selectedProvince = null;
+      this.selectedArea = null;
+      await this.loadFinalResults();
+    },
     async loadFinalResults() {
-      const data = await this.getInfoVote();
-      this.infoVote = data;
+      let params = {};
+      if (this.selectedArea) params = { region: this.selectedArea };
+      else if (this.selectedProvince) params = { province: this.selectedProvince };
+      const [data, regionsResponse] = await Promise.all([
+        this.getInfoVote(params),
+        this.getRegions()
+      ]);
 
       const totalVotes = Number(data?.totalVotes) || 0;
       const totalVoters = Number(data?.totalVoters) || 0;
@@ -540,17 +581,13 @@ export default {
           id: candidate.id ?? index,
           name: `${candidate.first_name || ''} ${candidate.last_name || ''}`.trim(),
           position: candidate.org_position_desc || '',
-          photo: candidate.user_photo ? `${this.apiUrlrtb}/${candidate.user_photo}` : null,
+          photo: candidate.user_photo ? `${candidate.user_photo}` : null,
           votes,
           percentage,
           color: colors[index % colors.length],
-          status: index === 0 ? 'winner' : 'qualified',
-          quote: 'به امید روزهای خوب برای صندوق',
-          previousMember: false
+          status: index === 0 ? 'winner' : 'qualified'
         };
-      });
-
-      this.candidates = this.candidates.sort((a, b) => b.votes - a.votes);
+      }).sort((a, b) => b.votes - a.votes);
 
       const winner = this.candidates[0];
       const runnerUp = this.candidates[1];
@@ -558,21 +595,7 @@ export default {
         ? Number((((winner.votes - runnerUp.votes) / totalVotes) * 100).toFixed(1))
         : 0;
 
-      this.winner = winner
-        ? {
-          ...winner,
-          margin
-        }
-        : {
-          id: null,
-          name: '',
-          position: '',
-          photo: null,
-          votes: 0,
-          percentage: 0,
-          margin: 0,
-          quote: this.winner.quote
-        };
+      this.winner = winner ? { ...winner, margin } : this.winner;
 
       this.finalResults = {
         ...this.finalResults,
@@ -580,12 +603,30 @@ export default {
         totalVotes,
         participationRate: Number(data?.voterParticipation) || 0,
         totalCandidates: Number(data?.Candidates) || this.candidates.length,
-        invalidVotes: Number(data?.invalidVotes) || 0
+        invalidVotes: 0
       };
 
       if (this.ConfigInfo?.EndDate) {
         this.electionDate = new Date(this.ConfigInfo.EndDate).toLocaleDateString('fa-IR');
       }
+
+      // Build province results from API
+      const provinces = regionsResponse?.data || [];
+      this.provinces = provinces;
+      this.areasByProvince = regionsResponse?.areasByProvince || {};
+      const pvs = data?.provinceVoteStats || {};
+      const epv = data?.eligiblePerProvince || {};
+      this.regionResults = provinces
+        .map(province => {
+          const key = Number(province.id) * 100;
+          const stat = pvs[key] || {};
+          const votes = Number(stat.votes || 0);
+          const eligible = Number(epv[key] || stat.eligible || 0);
+          const participation = eligible > 0 ? Number(((votes / eligible) * 100).toFixed(1)) : 0;
+          return { id: province.id, name: province.name, votes, participation };
+        })
+        .filter(r => r.votes > 0 || r.participation > 0)
+        .sort((a, b) => b.votes - a.votes);
 
       this.$nextTick(() => {
         this.initializeCharts();
@@ -800,11 +841,6 @@ export default {
       return texts[status] || status;
     },
 
-    getCandidatePhoto(name) {
-      const candidate = this.candidates.find(c => c.name === name);
-      return candidate ? candidate.photo : null;
-    },
-
     getRegionVariant(percentage) {
       if (percentage >= 70) return 'success';
       if (percentage >= 60) return 'info';
@@ -826,16 +862,15 @@ export default {
 
     // Actions
     downloadRegionalResults() {
-      // In real app, this would download a CSV/PDF file
-      alert('نتایج استانی در حال دانلود...');
-      // Simulate download
-      setTimeout(() => {
-        this.$bvToast.toast('نتایج استانی با موفقیت دانلود شد', {
-          title: 'موفقیت',
-          variant: 'success',
-          solid: true
-        });
-      }, 1000);
+      if (!this.regionResults.length) return;
+      const header = 'استان,آرا,مشارکت%';
+      const rows = this.regionResults.map(r => `${r.name},${r.votes},${r.participation}`);
+      const csv = [header, ...rows].join('\n');
+      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'نتایج_استانی.csv'; a.click();
+      URL.revokeObjectURL(url);
     },
 
 
@@ -879,7 +914,7 @@ export default {
     },
 
     shareTwitter() {
-      const text = `نتایج انتخابات صندوق ذخیره فرهنگیان\nبرنده: ${this.winner.name.split(' ')[1]} با ${this.winner.percentage}% آرا\nمشارکت: ${this.finalResults.participationRate}%\n#انتخابات_فرهنگیان`;
+      const text = `نتایج انتخابات صندوق ذخیره فرهنگیان\nبرنده: ${this.winner.name} با ${this.winner.percentage}% آرا\nمشارکت: ${this.finalResults.participationRate}%\n#انتخابات_فرهنگیان`;
       const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(this.shareLink)}`;
       window.open(url, '_blank');
     },
@@ -907,6 +942,12 @@ export default {
 </script>
 
 <style scoped>
+.admin-filter-card {
+  border: 2px dashed #ffc107;
+  background: #fffbee;
+  border-radius: 12px;
+}
+
 .iran-heatmap-card {
   border-radius: 16px;
 }

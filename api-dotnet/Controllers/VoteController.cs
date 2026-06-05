@@ -168,17 +168,33 @@ public class VoteController : ControllerBase
         return Ok(new { status = true, message = "دریافت لیست رای‌ها با موفقیت انجام شد.", data = maxVotes });
     }
 
-    // GET /api/getInfoVote  - آمار زنده انتخابات
+    // GET /api/getInfoVote?province=11&region=5 - آمار زنده انتخابات (province=ProvinceCode, region=region_id اختیاری)
     [HttpGet("getInfoVote")]
-    public async Task<IActionResult> GetInfoVote()
+    public async Task<IActionResult> GetInfoVote([FromQuery] int? province = null, [FromQuery] int? region = null)
     {
         await using var conn = _db.CreateConnection();
 
-        var totalVoters = await conn.QueryFirstOrDefaultAsync<int>(
-            "SELECT COALESCE(SUM(totalEligible), 0) FROM final_results_approvals");
+        var p = province.HasValue ? (object)province.Value : DBNull.Value;
+        var r = region.HasValue ? (object)region.Value : DBNull.Value;
 
-        var totalVotes = await conn.QueryFirstOrDefaultAsync<int>(
-            "SELECT COUNT(DISTINCT national_id) FROM votes");
+        // eligible voters: filtered by region > province > all
+        var totalVoters = await conn.QueryFirstOrDefaultAsync<int>(@"
+            SELECT COALESCE(SUM(fra.totalEligible), 0)
+            FROM final_results_approvals fra
+            JOIN region reg ON reg.id = fra.region_id
+            WHERE (@r IS NOT NULL AND fra.region_id = @r)
+               OR (@r IS NULL AND (@p IS NULL OR reg.ProvinceCode = @p))",
+            new { p, r });
+
+        // total votes cast: filtered by voter's region > province > all
+        var totalVotes = await conn.QueryFirstOrDefaultAsync<int>(@"
+            SELECT COUNT(DISTINCT v.national_id)
+            FROM votes v
+            JOIN users u ON u.national_id = v.national_id
+            JOIN region reg ON reg.id = u.region_id
+            WHERE (@r IS NOT NULL AND u.region_id = @r)
+               OR (@r IS NULL AND (@p IS NULL OR reg.ProvinceCode = @p))",
+            new { p, r });
 
         var participants = await conn.QueryFirstOrDefaultAsync<int>(
             "SELECT COUNT(*) FROM election_participants");
@@ -189,24 +205,30 @@ public class VoteController : ControllerBase
         var activeCandidates = await conn.QueryFirstOrDefaultAsync<int>(
             "SELECT COUNT(*) FROM final_submissions WHERE requestStatus='SUPERVISION_APPROVED'");
 
+        // vote_count per candidate filtered by voter's region > province > all
         var listCan = (await conn.QueryAsync<dynamic>(@"
             SELECT fi.id AS codeentekhabati,
                    u.national_id, u.first_name, u.last_name,
                    u.org_position_desc, u.gender, u.region_id,
-                   r.name AS regname,
+                   reg.name AS regname,
                    ud.user_photo,
-                   COUNT(v.id) AS vote_count,
+                   COUNT(CASE WHEN (@r IS NOT NULL AND voter.region_id = @r)
+                                OR (@r IS NULL AND (@p IS NULL OR vr.ProvinceCode = @p))
+                              THEN v.id ELSE NULL END) AS vote_count,
                    fi.requestStatus
             FROM final_submissions fi
             JOIN users u ON u.national_id = fi.nationalId
-            LEFT JOIN region r ON r.id = u.region_id
+            LEFT JOIN region reg ON reg.id = u.region_id
             LEFT JOIN user_documents ud ON ud.nationalId = fi.nationalId
             LEFT JOIN votes v ON v.candidate_id = fi.id
+            LEFT JOIN users voter ON voter.national_id = v.national_id
+            LEFT JOIN region vr ON vr.id = voter.region_id
             WHERE fi.requestStatus = 'SUPERVISION_APPROVED'
             GROUP BY fi.id, u.national_id, u.first_name, u.last_name,
-                     u.org_position_desc, u.gender, u.region_id, r.name,
+                     u.org_position_desc, u.gender, u.region_id, reg.name,
                      ud.user_photo, fi.requestStatus
-            ORDER BY vote_count DESC")).AsList();
+            ORDER BY vote_count DESC",
+            new { p, r })).AsList();
 
         var regionVoteStatsRaw = (await conn.QueryAsync<dynamic>(@"
             SELECT u.region_id, COUNT(v.id) AS votes
@@ -220,13 +242,22 @@ public class VoteController : ControllerBase
             r => (object)new { votes = Convert.ToInt32(r.votes) });
 
         var provinceVoteStatsRaw = (await conn.QueryAsync<dynamic>(@"
-            SELECT (r.ProvinceCode * 100) AS province_id, COUNT(v.id) AS votes, COUNT(DISTINCT v.national_id) AS eligible
+            SELECT (r.ProvinceCode * 100) AS province_id,
+                   COUNT(CASE WHEN (@r IS NOT NULL AND voter.region_id = @r)
+                                OR (@r IS NULL AND (@p IS NULL OR vr.ProvinceCode = @p))
+                              THEN v.id ELSE NULL END) AS votes,
+                   COUNT(DISTINCT CASE WHEN (@r IS NOT NULL AND voter.region_id = @r)
+                                         OR (@r IS NULL AND (@p IS NULL OR vr.ProvinceCode = @p))
+                                       THEN v.national_id ELSE NULL END) AS eligible
             FROM votes v
             JOIN final_submissions fi ON fi.id = v.candidate_id
             JOIN users u ON u.national_id = fi.nationalId
             JOIN region r ON r.id = u.region_id
+            LEFT JOIN users voter ON voter.national_id = v.national_id
+            LEFT JOIN region vr ON vr.id = voter.region_id
             WHERE r.ProvinceCode > 0
-            GROUP BY r.ProvinceCode")).AsList();
+            GROUP BY r.ProvinceCode",
+            new { p, r })).AsList();
 
         var eligibleByProvince = (await conn.QueryAsync<dynamic>(@"
             SELECT r.ProvinceCode, COALESCE(SUM(fra.totalEligible), 0) AS eligible

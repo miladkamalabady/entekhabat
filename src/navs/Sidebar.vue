@@ -100,7 +100,7 @@ export default {
     };
   },
   mounted() {
-    if (this.currentUser?.roles == 'CANDIDATE') {
+    if (this.currentUser?.roles[0] == 'CANDIDATE') {
       this.getstateCandid();
     }
     setTimeout(() => {

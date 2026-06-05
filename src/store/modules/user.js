@@ -267,7 +267,7 @@ export default {
         commit('clearError');
       return response.data;
     }, async getInfoVote({ commit }, payload) {
-      const response = await apiservice({ name: "getInfoVote" }, { commit });
+      const response = await apiservice({ name: "getInfoVote", params: payload || {} }, { commit });
       if (response?.status)
         commit('clearError');
       return response.data;

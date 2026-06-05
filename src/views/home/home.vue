@@ -180,7 +180,7 @@
                       <div v-if="item.badge && electionStatusAll == 'active'" class="card-badge">
                         <span>{{ item.badge }}</span>
                       </div>
-                      <div v-if="item.requiresFinalApproval && !isFinalResultAnnouncementActive"
+                      <div v-if="item.requiresFinalApproval && !isFinalResultAnnouncementActive && !currentUser?.roles?.includes('ADMIN')"
                         class="card-badge secondary">
                         <span>{{ finalApprovalStatusText }}</span>
                       </div>
@@ -402,7 +402,9 @@ export default {
       }
 
       if (item.requiresFinalApproval && !this.isFinalResultAnnouncementActive) {
-        return !this.currentUser?.roles?.some(role => ['EXECUTIVE', 'SUPERVISOR'].includes(role))
+        const roles = this.currentUser?.roles ?? ''
+        if (roles.includes('ADMIN')) return false
+        return !roles.includes('EXECUTIVE') && !roles.includes('SUPERVISOR')
       }
 
       return false
@@ -511,7 +513,8 @@ export default {
       this.$router.push(route)
     },
     handleClick(item) {
-      if (item.requiresFinalApproval && !this.isFinalResultAnnouncementActive) {
+      const roles = this.currentUser?.roles ?? ''
+      if (item.requiresFinalApproval && !this.isFinalResultAnnouncementActive && !roles.includes('ADMIN')) {
         this.openFinalResultActivation(item)
         return
       }
