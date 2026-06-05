@@ -230,7 +230,7 @@ public class SupportTicketController : ControllerBase
         int provinceCode = (int)(user.provinceCode ?? 0);
         string supportLevel = targetRole == "ADMIN" ? "headquarters" : GetSupportLevel(NormalizeRole((string)(user.roles ?? "")), regionId);
         string requesterName = $"{user.first_name} {user.last_name}".Trim();
-        string ticketCode = "T" + DateTime.Now.ToString("yyyyMMddHHmmss") + Random.Shared.Next(100, 999);
+        string ticketCode = "T" + DateTime.Now.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture) + Random.Shared.Next(100, 999);
 
         await conn.ExecuteAsync(
             @"INSERT INTO support_tickets

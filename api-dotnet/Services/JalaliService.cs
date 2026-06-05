@@ -62,7 +62,7 @@ public class JalaliService
         var timePart = parts.Length > 1 ? parts[1] : "00:00:00";
         if (timePart.Length == 5) timePart += ":00";
 
-        var seg = datePart.Split('-');
+        var seg = datePart.Split('-', '/');
         if (seg.Length != 3) return null;
         if (!int.TryParse(seg[0], out int y) ||
             !int.TryParse(seg[1], out int m) ||

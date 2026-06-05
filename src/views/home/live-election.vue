@@ -168,7 +168,7 @@
 
                 <template #cell(candidate)="data">
                   <div class="candidate-info">
-                    <img v-if="data.item.user_photo" :src="`${apiUrlrtb}/${data.item.user_photo}`"
+                    <img v-if="data.item.user_photo" :src="`/${data.item.user_photo}`"
                       class="candidate-photo" :alt="data.item.name" />
                     <div v-else class="candidate-photo placeholder">
                       <b-icon icon="person-circle"></b-icon>
@@ -274,21 +274,14 @@
               <small class="text-muted">با حرکت موس روی هر استان، جزئیات نمایش داده می‌شود</small>
             </div>
 
-            <!-- نقشه SVG ایران -->
-            <div class="iran-map-container">
-              <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-                viewBox="0 0 800 600" class="iran-map-svg"
-                style="width: 100%; height: auto; max-width: 800px; margin: 0 auto; display: block;">
-                <!-- آذربایجان شرقی -->
-                <path v-for="province in provincePaths" :key="province.id" :id="`province-${province.id}`"
-                  :data-id="province.id" :data-name="province.name" :d="province.path" class="province-path" :class="{
-                    'province-hover': hoveredProvinceId === province.id,
-                    'province-selected': selectedProvinceId === province.id
-                  }" :fill="getProvinceColor(province)" @mouseenter="onProvinceHover(province)" @mouseleave="onProvinceLeave"
-                  @click="onProvinceClick(province)">
-                  <title>{{ province.name }} - مشارکت: {{ getProvinceParticipation(province) }}%</title>
-                </path>
-              </svg>
+            <!-- نقشه SVG ایران - inline از ir.svg با رنگ‌بندی تعاملی -->
+            <div class="iran-map-wrapper" ref="iranMapWrapper" v-html="coloredIranMapSvg"
+              @mousemove="onMapMouseMove" @mouseleave="onProvinceLeave" @click="onMapClick">
+            </div>
+            <!-- tooltip استان hover شده -->
+            <div v-if="hoveredProvince" class="province-tooltip" :style="tooltipStyle">
+              <strong>{{ hoveredProvince.name }}</strong><br/>
+              مشارکت: {{ hoveredProvince.participation }}%
             </div>
 
             <!-- خلاصه آماری استان انتخاب شده -->
@@ -399,6 +392,7 @@
 import Chart from "chart.js";
 import { apiUrlrtb } from '../../constants/config'
 import { mapGetters, mapActions, mapMutations } from "vuex";
+
 export default {
   name: "LiveElectionDashboard",
   data() {
@@ -407,41 +401,44 @@ export default {
       hoveredProvinceId: null,
       selectedProvinceId: null,
       selectedProvinceForMap: null,
+      hoveredProvince: null,
+      tooltipStyle: {},
+      iranSvgContent: '',
 
-      // مسیرهای استان‌ها (SVG Path)
-      provincePaths: [
-        { id: 1, name: 'آذربایجان شرقی', path: 'M 320 80 L 340 70 L 360 80 L 355 100 L 330 105 L 315 95 Z' },
-        { id: 2, name: 'آذربایجان غربی', path: 'M 290 85 L 315 80 L 320 95 L 305 105 L 285 100 Z' },
-        { id: 3, name: 'اردبیل', path: 'M 350 65 L 370 60 L 375 75 L 360 85 L 345 75 Z' },
-        { id: 4, name: 'اصفهان', path: 'M 440 200 L 470 190 L 475 220 L 450 230 L 435 215 Z' },
-        { id: 5, name: 'البرز', path: 'M 385 130 L 400 125 L 405 140 L 390 145 L 380 138 Z' },
-        { id: 6, name: 'ایلام', path: 'M 355 300 L 380 290 L 385 310 L 365 320 L 350 310 Z' },
-        { id: 7, name: 'بوشهر', path: 'M 430 400 L 460 390 L 465 420 L 440 430 L 425 415 Z' },
-        { id: 8, name: 'تهران', path: 'M 395 125 L 415 120 L 420 135 L 400 140 L 390 132 Z' },
-        { id: 9, name: 'چهارمحال و بختیاری', path: 'M 420 280 L 445 270 L 450 295 L 430 305 L 415 290 Z' },
-        { id: 10, name: 'خراسان جنوبی', path: 'M 620 380 L 650 370 L 660 400 L 640 410 L 615 395 Z' },
-        { id: 11, name: 'خراسان رضوی', path: 'M 590 220 L 630 210 L 640 250 L 610 260 L 585 240 Z' },
-        { id: 12, name: 'خراسان شمالی', path: 'M 570 160 L 600 150 L 610 180 L 585 190 L 565 175 Z' },
-        { id: 13, name: 'خوزستان', path: 'M 380 350 L 420 340 L 430 370 L 400 390 L 370 375 Z' },
-        { id: 14, name: 'زنجان', path: 'M 340 115 L 365 108 L 370 125 L 350 130 L 335 120 Z' },
-        { id: 15, name: 'سمنان', path: 'M 480 160 L 520 150 L 530 180 L 500 190 L 475 175 Z' },
-        { id: 16, name: 'سیستان و بلوچستان', path: 'M 680 460 L 720 450 L 730 500 L 700 520 L 670 490 Z' },
-        { id: 17, name: 'فارس', path: 'M 500 330 L 540 320 L 550 360 L 520 380 L 490 360 Z' },
-        { id: 18, name: 'قزوین', path: 'M 360 135 L 380 128 L 385 145 L 365 150 L 355 140 Z' },
-        { id: 19, name: 'قم', path: 'M 420 170 L 440 165 L 445 180 L 425 185 L 415 175 Z' },
-        { id: 20, name: 'کردستان', path: 'M 310 140 L 335 130 L 340 155 L 320 160 L 305 150 Z' },
-        { id: 21, name: 'کرمان', path: 'M 580 380 L 620 370 L 630 410 L 600 430 L 570 400 Z' },
-        { id: 22, name: 'کرمانشاه', path: 'M 300 180 L 325 170 L 330 195 L 310 205 L 295 190 Z' },
-        { id: 23, name: 'کهگیلویه و بویراحمد', path: 'M 450 310 L 480 300 L 485 330 L 460 340 L 445 320 Z' },
-        { id: 24, name: 'گلستان', path: 'M 540 130 L 570 120 L 580 145 L 555 155 L 535 140 Z' },
-        { id: 25, name: 'گیلان', path: 'M 340 55 L 365 48 L 370 65 L 350 70 L 335 62 Z' },
-        { id: 26, name: 'لرستان', path: 'M 370 240 L 400 230 L 405 255 L 385 265 L 365 250 Z' },
-        { id: 27, name: 'مازندران', path: 'M 430 100 L 470 90 L 480 115 L 450 125 L 425 110 Z' },
-        { id: 28, name: 'مرکزی', path: 'M 390 195 L 415 185 L 420 210 L 400 220 L 385 205 Z' },
-        { id: 29, name: 'هرمزگان', path: 'M 590 480 L 630 470 L 640 510 L 610 530 L 580 500 Z' },
-        { id: 30, name: 'همدان', path: 'M 350 185 L 375 175 L 380 195 L 360 205 L 345 195 Z' },
-        { id: 31, name: 'یزد', path: 'M 510 250 L 540 240 L 545 270 L 520 280 L 505 260 Z' }
-      ],
+      // نگاشت کد استان IR به شناسه و نام فارسی
+      irCodeMap: {
+        'IR01': { id: 1,  name: 'آذربایجان شرقی' },
+        'IR02': { id: 2,  name: 'آذربایجان غربی' },
+        'IR03': { id: 3,  name: 'اردبیل' },
+        'IR04': { id: 4,  name: 'اصفهان' },
+        'IR05': { id: 5,  name: 'البرز' },
+        'IR06': { id: 6,  name: 'ایلام' },
+        'IR07': { id: 7,  name: 'بوشهر' },
+        'IR08': { id: 8,  name: 'تهران' },
+        'IR09': { id: 9,  name: 'چهارمحال و بختیاری' },
+        'IR29': { id: 29, name: 'خراسان جنوبی' },
+        'IR11': { id: 11, name: 'خراسان رضوی' },
+        'IR30': { id: 12, name: 'خراسان شمالی' },
+        'IR16': { id: 16, name: 'خوزستان' },
+        'IR14': { id: 14, name: 'زنجان' },
+        'IR15': { id: 15, name: 'سمنان' },
+        'IR13': { id: 13, name: 'سیستان و بلوچستان' },
+        'IR17': { id: 17, name: 'فارس' },
+        'IR18': { id: 18, name: 'قزوین' },
+        'IR19': { id: 19, name: 'گیلان' },
+        'IR20': { id: 20, name: 'کردستان' },
+        'IR21': { id: 21, name: 'کرمان' },
+        'IR22': { id: 22, name: 'کرمانشاه' },
+        'IR23': { id: 23, name: 'کهگیلویه و بویراحمد' },
+        'IR24': { id: 24, name: 'گلستان' },
+        'IR25': { id: 25, name: 'لرستان' },
+        'IR26': { id: 26, name: 'مازندران' },
+        'IR27': { id: 27, name: 'مرکزی' },
+        'IR28': { id: 28, name: 'هرمزگان' },
+        'IR10': { id: 10, name: 'همدان' },
+        'IR12': { id: 30, name: 'یزد' },
+        'IR31': { id: 31, name: 'قم' },
+      },
       apiUrlrtb,
       infoVote: null,
       timeRemaining: {
@@ -510,16 +507,50 @@ export default {
       if (!this.infoVote || !this.infoVote.participants) return 0;
       return (this.infoVote.totalVotes / this.infoVote.participants).toFixed(2);
     },
+    coloredIranMapSvg() {
+      if (!this.iranSvgContent || typeof DOMParser === 'undefined') return this.iranSvgContent || '';
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(this.iranSvgContent, 'image/svg+xml');
+      const svgEl = doc.querySelector('svg');
+      if (!svgEl) return this.iranSvgContent;
+
+      svgEl.removeAttribute('fill');
+      svgEl.setAttribute('class', 'iran-map-svg');
+
+      Object.entries(this.irCodeMap).forEach(([irCode, info]) => {
+        const path = doc.getElementById(irCode);
+        if (!path) return;
+        const region = this.regions.find(r => r.id === info.id);
+        const participation = region ? Number(region.participation || 0) : 0;
+        const color = this.getHeatmapColor(participation);
+        const isHovered = this.hoveredProvinceId === info.id;
+        const isSelected = this.selectedProvinceId === info.id;
+        const opacity = isSelected ? '1' : (isHovered ? '0.88' : '0.72');
+        const stroke = isSelected ? '#0056b3' : (isHovered ? '#222' : '#ffffff');
+        const strokeW = isSelected ? '3' : (isHovered ? '2' : '.5');
+
+        path.setAttribute('fill', color);
+        path.setAttribute('fill-opacity', opacity);
+        path.setAttribute('stroke', stroke);
+        path.setAttribute('stroke-width', strokeW);
+        path.setAttribute('data-ir', irCode);
+        path.setAttribute('style', 'cursor:pointer');
+      });
+
+      return new XMLSerializer().serializeToString(svgEl);
+    },
     provinceMapData() {
-      return this.provincePaths.map(province => {
-        const regionData = this.regions.find(r => r.id === province.id) || {};
+      return Object.entries(this.irCodeMap).map(([irCode, info]) => {
+        const regionData = this.regions.find(r => r.id === info.id) || {};
         const participation = regionData.participation || 0;
         return {
-          ...province,
+          id: info.id,
+          name: info.name,
+          irCode,
           votes: regionData.votes || 0,
-          participation: participation,
+          participation,
           eligibleVoters: regionData.eligibleVoters || 0,
-          areasCount: (this.areasByProvince?.[province.id] || []).length,
+          areasCount: (this.areasByProvince?.[info.id] || []).length,
           color: this.getHeatmapColor(participation)
         };
       });
@@ -670,6 +701,7 @@ export default {
     if (this.currentUser?.roles?.includes('ADMIN')) this.selectedReportType = "admin";
     this.startTimer();
     this.startAutoRefresh();
+    await this.loadIranSvg();
     await this.loadRegions();
 
     this.infoVote = await this.getInfoVote()
@@ -708,6 +740,50 @@ export default {
   },
   methods: {
     ...mapActions(["getConfig", "getInfoVote", "getRegions"]),
+
+    async loadIranSvg() {
+      try {
+        const res = await fetch(require('@/assets/img/ir.svg'));
+        this.iranSvgContent = await res.text();
+      } catch (e) {
+        console.warn('Could not load ir.svg', e);
+      }
+    },
+
+    getProvinceByIrCode(irCode) {
+      const info = this.irCodeMap[irCode];
+      if (!info) return null;
+      const region = this.regions.find(r => r.id === info.id) || {};
+      return { ...info, ...region };
+    },
+
+    onMapMouseMove(e) {
+      const path = e.target.closest('path[data-ir]');
+      if (!path) { this.hoveredProvinceId = null; this.hoveredProvince = null; return; }
+      const irCode = path.getAttribute('data-ir');
+      const info = this.irCodeMap[irCode];
+      if (!info) return;
+      const region = this.regions.find(r => r.id === info.id) || {};
+      this.hoveredProvinceId = info.id;
+      this.hoveredProvince = { ...info, participation: region.participation || 0 };
+      const rect = this.$refs.iranMapWrapper.getBoundingClientRect();
+      this.tooltipStyle = {
+        left: (e.clientX - rect.left + 12) + 'px',
+        top: (e.clientY - rect.top - 10) + 'px'
+      };
+    },
+
+    onMapClick(e) {
+      const path = e.target.closest('path[data-ir]');
+      if (!path) return;
+      const irCode = path.getAttribute('data-ir');
+      const info = this.irCodeMap[irCode];
+      if (!info) return;
+      this.selectedProvinceId = info.id;
+      const region = this.regions.find(r => r.id === info.id) || {};
+      this.selectedProvinceForMap = { ...info, ...region };
+    },
+
     // دریافت رنگ استان بر اساس نرخ مشارکت
   getHeatmapColor(participation) {
     if (participation >= 70) return '#dc3545';      // قرمز تیره (مشارکت بالا)
@@ -720,34 +796,33 @@ export default {
   // دریافت رنگ استان (برای نقشه SVG)
   getProvinceColor(province) {
     const regionData = this.regions.find(r => r.id === province.id) || {};
-    const participation = regionData.participation || 0;
-    return this.getHeatmapColor(participation);
+    return this.getHeatmapColor(regionData.participation || 0);
   },
-  
-  // دریافت نرخ مشارکت استان
+
   getProvinceParticipation(province) {
-    const regionData = this.regions.find(r => r.id === province.id) || {};
-    return regionData.participation || 0;
-  },// دریافت تعداد آرای استان
-  getProvinceVotes(province) {
-    const regionData = this.regions.find(r => r.id === province.id) || {};
-    return regionData.votes || 0;
+    return (this.regions.find(r => r.id === province.id) || {}).participation || 0;
   },
-  
-  // دریافت تعداد مناطق استان
+
+  getProvinceVotes(province) {
+    return (this.regions.find(r => r.id === province.id) || {}).votes || 0;
+  },
+
   getProvinceAreasCount(province) {
     return (this.areasByProvince?.[province.id] || []).length;
   },
-  
-  // رویداد hover روی استان
-  onProvinceHover(province) {
-    this.hoveredProvinceId = province.id;
-    // می‌توانید tooltip هم اضافه کنید
-  },
-  
-  // رویداد خروج hover
+
   onProvinceLeave() {
     this.hoveredProvinceId = null;
+    this.hoveredProvince = null;
+  },
+
+  viewProvinceDetails(province) {
+    const region = this.regions.find(r => r.id === province.id) || {};
+    this.selectedRegion = {
+      ...region,
+      areas: this.buildRegionAreas(region)
+    };
+    this.showRegionModal = true;
   },
     async loadRegions() {
       const response = await this.getRegions();
@@ -1161,6 +1236,60 @@ export default {
 
 .iran-heatmap-card {
   border-radius: 16px;
+}
+
+.iran-map-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  display: block;
+  user-select: none;
+}
+
+.iran-map-wrapper >>> .iran-map-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 8px;
+}
+
+.iran-map-wrapper >>> path {
+  transition: fill-opacity 0.15s ease, stroke-width 0.15s ease;
+}
+
+.province-tooltip {
+  position: absolute;
+  background: rgba(0,0,0,0.78);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  pointer-events: none;
+  z-index: 10;
+  white-space: nowrap;
+  line-height: 1.6;
+}
+
+.province-path-overlay {
+  cursor: pointer;
+  transition: fill 0.2s ease, filter 0.2s ease;
+  pointer-events: auto;
+}
+
+.province-path-overlay:hover {
+  fill-opacity: 0.3 !important;
+  filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.2));
+}
+
+.province-path-overlay.province-hover {
+  fill-opacity: 0.4 !important;
+}
+
+.province-path-overlay.province-selected {
+  fill-opacity: 0.5 !important;
+  stroke: #007bff !important;
+  stroke-width: 2 !important;
 }
 
 .iran-heatmap-grid {

@@ -88,7 +88,7 @@
                   <b-table :items="filteredDocuments" :fields="candidateFields" striped hover class="text-right">
                     <template #cell(candidate)="data">
                       <div class="d-flex align-items-center">
-                        <img :src="`${apiUrlrtb}/${data.item.user_photo}` || '/default-avatar.png'"
+                        <img :src="data.item.user_photo ? `/${data.item.user_photo}` : '/default-avatar.png'"
                           class="candidate-avatar mr-2" alt="عکس کاندیدا" />
                         <div>
                           <div class="font-weight-bold">{{ data.item.first_name }} {{ data.item.last_name }} ({{
@@ -180,7 +180,7 @@
                   <!-- Preview Column -->
                   <template #cell(preview)="data">
                     <div class="ad-preview">
-                      <img v-if="data.item.image" :src="`${apiUrlrtb}/${data.item.image}`" class="ad-thumbnail"
+                      <img v-if="data.item.image" :src="`/${data.item.image}`" class="ad-thumbnail"
                         :alt="data.item.title" @click="viewAd(data.item)" />
                       <div v-else class="ad-thumbnail placeholder">
                         <b-icon icon="image"></b-icon>
@@ -474,7 +474,7 @@
         <!-- اطلاعات پایه کاندیدا -->
         <div class="candidate-info-header">
           <div class="candidate-avatar-sm">
-            <img :src="`${apiUrlrtb}/${selectedCandidate.user_photo}`" v-if="selectedCandidate.user_photo" />
+            <img :src="`/${selectedCandidate.user_photo}`" v-if="selectedCandidate.user_photo" />
             <b-icon icon="person-circle" v-else font-scale="3"></b-icon>
           </div>
           <div class="candidate-info-text">
@@ -502,7 +502,7 @@
           <div class="docs-thumbnails">
             <div v-for="doc in getCandidateDocuments(selectedCandidate)" :key="doc.key" class="doc-thumb-item"
               @click="viewDocument(selectedCandidate, doc.key, doc.path, doc.label, selectedCandidate.create_datesh)">
-              <img v-if="isImageFile(doc.path)" :src="apiUrlrtb + '/' + doc.path" class="thumb-img" />
+              <img v-if="isImageFile(doc.path)" :src="'/' + doc.path" class="thumb-img" />
               <div v-else class="thumb-placeholder">
                 <b-icon icon="file-earmark"></b-icon>
               </div>
@@ -614,7 +614,7 @@
         <!-- Ad Content -->
         <div class="ad-content mb-4 text-center">
           <div v-if="selectedAd.image" class="ad-image mb-3">
-            <img :src="`${apiUrlrtb}/${selectedAd.image}`" style="width:200px;height:auto" class="img-fluid"
+            <img :src="`/${selectedAd.image}`" style="width:200px;height:auto" class="img-fluid"
               alt="تصویر تبلیغ" />
           </div>
           <h5>{{ selectedAd.title }}</h5>

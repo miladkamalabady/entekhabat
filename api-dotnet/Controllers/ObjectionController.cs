@@ -119,7 +119,7 @@ public class ObjectionController : ControllerBase
                 reasons = reasons ?? new object[0],
                 urgency = d["urgency"] ?? "normal",
                 status = d["status"],
-                declaration = (bool)((byte)(d["declaration"] ?? 0) == 1),
+                declaration = Convert.ToBoolean(d.GetValueOrDefault("declaration") ?? false),
                 submittedDate = d["created_at"],
                 lastUpdate = d["updated_at"],
                 documentsCount = (int)Convert.ToInt32(d["documents_count"]),
@@ -141,55 +141,40 @@ public class ObjectionController : ControllerBase
         return Ok(new { status = true, data = result });
     }
 
-    // POST /api/saveObjection  (multipart or JSON)
+    // POST /api/saveObjection  (multipart/form-data)
     [HttpPost("saveObjection")]
     [RequestSizeLimit(20 * 1024 * 1024)]
     public async Task<IActionResult> SaveObjection(
         [FromForm] ObjectionFormRequest? formReq,
-        [FromBody] ObjectionJsonRequest? bodyReq,
         [FromForm] List<IFormFile>? documents)
     {
-        string? decisionType, description;
-        string subject, caseNumber = "", candidateName = "", candidateRegion = "", candidatePosition = "";
-        string urgency = "normal"; string[] reasons = Array.Empty<string>(); bool declaration = true;
+        if (formReq == null)
+            return BadRequest(new { status = false, message = "داده ارسال نشده." });
 
-        if (formReq != null)
-        {
-            decisionType = formReq.decisionType;
-            description = formReq.description;
-            subject = string.IsNullOrWhiteSpace(formReq.subject) ? "-" : formReq.subject;
-            caseNumber = formReq.caseNumber ?? ""; candidateName = formReq.candidateName ?? "";
-            candidateRegion = formReq.candidateRegion ?? ""; candidatePosition = formReq.candidatePosition ?? "";
-            urgency = formReq.urgency ?? "normal"; declaration = formReq.declaration;
-            if (!string.IsNullOrWhiteSpace(formReq.reasons))
-                try { reasons = JsonSerializer.Deserialize<string[]>(formReq.reasons) ?? Array.Empty<string>(); } catch { }
-        }
-        else if (bodyReq != null)
-        {
-            decisionType = bodyReq.decisionType;
-            description = bodyReq.description;
-            subject = string.IsNullOrWhiteSpace(bodyReq.subject) ? "-" : bodyReq.subject;
-            caseNumber = bodyReq.caseNumber ?? ""; candidateName = bodyReq.candidateName ?? "";
-            candidateRegion = bodyReq.candidateRegion ?? ""; candidatePosition = bodyReq.candidatePosition ?? "";
-            urgency = bodyReq.urgency ?? "normal"; reasons = bodyReq.reasons ?? Array.Empty<string>();
-            declaration = bodyReq.declaration;
-        }
-        else return BadRequest(new { status = false, message = "داده ارسال نشده." });
+        string? decisionType = formReq.decisionType, description = formReq.description;
+        string subject = string.IsNullOrWhiteSpace(formReq.subject) ? "-" : formReq.subject;
+        string caseNumber = formReq.caseNumber ?? "", candidateName = formReq.candidateName ?? "";
+        string candidateRegion = formReq.candidateRegion ?? "", candidatePosition = formReq.candidatePosition ?? "";
+        string urgency = formReq.urgency ?? "normal";
+        bool declaration = formReq.declaration is "1" or "true" or "True";
+        string[] reasons = Array.Empty<string>();
+        if (!string.IsNullOrWhiteSpace(formReq.reasons))
+            try { reasons = JsonSerializer.Deserialize<string[]>(formReq.reasons) ?? Array.Empty<string>(); } catch { }
 
         if (string.IsNullOrWhiteSpace(decisionType) || string.IsNullOrWhiteSpace(description) || !declaration)
             return BadRequest(new { status = false, message = "پارامترهای الزامی ناقص است." });
 
         await using var conn = _db.CreateConnection();
-        await using var tx = await conn.BeginTransactionAsync();
-        try
-        {
-            await EnsureObjectionTables(conn);
+        await conn.OpenAsync();
+        await EnsureObjectionTables(conn);
 
+        return await DbHelper.WithTransaction(conn, async tx =>
+        {
             // Generate unique tracking code
             string tc;
             do
             {
-                tc = DateTime.Now.ToString("yyyyMMddHHmmss") + Random.Shared.Next(1, 9999).ToString("D4");
+                tc = DateTime.Now.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture) + Random.Shared.Next(1, 9999).ToString("D4");
                 var exists = await conn.QueryFirstOrDefaultAsync<long?>("SELECT id FROM objections WHERE tracking_code=@tc", new { tc }, tx);
                 if (!exists.HasValue) break;
             } while (true);
@@ -230,19 +215,13 @@ public class ObjectionController : ControllerBase
                 "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'ثبت اعتراض',@desc)",
                 new { nid = NationalId, desc = $"ثبت اعتراض با کد {tc} با {uploadedFiles.Count} فایل ضمیمه" }, tx);
 
-            await tx.CommitAsync();
             return Ok(new
             {
                 status = true,
                 message = "اعتراض با موفقیت ثبت شد.",
                 data = new { trackingCode = tc, objectionId = objId, filesCount = uploadedFiles.Count, uploadedFiles }
             });
-        }
-        catch
-        {
-            await tx.RollbackAsync();
-            throw;
-        }
+        });
     }
 
     // POST /api/updateObjectionStatus  {id, status, responseText}
@@ -258,6 +237,7 @@ public class ObjectionController : ControllerBase
             return StatusCode(403, new { status = false, message = "دسترسی لازم برای تایید/رد اعتراض را ندارید." });
 
         await using var conn = _db.CreateConnection();
+        await conn.OpenAsync();
         await using var tx = await conn.BeginTransactionAsync();
         try
         {
@@ -321,7 +301,7 @@ public class ObjectionController : ControllerBase
 public record ObjectionFormRequest(
     string? decisionType, string? caseNumber, string? candidateName,
     string? candidateRegion, string? candidatePosition,
-    string? subject, string? description, string? reasons, string? urgency, bool declaration);
+    string? subject, string? description, string? reasons, string? urgency, string? declaration);
 
 public record ObjectionJsonRequest(
     string? decisionType, string? caseNumber, string? candidateName,

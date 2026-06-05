@@ -34,6 +34,11 @@ module.exports = {
         target: 'http://localhost:5050',
         changeOrigin: true,
         logLevel: 'debug'
+      },
+      '/uploads': {
+        target: 'http://localhost:5050',
+        changeOrigin: true,
+        logLevel: 'debug'
       }
     }
   },

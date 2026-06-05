@@ -87,7 +87,7 @@
                   <b-table :items="filteredDocuments" :fields="candidateFields" striped hover class="text-right">
                     <template #cell(candidate)="data">
                       <div class="d-flex align-items-center">
-                        <img :src="`${apiUrlrtb}/${data.item.user_photo}` || '/default-avatar.png'"
+                        <img :src="data.item.user_photo ? `/${data.item.user_photo}` : '/default-avatar.png'"
                           class="candidate-avatar mr-2" alt="عکس کاندیدا" />
                         <div>
                           <div class="font-weight-bold">{{ data.item.first_name }} {{ data.item.last_name }} ({{
@@ -191,7 +191,7 @@
                   <!-- Preview Column -->
                   <template #cell(preview)="data">
                     <div class="ad-preview">
-                      <img v-if="data.item.image" :src="`${apiUrlrtb}/${data.item.image}`" class="ad-thumbnail"
+                      <img v-if="data.item.image" :src="`/${data.item.image}`" class="ad-thumbnail"
                         :alt="data.item.title" @click="viewAd(data.item)" />
                       <div v-else class="ad-thumbnail placeholder">
                         <b-icon icon="image"></b-icon>
@@ -413,7 +413,7 @@
                   <b-row>
                     <b-col md="6">
                       <div v-if="isImageFile(review.path)" class="image-viewer text-center">
-                        <img :src="apiUrlrtb + '/' + review.path" class="img-fluid " style="max-width:200px"
+                        <img :src="'/' + review.path" class="img-fluid " style="max-width:200px"
                           :alt="review.path" />
                       </div>
                     </b-col>
@@ -465,7 +465,7 @@
         <!-- Ad Content -->
         <div class="ad-content mb-4 text-center">
           <div v-if="selectedAd.image" class="ad-image mb-3">
-            <img :src="`${apiUrlrtb}/${selectedAd.image}`" style="width:200px;height:auto" class="img-fluid"
+            <img :src="`/${selectedAd.image}`" style="width:200px;height:auto" class="img-fluid"
               alt="تصویر تبلیغ" />
           </div>
           <h5>{{ selectedAd.title }}</h5>

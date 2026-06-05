@@ -14,6 +14,9 @@ public static class DbHelper
         MySqlConnection conn,
         Func<MySqlTransaction, Task<T>> callback)
     {
+        if (conn.State != System.Data.ConnectionState.Open)
+            await conn.OpenAsync();
+
         var tx = await conn.BeginTransactionAsync();
         try
         {
@@ -36,6 +39,9 @@ public static class DbHelper
         MySqlConnection conn,
         Func<MySqlTransaction, Task> callback)
     {
+        if (conn.State != System.Data.ConnectionState.Open)
+            await conn.OpenAsync();
+
         var tx = await conn.BeginTransactionAsync();
         try
         {
@@ -89,7 +95,7 @@ public static class DbHelper
         var val = d.GetValueOrDefault(key);
         if (val == null) return "";
         if (val is string s) return s;
-        if (val is DateTime dt) return dt.ToString("yyyy-MM-dd HH:mm:ss");
+        if (val is DateTime dt) return dt.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
         return val.ToString() ?? "";
     }
 

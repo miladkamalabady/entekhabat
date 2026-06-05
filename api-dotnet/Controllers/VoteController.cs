@@ -39,7 +39,7 @@ public class VoteController : ControllerBase
 
             var rawToken  = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
             var tokenHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rawToken))).ToLower();
-            var expires   = DateTime.Now.AddMinutes(2).ToString("yyyy-MM-dd HH:mm:ss");
+            var expires   = DateTime.Now.AddMinutes(2).ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
 
             await conn.ExecuteAsync(
                 "INSERT INTO voting_tokens (user_id, token_hash, expires_at) VALUES (@nid, @hash, @exp)",
@@ -168,9 +168,100 @@ public class VoteController : ControllerBase
         return Ok(new { status = true, message = "دریافت لیست رای‌ها با موفقیت انجام شد.", data = maxVotes });
     }
 
-    // GET /api/getInfoVote
+    // GET /api/getInfoVote  - آمار زنده انتخابات
     [HttpGet("getInfoVote")]
-    public Task<IActionResult> GetInfoVote() => GetVote();
+    public async Task<IActionResult> GetInfoVote()
+    {
+        await using var conn = _db.CreateConnection();
+
+        var totalVoters = await conn.QueryFirstOrDefaultAsync<int>(
+            "SELECT COUNT(*) FROM users WHERE roles='VOTER'");
+
+        var totalVotes = await conn.QueryFirstOrDefaultAsync<int>(
+            "SELECT COUNT(DISTINCT national_id) FROM votes");
+
+        var participants = await conn.QueryFirstOrDefaultAsync<int>(
+            "SELECT COUNT(*) FROM election_participants");
+
+        var totalCandidates = await conn.QueryFirstOrDefaultAsync<int>(
+            "SELECT COUNT(*) FROM final_submissions");
+
+        var activeCandidates = await conn.QueryFirstOrDefaultAsync<int>(
+            "SELECT COUNT(*) FROM final_submissions WHERE requestStatus='SUPERVISION_APPROVED'");
+
+        var listCan = (await conn.QueryAsync<dynamic>(@"
+            SELECT fi.id AS codeentekhabati,
+                   u.national_id, u.first_name, u.last_name,
+                   u.org_position_desc, u.gender, u.region_id,
+                   r.name AS regname,
+                   ud.user_photo,
+                   COUNT(v.id) AS vote_count,
+                   fi.requestStatus
+            FROM final_submissions fi
+            JOIN users u ON u.national_id = fi.nationalId
+            LEFT JOIN region r ON r.id = u.region_id
+            LEFT JOIN user_documents ud ON ud.nationalId = fi.nationalId
+            LEFT JOIN votes v ON v.candidate_id = fi.id
+            WHERE fi.requestStatus = 'SUPERVISION_APPROVED'
+            GROUP BY fi.id, u.national_id, u.first_name, u.last_name,
+                     u.org_position_desc, u.gender, u.region_id, r.name,
+                     ud.user_photo, fi.requestStatus
+            ORDER BY vote_count DESC")).AsList();
+
+        var regionVoteStatsRaw = (await conn.QueryAsync<dynamic>(@"
+            SELECT u.region_id, COUNT(v.id) AS votes
+            FROM votes v
+            JOIN final_submissions fi ON fi.id = v.candidate_id
+            JOIN users u ON u.national_id = fi.nationalId
+            GROUP BY u.region_id")).AsList();
+
+        var regionVoteStats = regionVoteStatsRaw.ToDictionary(
+            r => (object)r.region_id,
+            r => (object)new { votes = Convert.ToInt32(r.votes) });
+
+        var provinceVoteStatsRaw = (await conn.QueryAsync<dynamic>(@"
+            SELECT (r.ProvinceCode * 100) AS province_id, COUNT(v.id) AS votes, COUNT(DISTINCT v.national_id) AS eligible
+            FROM votes v
+            JOIN final_submissions fi ON fi.id = v.candidate_id
+            JOIN users u ON u.national_id = fi.nationalId
+            JOIN region r ON r.id = u.region_id
+            WHERE r.ProvinceCode > 0
+            GROUP BY r.ProvinceCode")).AsList();
+
+        var eligibleByProvince = (await conn.QueryAsync<dynamic>(@"
+            SELECT (r.ProvinceCode * 100) AS province_id, COUNT(u.id) AS eligible
+            FROM users u
+            JOIN region r ON r.id = u.region_id
+            WHERE u.roles = 'VOTER' AND r.ProvinceCode > 0
+            GROUP BY r.ProvinceCode")).AsList();
+
+        var eligibleMap = eligibleByProvince.ToDictionary(
+            r => (long)r.province_id,
+            r => Convert.ToInt32(r.eligible));
+
+        var provinceVoteStats = provinceVoteStatsRaw.ToDictionary(
+            r => (object)r.province_id,
+            r => (object)new {
+                votes = Convert.ToInt32(r.votes),
+                eligible = eligibleMap.GetValueOrDefault((long)r.province_id, 0)
+            });
+
+        return Ok(new
+        {
+            status = true,
+            data = new
+            {
+                totalVoters,
+                totalVotes,
+                participants,
+                Candidates = totalCandidates,
+                activeCandidates,
+                listCan,
+                regionVoteStats,
+                provinceVoteStats
+            }
+        });
+    }
 
     // GET /api/searchUserVotes?q=...&limit=200
     [HttpGet("searchUserVotes")]

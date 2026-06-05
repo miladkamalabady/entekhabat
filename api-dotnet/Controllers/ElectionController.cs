@@ -33,13 +33,8 @@ public class ElectionController : ControllerBase
         if (row == null)
             return BadRequest(new { status = false, message = "زمان‌بندی انتخابات تنظیم نشده است" });
 
-        // DEBUG: بررسی نوع و مقدار خام تاریخ
-        var rawVal = row.GetValueOrDefault("start_date");
-        var rawType = rawVal?.GetType().FullName ?? "null";
-        var rawStr  = rawVal?.ToString() ?? "null";
-
         var now = DateTime.Now;
-        var startDt = _jalali.NormalizeToGregorian(rawVal);
+        var startDt = _jalali.NormalizeToGregorian(row.GetValueOrDefault("start_date"));
         var endDt   = _jalali.NormalizeToGregorian(row.GetValueOrDefault("end_date"));
         int isActive = startDt.HasValue && endDt.HasValue && startDt <= now && now <= endDt ? 1 : 0;
 
@@ -56,7 +51,6 @@ public class ElectionController : ControllerBase
         return Ok(new
         {
             status = true,
-            _debug = new { rawType, rawStr, startDtValue = startDt?.ToString("yyyy-MM-dd HH:mm:ss") },
             data = new
             {
                 cfg.id, cfg.startDate, cfg.EndDate, cfg.create_date, cfg.active,
@@ -101,6 +95,8 @@ public class ElectionController : ControllerBase
             return BadRequest(new { status = false, message = "لیست رویدادها ارسال نشده است." });
 
         await using var conn = _db.CreateConnection();
+        await conn.OpenAsync();
+
         await conn.ExecuteAsync(@"CREATE TABLE IF NOT EXISTS election_schedule_events (
             id INT(11) NOT NULL AUTO_INCREMENT,
             event_key VARCHAR(100) NOT NULL,
@@ -114,11 +110,10 @@ public class ElectionController : ControllerBase
             PRIMARY KEY (id),
             UNIQUE KEY uniq_event_key (event_key)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-        await using var tx = await conn.BeginTransactionAsync();
-        try
-        {
-            var sorted = req.events.OrderBy(e => e.id ?? 0).ToList();
+        var sorted = req.events.OrderBy(e => e.id ?? 0).ToList();
 
+        return await DbHelper.WithTransaction(conn, async tx =>
+        {
             foreach (var ev in sorted)
             {
                 if (string.IsNullOrWhiteSpace(ev.key) || string.IsNullOrWhiteSpace(ev.name)) continue;
@@ -134,15 +129,8 @@ public class ElectionController : ControllerBase
                         updated_by=VALUES(updated_by)",
                     new { key = ev.key, name = ev.name, sd = ev.startDate, ed = ev.endDate, so = ev.id ?? 0, by = NationalId }, tx);
             }
-
-            await tx.CommitAsync();
             return Ok(new { status = true, message = "زمان‌بندی با موفقیت ذخیره شد." });
-        }
-        catch (Exception ex)
-        {
-            await tx.RollbackAsync();
-            return BadRequest(new { status = false, message = ex.Message });
-        }
+        });
     }
 
     // GET /api/getRegions

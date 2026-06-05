@@ -58,7 +58,7 @@
             
             <template #cell(image)="data">
               <div class="ad-image-cell" v-if="data.value">
-                <img :src="`${apiUrlrtb}/${data.value}`" class="ad-thumbnail-modern" />
+                <img :src="`${data.value}`" class="ad-thumbnail-modern" />
               </div>
               <span v-else class="no-image-badge">بدون تصویر</span>
             </template>
@@ -290,13 +290,11 @@
 import { isMobile } from "../../utils";
 import { mapGetters, mapMutations, mapActions } from "vuex";
 import Sidebar from "../../navs/Sidebar.vue";
-import { apiUrlrtb } from '../../constants/config'
 export default {
   name: "AdvertisementManagement",
   components: { Sidebar },
   data() {
     return {
-      apiUrlrtb,
       isMobile,
       filters: { type: "", status: "" },
       adTypes: [
@@ -408,6 +406,7 @@ export default {
           this.form.imagePreview = e.target.result;
         };
         reader.readAsDataURL(file);
+        this.form.imageFile = event.target.files[0];
       }
     },
     getTypeBadge(type) {
@@ -419,7 +418,7 @@ export default {
       if (imagePath.startsWith("http://") || imagePath.startsWith("https://") || imagePath.startsWith("data:")) {
         return imagePath;
       }
-      return `${apiUrlrtb}/${imagePath}`;
+      return `${imagePath}`;
     },
     getStatusBadge(status) {
       const variants = { active: "success", inactive: "danger", pending: "warning" };
@@ -446,7 +445,7 @@ export default {
         description: ad.description,
         type: ad.type,
         imageFile: null,
-        imagePreview: apiUrlrtb + '/' + ad.image,
+        imagePreview:  ad.image,
         targetLink: ad.targetLink || "",
         status: ad.status,
         managerialRecords: ad.managerialRecords || "",
@@ -502,6 +501,8 @@ export default {
         formData.append("plans", this.form.plans || "");
         formData.append("slogan", this.form.slogan || "");
         formData.append("isPaid", this.form.isPaid ? "1" : "0");
+        console.log(this.form.imageFile);
+        
         if (this.form.imageFile) {
           formData.append("image", this.form.imageFile);
         } else if (this.form.imagePreview && !this.form.imagePreview.startsWith("data:")) {

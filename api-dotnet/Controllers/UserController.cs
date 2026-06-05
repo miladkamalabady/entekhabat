@@ -196,13 +196,19 @@ public class UserController : ControllerBase
     [HttpPost("ChangeState")]
     public async Task<IActionResult> ChangeState([FromBody] ChangeStateRequest req)
     {
-        if (UserRole != "EXECUTIVE" && UserRole != "SUPERVISOR")
-            return StatusCode(403, new { status = false, message = "شما دسترسی لازم را ندارید" });
-
         if (string.IsNullOrWhiteSpace(req.national_Id) || string.IsNullOrWhiteSpace(req.requestStatus))
             return BadRequest(new { status = false, message = "پارامتر کد و وضعیت الزامی است." });
 
         await using var conn = _db.CreateConnection();
+        await conn.OpenAsync();
+
+        var me = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            "SELECT roles FROM users WHERE national_id=@nid", new { nid = NationalId });
+        string myRole = (string?)me?.roles ?? "";
+
+        if (myRole != "EXECUTIVE" && myRole != "SUPERVISOR")
+            return StatusCode(403, new { status = false, message = "شما دسترسی لازم را ندارید" });
+
         await using var tx = await conn.BeginTransactionAsync();
 
         try
@@ -212,7 +218,7 @@ public class UserController : ControllerBase
                   WHERE nationalId=@nid",
                 new { s = req.requestStatus, r = req.reason ?? "", nid = req.national_Id }, tx);
 
-            if (UserRole == "SUPERVISOR" && (req.requestStatus == "SUPERVISION_APPROVED" || req.requestStatus == "SUPERVISION_REJECTED"))
+            if (myRole == "SUPERVISOR" && (req.requestStatus == "SUPERVISION_APPROVED" || req.requestStatus == "SUPERVISION_REJECTED"))
             {
                 await conn.ExecuteAsync(
                     @"UPDATE user_documents

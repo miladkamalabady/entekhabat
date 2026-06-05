@@ -104,7 +104,7 @@
             background="#f8f9fa" img-width="1024" img-height="320" style="text-shadow: 1px 1px 2px #333;"
             @sliding-start="onSlideStart" @sliding-end="onSlideEnd">
             <b-carousel-slide v-for="(ad, index) in bannerAds" :key="`banner-${ad.id}`"
-              :img-src="`${apiUrlrtb}/${ad.image}` || '/placeholder-banner.jpg'" :caption="ad.title"
+              :img-src="`${ad.image}` || '/placeholder-banner.jpg'" :caption="ad.title"
               :text="ad.description" @click.native="viewAdDetails(ad)">
               <template #img>
                 <div class="carousel-image-wrapper" @click="viewAdDetails(ad)">
@@ -136,7 +136,7 @@
 
               <!-- Ad Image -->
               <div class="ad-image-container mb-3">
-                <img v-if="ad.image" :src="`${apiUrlrtb}/${ad.image}`" class="ad-image" :alt="ad.title" />
+                <img v-if="ad.image" :src="`${ad.image}`" class="ad-image" :alt="ad.title" />
                 <div v-else class="ad-image-placeholder">
                   <b-icon icon="image" font-scale="3"></b-icon>
                 </div>
@@ -212,7 +212,7 @@
 
         <!-- Ad Image -->
         <div v-if="selectedAd.image" class="ad-details-image mb-4">
-          <img :src="`${apiUrlrtb}/${selectedAd.image}`" style="height:200px;object-fit:contain"
+          <img :src="`${selectedAd.image}`" style="height:200px;object-fit:contain"
             class="img-fluid rounded" :alt="selectedAd.title" />
         </div>
 
@@ -231,7 +231,7 @@
 
           <div class="candidate-card-body">
             <div class="candidate-photo">
-              <img v-if="selectedAd.image" :src="`${apiUrlrtb}/${selectedAd.image}`" alt="عکس کاندید" />
+              <img v-if="selectedAd.image" :src="`${selectedAd.image}`" alt="عکس کاندید" />
               <div v-else class="photo-placeholder">
                 <b-icon icon="person" font-scale="2"></b-icon>
               </div>
@@ -329,7 +329,6 @@
 
 <script>
 import { mapGetters, mapActions, mapMutations } from "vuex";
-import { apiUrlrtb } from '../../constants/config'
 export default {
   name: "UserAdvertisements",
   data() {
@@ -338,8 +337,6 @@ export default {
       countdownInterval: null,
       nowTime: Date.now(),
       scheduleRows: [],
-
-      apiUrlrtb,
       allAds: [],
       routeFilteredAds: [],
       filteredAds: [],

@@ -129,7 +129,7 @@ public class LiveChatController : ControllerBase
         }
         else
         {
-            var code = "LC" + DateTime.Now.ToString("yyyyMMddHHmmss") + Random.Shared.Next(100, 999);
+            var code = "LC" + DateTime.Now.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture) + Random.Shared.Next(100, 999);
             string fullName = (string)user["full_name"];
             string role = (string)user["roles"];
             string regionId = user["region_id"]?.ToString() ?? "";

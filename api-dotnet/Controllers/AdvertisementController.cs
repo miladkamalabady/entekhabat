@@ -27,19 +27,19 @@ public class AdvertisementController : ControllerBase
 
     private static readonly string[] AllowedImages = { "image/jpeg", "image/png", "image/jpg" };
 
-    // POST /api/advertisementsSave  (multipart or JSON)
+    // POST /api/advertisementsSave  (multipart/form-data)
     [HttpPost("advertisementsSave")]
     [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<IActionResult> AdvertisementsSave(
         [FromForm] AdvSaveRequest? formReq,
-        [FromBody] AdvSaveRequest? bodyReq,
-        IFormFile? image)
+        [FromForm] IFormFile? image)
     {
-        var req = formReq ?? bodyReq;
+        var req = formReq;
         if (req == null)
             return BadRequest(new { status = false, message = "داده ارسال نشده." });
 
         await using var conn = _db.CreateConnection();
+        await conn.OpenAsync();
 
         // Check advertising schedule
         var adsStartRow = await conn.QueryFirstOrDefaultAsync<dynamic>(
@@ -49,8 +49,8 @@ public class AdvertisementController : ControllerBase
 
         if (adsStartRow != null && votingRow != null)
         {
-            var adsStart = _jalali.ParseJalaliSchedule((string?)adsStartRow.start_date);
-            var votingStart = _jalali.ParseJalaliSchedule((string?)votingRow.start_date);
+            DateTime? adsStart = _jalali.NormalizeToGregorian((object?)adsStartRow.start_date);
+            DateTime? votingStart = _jalali.NormalizeToGregorian((object?)votingRow.start_date);
             if (adsStart.HasValue && votingStart.HasValue)
             {
                 var adsEnd = new[] { adsStart.Value.AddDays(7), votingStart.Value.AddDays(-1) }.Min();
@@ -64,7 +64,7 @@ public class AdvertisementController : ControllerBase
             || string.IsNullOrWhiteSpace(req.type) || string.IsNullOrWhiteSpace(req.status))
             return BadRequest(new { status = false, message = "تمام فیلدهای ضروری باید ارسال شوند." });
 
-        int id = req.id;
+        int id = req.id ?? 0;
 
         // Check if second ad requires payment
         if (id <= 0)
@@ -112,12 +112,12 @@ public class AdvertisementController : ControllerBase
                 new
                 {
                     id, nid = NationalId, title = req.title, desc = req.description,
-                    type = req.type, img = storedImagePath, link = req.targetLink ?? "",
+                    type = req.type, img = storedImagePath ?? "", link = req.targetLink ?? "",
                     mgr = req.managerialRecords ?? "", acad = req.academicRecords ?? "",
                     hon = req.honors ?? "", plans = req.plans ?? "", slogan = req.slogan ?? ""
                 }, tx);
 
-            long insertId = id > 0 ? id : (long)await conn.ExecuteScalarAsync("SELECT LAST_INSERT_ID()", transaction: tx);
+            long insertId = id > 0 ? id : Convert.ToInt64(await conn.ExecuteScalarAsync("SELECT LAST_INSERT_ID()", transaction: tx));
             await tx.CommitAsync();
 
             return Ok(new { status = true, message = "تبلیغ با موفقیت ذخیره شد.", data = new { id = insertId, image = storedImagePath } });
@@ -176,12 +176,13 @@ public class AdvertisementController : ControllerBase
 
     // POST /api/deleteAdv  {code, reson, status}
     [HttpPost("deleteAdv")]
-    public async Task<IActionResult> DeleteAdv([FromBody] DeleteAdvRequest req)
+    public async Task<IActionResult> DeleteAdv([FromBody] DeleteAdvRequest? req)
     {
-        if (string.IsNullOrWhiteSpace(req.code))
+        if (req == null || req.code == null)
             return BadRequest(new { status = false, message = "پارامتر کد الزامی است." });
 
         await using var conn = _db.CreateConnection();
+        await conn.OpenAsync();
         await using var tx = await conn.BeginTransactionAsync();
         try
         {
@@ -194,8 +195,8 @@ public class AdvertisementController : ControllerBase
             string myRole = (string)me.roles;
 
             string selectSql = myRole == "CANDIDATE"
-                ? "SELECT deleter FROM advertisements WHERE id=@id"
-                : "SELECT deleter FROM advertisements WHERE nationalId=@nid AND id=@id";
+                ? "SELECT deleter FROM advertisements WHERE nationalId=@nid AND id=@id"
+                : "SELECT deleter FROM advertisements WHERE id=@id";
 
             var adRow = await conn.QueryFirstOrDefaultAsync<dynamic>(selectSql,
                 new { id = req.code, nid = NationalId }, tx);
@@ -226,12 +227,13 @@ public class AdvertisementController : ControllerBase
 
     // POST /api/increaseViewAdd  {id}
     [HttpPost("increaseViewAdd")]
-    public async Task<IActionResult> IncreaseViewAdd([FromBody] IncreaseViewRequest req)
+    public async Task<IActionResult> IncreaseViewAdd([FromBody] IncreaseViewRequest? req)
     {
-        if (string.IsNullOrWhiteSpace(req.id))
+        if (req == null || req.id == null)
             return BadRequest(new { status = false, message = "پارامتر کد الزامی است." });
 
         await using var conn = _db.CreateConnection();
+        await conn.OpenAsync();
         await using var tx = await conn.BeginTransactionAsync();
         try
         {
@@ -250,9 +252,14 @@ public class AdvertisementController : ControllerBase
 }
 
 public record AdvSaveRequest(
-    int id, string? title, string? description, string? type, string? status,
+    int? id, string? title, string? description, string? type, string? status,
     string? targetLink, string? imagePath, string? managerialRecords,
     string? academicRecords, string? honors, string? plans, string? slogan, int isPaid = 0);
 
-public record DeleteAdvRequest(string code, string? reson, string? status);
-public record IncreaseViewRequest(string id);
+public class DeleteAdvRequest
+{
+    public long? code { get; set; }
+    public string? reson { get; set; }
+    public string? status { get; set; }
+}
+public class IncreaseViewRequest { public long? id { get; set; } }

@@ -57,6 +57,7 @@ public class LogFeedbackController : ControllerBase
             return BadRequest(new { status = false, message = "پارامتر الزامی است." });
 
         await using var conn = _db.CreateConnection();
+        await conn.OpenAsync();
         await using var tx = await conn.BeginTransactionAsync();
         try
         {

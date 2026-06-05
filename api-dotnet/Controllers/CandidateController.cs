@@ -131,6 +131,8 @@ public class CandidateController : ControllerBase
 
             var start = _jalali.ParseJalaliSchedule(ev.Str("start_date"));
             var end   = _jalali.ParseJalaliSchedule(ev.Str("end_date"));
+            if (end.HasValue && end.Value.TimeOfDay == TimeSpan.Zero)
+                end = end.Value.Date.AddDays(1).AddTicks(-1);
             var now   = DateTime.Now;
 
             if (!start.HasValue || now < start.Value)

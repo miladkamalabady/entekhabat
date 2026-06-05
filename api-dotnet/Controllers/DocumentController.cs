@@ -90,6 +90,7 @@ public class DocumentController : ControllerBase
         }
 
         await using var conn = _db.CreateConnection();
+        await conn.OpenAsync();
         await using var tx = await conn.BeginTransactionAsync();
 
         if (paths.ContainsKey("education_doc"))

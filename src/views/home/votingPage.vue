@@ -105,7 +105,7 @@
             :class="{ selected: selectedCandidates?.includes(candidate.codeentekhabati) }"
             @click="toggleCandidate(candidate)">
             <div class="candidate-image">
-              <img :src="`${apiUrlrtb}/${candidate.user_photo}`" :alt="candidate.first_name">
+              <img :src="`${candidate.user_photo}`" :alt="candidate.first_name">
               <div v-if="selectedCandidates?.includes(candidate.codeentekhabati)" class="check-mark">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white">
                   <path d="M20 6L9 17L4 12" stroke-width="2" stroke-linecap="round"/>
@@ -174,7 +174,7 @@
                 <div v-for="cid in selectedCandidates" :key="cid" class="ballot-candidate-item">
                   <div class="ballot-candidate-number">{{ selectedCandidates.indexOf(cid) + 1 }}</div>
                   <div class="ballot-candidate-info">
-                    <img :src="`${apiUrlrtb}/${findCandidate(cid).user_photo}`" :alt="findCandidate(cid).first_name">
+                    <img :src="`${findCandidate(cid).user_photo}`" :alt="findCandidate(cid).first_name">
                     <div>
                       <div class="ballot-candidate-name">
                         {{ findCandidate(cid).gender == 1 ? 'آقای' : 'خانم' }} {{ findCandidate(cid).first_name }} {{ findCandidate(cid).last_name }}
@@ -253,6 +253,14 @@
           </div>
 
           <div class="success-actions">
+            <button class="btn-outline" @click="printReceipt">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M6 9V2H18V9" stroke-width="1.5" stroke-linecap="round"/>
+                <path d="M6 18H4C3 18 2 17 2 16V11C2 10 3 9 4 9H20C21 9 22 10 22 11V16C22 17 21 18 20 18H18" stroke-width="1.5"/>
+                <rect x="6" y="14" width="12" height="8" rx="1" stroke-width="1.5"/>
+              </svg>
+              چاپ رسید
+            </button>
             <button class="btn-outline" @click="downloadReceipt">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path d="M12 3V16M12 16L9 13M12 16L15 13" stroke-width="1.5" stroke-linecap="round"/>
@@ -294,7 +302,7 @@
       </template>
       <div v-if="previewCandidateData" class="modal-body-custom">
         <div class="modal-candidate-image">
-          <img :src="`${apiUrlrtb}/${previewCandidateData.user_photo}`" :alt="previewCandidateData.first_name">
+          <img :src="`${previewCandidateData.user_photo}`" :alt="previewCandidateData.first_name">
         </div>
         <div class="modal-candidate-info">
           <div class="info-row">
@@ -329,14 +337,13 @@
 
 <script>
 import { isMobile } from "../../utils";
-import { apiUrlrtb } from '../../constants/config'
 import { mapGetters, mapActions } from "vuex";
 
 export default {
   name: "VotingPage",
   data() {
     return {
-      isMobile, apiUrlrtb,
+      isMobile,
       feedback: { rating: 0, comment: '' },
       submittingFeedback: false,
       voteStatus: '',
@@ -505,6 +512,119 @@ ${na}
       a.click();
       window.URL.revokeObjectURL(url);
       this.$bvToast.toast('رسید رأی‌گیری دانلود شد', { variant: 'success' });
+    },
+
+    printReceipt() {
+      const candidates = this.selectedCandidate || [];
+      const candidateRows = candidates.map((c, i) =>
+        `<tr>
+          <td>${i + 1}</td>
+          <td>${c.first_name} ${c.last_name}</td>
+          <td>${c.codeentekhabati || '-'}</td>
+          <td>${c.org_position_desc || '-'}</td>
+        </tr>`
+      ).join('');
+
+      const html = `<!DOCTYPE html>
+<html dir="rtl" lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <title>تعرفه رأی - رسید رأی‌گیری</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Tahoma', 'Arial', sans-serif; background: #fff; color: #000; direction: rtl; }
+    .page { width: 148mm; min-height: 210mm; margin: 0 auto; padding: 8mm; border: 2px solid #000; }
+    .header { text-align: center; border-bottom: 3px double #000; padding-bottom: 6mm; margin-bottom: 5mm; }
+    .logo-area { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 3mm; }
+    .logo-box { width: 18mm; height: 18mm; border: 2px solid #000; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+    .title-area h1 { font-size: 14pt; font-weight: bold; }
+    .title-area h2 { font-size: 11pt; }
+    .title-area h3 { font-size: 9pt; color: #333; }
+    .ballot-label { background: #000; color: #fff; text-align: center; padding: 2mm 4mm; font-size: 12pt; font-weight: bold; margin: 4mm 0; letter-spacing: 2px; }
+    .section { margin-bottom: 4mm; }
+    .section-title { font-size: 9pt; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 1mm; margin-bottom: 2mm; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm; font-size: 8.5pt; }
+    .info-item { display: flex; gap: 4px; }
+    .info-item label { font-weight: bold; white-space: nowrap; }
+    table { width: 100%; border-collapse: collapse; font-size: 8pt; margin-top: 2mm; }
+    th { background: #000; color: #fff; padding: 2mm; text-align: center; font-size: 8pt; }
+    td { border: 1px solid #555; padding: 1.5mm 2mm; text-align: center; }
+    tr:nth-child(even) td { background: #f5f5f5; }
+    .tracking { background: #f0f0f0; border: 2px solid #000; text-align: center; padding: 3mm; margin: 4mm 0; }
+    .tracking-label { font-size: 8pt; }
+    .tracking-code { font-size: 16pt; font-weight: bold; font-family: monospace; letter-spacing: 3px; }
+    .footer { border-top: 2px solid #000; padding-top: 3mm; margin-top: 4mm; font-size: 7.5pt; text-align: center; color: #333; }
+    .stamp-area { display: flex; justify-content: space-between; margin-top: 5mm; font-size: 8pt; }
+    .stamp-box { border: 1px solid #000; width: 35mm; height: 15mm; text-align: center; padding-top: 1mm; }
+    .official-mark { border: 3px double #000; display: inline-block; padding: 1mm 3mm; font-size: 8pt; font-weight: bold; margin: 2mm 0; }
+    @media print {
+      body { margin: 0; }
+      .page { border: 2px solid #000; margin: 0; width: 148mm; }
+      @page { size: A5; margin: 5mm; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div class="logo-area">
+      <div class="logo-box">🗳️</div>
+      <div class="title-area">
+        <h1>صندوق ذخیره فرهنگیان</h1>
+        <h2>رسید رسمی رأی‌گیری الکترونیکی</h2>
+        <h3>انتخابات هیأت امنا</h3>
+      </div>
+    </div>
+    <div class="official-mark">سند رسمی - تعرفه رأی</div>
+  </div>
+
+  <div class="ballot-label">◀ تعرفه رأی‌گیری ▶</div>
+
+  <div class="section">
+    <div class="section-title">اطلاعات رأی‌دهنده</div>
+    <div class="info-grid">
+      <div class="info-item"><label>نام و نام خانوادگی:</label> <span>${this.currentUser?.full_name || '-'}</span></div>
+      <div class="info-item"><label>کد ملی:</label> <span>${this.currentUser?.national_id || '-'}</span></div>
+      <div class="info-item"><label>حوزه انتخابیه:</label> <span>${this.currentUser?.regionName || '-'}</span></div>
+      <div class="info-item"><label>تاریخ رأی:</label> <span>${this.voteDate} - ${this.voteTime}</span></div>
+    </div>
+  </div>
+
+  <div class="tracking">
+    <div class="tracking-label">شماره پیگیری رأی</div>
+    <div class="tracking-code">${this.voteTrackingCode}</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">داوطلبان انتخاب شده (${candidates.length} نفر)</div>
+    <table>
+      <thead>
+        <tr><th>#</th><th>نام داوطلب</th><th>کد انتخاباتی</th><th>سمت</th></tr>
+      </thead>
+      <tbody>${candidateRows}</tbody>
+    </table>
+  </div>
+
+  <div class="stamp-area">
+    <div class="stamp-box">مهر صندوق</div>
+    <div style="text-align:center;font-size:7.5pt;color:#555;">
+      این سند به عنوان رسید رسمی<br>رأی‌گیری الکترونیکی معتبر است
+    </div>
+    <div class="stamp-box">امضای ناظر</div>
+  </div>
+
+  <div class="footer">
+    <p>تاریخ چاپ: ${new Date().toLocaleDateString('fa-IR')} | این رسید را نزد خود نگهدارید</p>
+    <p>سامانه رأی‌گیری الکترونیکی صندوق ذخیره فرهنگیان</p>
+  </div>
+</div>
+<script>window.onload = function(){ window.print(); }<\/script>
+</body>
+</html>`;
+
+      const win = window.open('', '_blank', 'width=600,height=800');
+      win.document.write(html);
+      win.document.close();
     },
 
     goToHome() {
