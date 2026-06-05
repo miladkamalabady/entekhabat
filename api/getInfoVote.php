@@ -99,12 +99,12 @@ $sqlRegionVotes = "
 SELECT
     vu.region_id,
     COUNT(v.id) as votes,
-    COALESCE(fra.totalEligible, 0) as total_eligible
+    COALESCE(MAX(fra.totalEligible), 0) as total_eligible
 FROM users as vu
 LEFT JOIN votes as v ON v.national_id = vu.national_id
 LEFT JOIN final_results_approvals as fra ON fra.region_id = vu.region_id
 {$regionVoteFilter}
-GROUP BY vu.region_id, fra.totalEligible
+GROUP BY vu.region_id
 ";
 
 $resRegionVotes = $db->query($sqlRegionVotes);

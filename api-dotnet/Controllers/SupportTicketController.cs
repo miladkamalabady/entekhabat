@@ -77,15 +77,22 @@ public class SupportTicketController : ControllerBase
         if ((string)ticket.requester_national_id == nid) return true;
         if (role == "ADMIN") return true;
         if (role != "SUPERVISOR" && role != "EXECUTIVE") return false;
-        if ((string)ticket.target_role != role) return false;
 
-        string userRegion = (user.region_id ?? 0).ToString();
-        string ticketRegion = (ticket.requester_region_id ?? 0).ToString();
+        string userRegion = Convert.ToString(user.region_id ?? 0) ?? "0";
+        string ticketRegion = Convert.ToString(ticket.requester_region_id ?? 0) ?? "0";
+        int userProvinceCode = Convert.ToInt32(user.provinceCode ?? 0);
+        int ticketProvinceCode = Convert.ToInt32(ticket.requester_province_code ?? 0);
 
-        if (userRegion.EndsWith("00"))
-            return (int)(ticket.requester_province_code ?? -1) == (int)(user.provinceCode ?? -2);
+        bool sameRegion = userRegion.EndsWith("00")
+            ? userProvinceCode > 0 && ticketProvinceCode == userProvinceCode
+            : ticketRegion != "0" && ticketRegion == userRegion;
 
-        return ticketRegion != "" && ticketRegion == userRegion;
+        if (!sameRegion) return false;
+
+        // SUPERVISOR می‌تواند به تیکت‌های هدایت‌شده به خودش پاسخ دهد
+        // EXECUTIVE فقط به تیکت‌های خودش
+        if (role == "SUPERVISOR") return (string)ticket.target_role == "SUPERVISOR";
+        return (string)ticket.target_role == role;
     }
 
     private static string BuildWhere(dynamic user)
@@ -97,15 +104,25 @@ public class SupportTicketController : ControllerBase
         if (role == "ADMIN") return "1=1";
         if (role != "SUPERVISOR" && role != "EXECUTIVE") return own;
 
-        int regionId = (int)(user.region_id ?? 0);
+        int regionId = Convert.ToInt32(user.region_id ?? 0);
         string staff;
         if (regionId > 0 && regionId.ToString().EndsWith("00"))
         {
-            int pc = (int)(user.provinceCode ?? 0);
-            staff = $"(t.target_role='{role}' AND t.requester_province_code={pc})";
+            int pc = Convert.ToInt32(user.provinceCode ?? 0);
+            // SUPERVISOR: همه تیکت‌های استان (غیر از ADMIN) — نقش نظارتی
+            // EXECUTIVE: فقط تیکت‌های هدایت‌شده به خودش
+            staff = role == "SUPERVISOR"
+                ? $"(t.requester_province_code={pc} AND t.target_role!='ADMIN')"
+                : $"(t.target_role='{role}' AND t.requester_province_code={pc})";
         }
         else
-            staff = $"(t.target_role='{role}' AND t.requester_region_id={regionId})";
+        {
+            // SUPERVISOR: همه تیکت‌های منطقه (غیر از ADMIN)
+            // EXECUTIVE: فقط تیکت‌های هدایت‌شده به خودش
+            staff = role == "SUPERVISOR"
+                ? $"(t.requester_region_id={regionId} AND t.target_role!='ADMIN')"
+                : $"(t.target_role='{role}' AND t.requester_region_id={regionId})";
+        }
 
         return $"({own} OR {staff})";
     }
@@ -240,7 +257,7 @@ public class SupportTicketController : ControllerBase
               VALUES (@code,@nid,@name,@rid,@rname,@pc,@trole,@level,@subj,@cat,@pri,'open')",
             new { code = ticketCode, nid = NationalId, name = requesterName, rid = regionId, rname = (string)(user.regionName ?? ""), pc = provinceCode, trole = targetRole, level = supportLevel, subj = req.subject, cat = req.category, pri = priority });
 
-        int ticketId = (int)await conn.ExecuteScalarAsync("SELECT LAST_INSERT_ID()");
+        int ticketId = Convert.ToInt32(await conn.ExecuteScalarAsync("SELECT LAST_INSERT_ID()"));
 
         await conn.ExecuteAsync(
             "INSERT INTO support_ticket_messages (ticket_id, sender_national_id, sender_name, sender_role, message, attachments) VALUES (@tid,@nid,@name,'USER',@msg,'[]')",

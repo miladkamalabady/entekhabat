@@ -175,7 +175,7 @@ public class VoteController : ControllerBase
         await using var conn = _db.CreateConnection();
 
         var totalVoters = await conn.QueryFirstOrDefaultAsync<int>(
-            "SELECT COUNT(*) FROM users WHERE roles='VOTER'");
+            "SELECT COALESCE(SUM(totalEligible), 0) FROM final_results_approvals");
 
         var totalVotes = await conn.QueryFirstOrDefaultAsync<int>(
             "SELECT COUNT(DISTINCT national_id) FROM votes");
@@ -229,14 +229,14 @@ public class VoteController : ControllerBase
             GROUP BY r.ProvinceCode")).AsList();
 
         var eligibleByProvince = (await conn.QueryAsync<dynamic>(@"
-            SELECT (r.ProvinceCode * 100) AS province_id, COUNT(u.id) AS eligible
-            FROM users u
-            JOIN region r ON r.id = u.region_id
-            WHERE u.roles = 'VOTER' AND r.ProvinceCode > 0
+            SELECT r.ProvinceCode, COALESCE(SUM(fra.totalEligible), 0) AS eligible
+            FROM final_results_approvals fra
+            JOIN region r ON r.id = fra.region_id
+            WHERE r.ProvinceCode > 0
             GROUP BY r.ProvinceCode")).AsList();
 
         var eligibleMap = eligibleByProvince.ToDictionary(
-            r => (long)r.province_id,
+            r => Convert.ToInt64(r.ProvinceCode) * 100L,
             r => Convert.ToInt32(r.eligible));
 
         var provinceVoteStats = provinceVoteStatsRaw.ToDictionary(
@@ -245,6 +245,10 @@ public class VoteController : ControllerBase
                 votes = Convert.ToInt32(r.votes),
                 eligible = eligibleMap.GetValueOrDefault((long)r.province_id, 0)
             });
+
+        var eligiblePerProvince = eligibleMap.ToDictionary(
+            kvp => (object)(long)kvp.Key,
+            kvp => (object)kvp.Value);
 
         return Ok(new
         {
@@ -258,7 +262,8 @@ public class VoteController : ControllerBase
                 activeCandidates,
                 listCan,
                 regionVoteStats,
-                provinceVoteStats
+                provinceVoteStats,
+                eligiblePerProvince
             }
         });
     }

@@ -224,6 +224,9 @@
                   <div class="region-votes">
                     {{ formatNumber(region.votes) }} رأی
                   </div>
+                  <div class="region-eligible text-muted" style="font-size:11px;">
+                    {{ formatNumber(region.eligibleVoters) }} واجد شرایط
+                  </div>
                 </div>
               </div>
             </div>
@@ -406,38 +409,38 @@ export default {
       iranSvgContent: '',
 
       // نگاشت کد استان IR به شناسه و نام فارسی
+      // کلید = id path در ir.svg  |  id = ProvinceCode در دیتابیس
       irCodeMap: {
-        'IR01': { id: 1,  name: 'آذربایجان شرقی' },
-        'IR02': { id: 2,  name: 'آذربایجان غربی' },
-        'IR03': { id: 3,  name: 'اردبیل' },
-        'IR04': { id: 4,  name: 'اصفهان' },
-        'IR05': { id: 5,  name: 'البرز' },
-        'IR06': { id: 6,  name: 'ایلام' },
-        'IR07': { id: 7,  name: 'بوشهر' },
-        'IR08': { id: 8,  name: 'تهران' },
-        'IR09': { id: 9,  name: 'چهارمحال و بختیاری' },
-        'IR29': { id: 29, name: 'خراسان جنوبی' },
-        'IR11': { id: 11, name: 'خراسان رضوی' },
-        'IR30': { id: 12, name: 'خراسان شمالی' },
-        'IR16': { id: 16, name: 'خوزستان' },
-        'IR14': { id: 14, name: 'زنجان' },
-        'IR15': { id: 15, name: 'سمنان' },
-        'IR13': { id: 13, name: 'سیستان و بلوچستان' },
-        'IR17': { id: 17, name: 'فارس' },
-        'IR18': { id: 18, name: 'قزوین' },
-        'IR19': { id: 19, name: 'گیلان' },
-        'IR20': { id: 20, name: 'کردستان' },
-        'IR21': { id: 21, name: 'کرمان' },
-        'IR22': { id: 22, name: 'کرمانشاه' },
-        'IR23': { id: 23, name: 'کهگیلویه و بویراحمد' },
-        'IR24': { id: 24, name: 'گلستان' },
-        'IR25': { id: 25, name: 'لرستان' },
-        'IR26': { id: 26, name: 'مازندران' },
-        'IR27': { id: 27, name: 'مرکزی' },
-        'IR28': { id: 28, name: 'هرمزگان' },
-        'IR10': { id: 10, name: 'همدان' },
-        'IR12': { id: 30, name: 'یزد' },
-        'IR31': { id: 31, name: 'قم' },
+        'IR01': { id: 18, name: 'آذربایجان شرقی' },
+        'IR02': { id: 29, name: 'آذربایجان غربی' },
+        'IR03': { id: 19, name: 'اردبیل' },
+        'IR04': { id: 17, name: 'اصفهان' },
+        'IR05': { id: 34, name: 'ایلام' },
+        'IR06': { id: 51, name: 'بوشهر' },
+        'IR07': { id: 11, name: 'تهران' },
+        'IR08': { id: 31, name: 'چهارمحال و بختیاری' },
+        'IR09': { id: 24, name: 'البرز' },
+        'IR10': { id: 36, name: 'خوزستان' },
+        'IR11': { id: 57, name: 'زنجان' },
+        'IR12': { id: 60, name: 'سمنان' },
+        'IR13': { id: 49, name: 'سیستان و بلوچستان' },
+        'IR14': { id: 23, name: 'فارس' },
+        'IR15': { id: 38, name: 'کرمان' },
+        'IR16': { id: 58, name: 'کردستان' },
+        'IR17': { id: 35, name: 'کرمانشاه' },
+        'IR18': { id: 42, name: 'کهگیلویه و بویراحمد' },
+        'IR19': { id: 37, name: 'گیلان' },
+        'IR20': { id: 54, name: 'لرستان' },
+        'IR21': { id: 20, name: 'مازندران' },
+        'IR22': { id: 15, name: 'مرکزی' },
+        'IR23': { id: 50, name: 'هرمزگان' },
+        'IR24': { id: 55, name: 'همدان' },
+        'IR25': { id: 44, name: 'یزد' },
+        'IR26': { id: 25, name: 'قم' },
+        'IR27': { id: 27, name: 'گلستان' },
+        'IR28': { id: 21, name: 'خراسان شمالی' },
+        'IR29': { id: 22, name: 'خراسان جنوبی' },
+        'IR30': { id: 16, name: 'خراسان رضوی' },
       },
       apiUrlrtb,
       infoVote: null,
@@ -487,7 +490,7 @@ export default {
         { key: 'vote_count', label: 'آرا', sortable: true },
       ],
       regionCandidateFields: [
-        { key: 'candidate_id', label: 'کدکاندید', sortable: false },
+        { key: 'codeentekhabati', label: 'کدکاندید', sortable: false },
         { key: 'candidate', label: 'کاندیدا', sortable: false },
         { key: 'vote_count', label: 'تعداد رأی', sortable: true }
       ], areaReportFields: [
@@ -1048,19 +1051,21 @@ export default {
     },
     updateRegionLiveStats() {
       const provinceVoteStats = this.infoVote?.provinceVoteStats || {};
+      const eligiblePerProvince = this.infoVote?.eligiblePerProvince || {};
       const regionVoteStats = this.infoVote?.regionVoteStats || {};
       if (!this.regions.length) return;
 
       this.regions = this.regions.map((region, idx) => {
         const areas = this.areasByProvince?.[region.id] || [];
-        const provinceStat = provinceVoteStats?.[region.id] || provinceVoteStats?.[Number(region.id)] || null;
-        const votes = Number(provinceStat?.votes || 0);
-        const eligibleVoters = Number(provinceStat?.eligible || 0);
-        const participation = eligibleVoters ? Number(((votes / eligibleVoters) * 100).toFixed(1)) : 0;
+        const provinceKey = Number(region.id) * 100;
+        const provinceStat = provinceVoteStats?.[provinceKey] || null;
         const areaVotes = areas.reduce((sum, area) => {
           const stat = regionVoteStats?.[area.id] || regionVoteStats?.[Number(area.id)] || null;
           return sum + Number(stat?.votes || 0);
         }, 0);
+        const votes = Number(provinceStat?.votes || areaVotes);
+        const eligibleVoters = Number(eligiblePerProvince[provinceKey] || provinceStat?.eligible || 0);
+        const participation = eligibleVoters ? Number(((votes / eligibleVoters) * 100).toFixed(1)) : 0;
 
         return {
           ...region,

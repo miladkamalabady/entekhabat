@@ -41,7 +41,7 @@ if ($isProvinceSupervisor) {
     $provinceCode = (int)$user['ProvinceCode'];
     $where = "WHERE r.ProvinceCode = {$provinceCode}";
 }
-$sql = "SELECT 
+$sql = "SELECT
     u.id,
     u.national_id,
     u.first_name,u.last_name,
@@ -54,11 +54,11 @@ $sql = "SELECT
     r.name as regionName,
     r.ProvinceCode as provinceCode,
     p.Name as provinceName
-FROM users as u 
+FROM users as u
 JOIN region as r ON r.id = u.region_id
 LEFT JOIN region as p ON p.id = (r.ProvinceCode * 100)
 {$where}
-ORDER BY u.id DESC 
+ORDER BY u.id DESC
 LIMIT {$limit}";
 $res = $db->query($sql);
 

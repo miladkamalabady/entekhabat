@@ -75,14 +75,23 @@ public class UserController : ControllerBase
         if (isProvinceSupervisor)
             where = $"WHERE r.ProvinceCode = {(int)currentUser.ProvinceCode}";
 
+        string passColumns = isAdmin
+            ? @", CASE WHEN u.roles='EXECUTIVE' AND (u.region_id % 100) != 0 THEN fra.EXECUTIVEPass ELSE NULL END AS executivePass,
+                 CASE WHEN u.roles='SUPERVISOR' AND (u.region_id % 100) != 0 THEN fra.SUPERVISORPass ELSE NULL END AS supervisorPass"
+            : "";
+        string passJoin = isAdmin
+            ? "LEFT JOIN final_results_approvals fra ON fra.region_id = u.region_id"
+            : "";
+
         var sql = $@"SELECT u.id, u.national_id, u.first_name, u.last_name,
                     u.personnel_code, u.region_id, u.roles, u.education,
                     u.yearsOfService, u.created_at,
                     r.name AS regionName, r.ProvinceCode AS provinceCode,
-                    p.Name AS provinceName
+                    p.Name AS provinceName{passColumns}
                 FROM users u
                 JOIN region r ON r.id=u.region_id
                 LEFT JOIN region p ON p.id=(r.ProvinceCode * 100)
+                {passJoin}
                 {where}
                 ORDER BY u.id DESC LIMIT {limit}";
 

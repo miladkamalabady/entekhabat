@@ -155,6 +155,8 @@
               <th>تحصیلات</th>
               <th>سنوات</th>
               <th>نقش</th>
+              <th v-if="currentUserRole === 'ADMIN'">رمز اجرایی</th>
+              <th v-if="currentUserRole === 'ADMIN'">رمز نظارت</th>
               <th>تاریخ ایجاد</th>
               <th>عملیات</th>
             </tr>
@@ -170,6 +172,26 @@
               <td>{{ user.education || '---' }}</td>
               <td>{{ user.yearsOfService || '---' }}</td>
               <td><span class="role-badge">{{ getRoleName(user.roles) }}</span></td>
+              <td v-if="currentUserRole === 'ADMIN'">
+                <div v-if="user.executivePass" class="pass-cell">
+                  <span v-if="revealedPasswords.has(user.id + '_exec')" class="box-credential">{{ user.executivePass }}</span>
+                  <span v-else class="box-credential masked">●●●●●●●</span>
+                  <button class="btn-reveal" @click="togglePass(user.id + '_exec')">
+                    {{ revealedPasswords.has(user.id + '_exec') ? 'پنهان' : 'نمایش' }}
+                  </button>
+                </div>
+                <span v-else class="text-muted">---</span>
+              </td>
+              <td v-if="currentUserRole === 'ADMIN'">
+                <div v-if="user.supervisorPass" class="pass-cell">
+                  <span v-if="revealedPasswords.has(user.id + '_sup')" class="box-credential box-password">{{ user.supervisorPass }}</span>
+                  <span v-else class="box-credential box-password masked">●●●●●●●</span>
+                  <button class="btn-reveal" @click="togglePass(user.id + '_sup')">
+                    {{ revealedPasswords.has(user.id + '_sup') ? 'پنهان' : 'نمایش' }}
+                  </button>
+                </div>
+                <span v-else class="text-muted">---</span>
+              </td>
               <td>{{ user.created_at || '---' }}</td>
               <td>
                 <button class="btn btn-sm btn-primary" @click="editUser(user)">ویرایش</button>
@@ -197,6 +219,7 @@ export default {
       selectedProvinceCode: '',
       maxVotesProvinceCode: '',
       regionMaxVotesSaving: '',
+      revealedPasswords: new Set(),
       filters: {
         search: '',
         role: '',
@@ -405,6 +428,11 @@ export default {
       };
       return roles[role] || role || '---';
     },
+    togglePass(key) {
+      const s = new Set(this.revealedPasswords);
+      s.has(key) ? s.delete(key) : s.add(key);
+      this.revealedPasswords = s;
+    },
     showToast(message, variant) {
       if (this.$bvToast) {
         this.$bvToast.toast(message, {
@@ -578,6 +606,56 @@ button {
   color: #6c757d;
   background: #f8f9fb;
   border-radius: 12px;
+}
+
+.pass-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.box-credential {
+  display: inline-block;
+  font-family: monospace;
+  font-size: 13px;
+  background: #f0f4ff;
+  color: #1a3c7a;
+  border: 1px solid #c5d5f0;
+  border-radius: 6px;
+  padding: 3px 8px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.box-credential.masked {
+  color: #94a3b8;
+  letter-spacing: 2px;
+}
+
+.box-password {
+  background: #fff7ed;
+  color: #92400e;
+  border-color: #f0c97a;
+}
+
+.btn-reveal {
+  padding: 2px 8px;
+  font-size: 11px;
+  border: 1px solid #c5d5f0;
+  border-radius: 5px;
+  background: #fff;
+  color: #1a3c7a;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.btn-reveal:hover {
+  background: #e8f0fe;
+}
+
+.text-muted {
+  color: #adb5bd;
 }
 
 @media (max-width: 768px) {

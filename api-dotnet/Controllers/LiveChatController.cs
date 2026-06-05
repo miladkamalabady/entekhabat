@@ -84,7 +84,10 @@ public class LiveChatController : ControllerBase
     private async Task<IDictionary<string, object>?> GetUser(MySqlConnector.MySqlConnection conn, string nid)
     {
         var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT national_id, first_name, last_name, roles, region_id, regionName FROM users WHERE national_id=@nid LIMIT 1",
+            @"SELECT u.national_id, u.first_name, u.last_name, u.roles, u.region_id,
+                     r.Name AS regionName
+              FROM users u LEFT JOIN region r ON r.id=u.region_id
+              WHERE u.national_id=@nid LIMIT 1",
             new { nid });
         if (row == null) return null;
         var d = (IDictionary<string, object>)row;
@@ -138,7 +141,7 @@ public class LiveChatController : ControllerBase
                 "INSERT INTO live_chat_sessions (session_code, user_national_id, user_name, user_role, user_region_id, subject) VALUES (@code,@nid,@name,@role,@rid,@subj)",
                 new { code, nid = NationalId, name = fullName, role, rid = regionId, subj = subject });
 
-            int sessionId = (int)await conn.ExecuteScalarAsync("SELECT LAST_INSERT_ID()");
+            int sessionId = Convert.ToInt32(await conn.ExecuteScalarAsync("SELECT LAST_INSERT_ID()"));
             string welcome = "گفتگوی آنلاین شما شروع شد. لطفاً پیام خود را بنویسید تا اولین پشتیبان آنلاین پاسخ دهد.";
             await conn.ExecuteAsync(
                 "INSERT INTO live_chat_messages (session_id, sender_type, sender_name, sender_role, message, is_read) VALUES (@sid,'system','سامانه','SYSTEM',@msg,1)",
@@ -292,11 +295,17 @@ public class LiveChatController : ControllerBase
             "INSERT INTO live_chat_messages (session_id, sender_national_id, sender_name, sender_role, sender_type, message) VALUES (@sid,@nid,@name,@role,@type,@msg)",
             new { sid = req.sessionId, nid = NationalId, name = user["full_name"], role = user["roles"], type = senderType, msg = req.message });
 
-        int msgId = (int)await conn.ExecuteScalarAsync("SELECT LAST_INSERT_ID()");
-        var msgRow = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT * FROM live_chat_messages WHERE id=@id LIMIT 1", new { id = msgId });
+        int msgId = Convert.ToInt32(await conn.ExecuteScalarAsync("SELECT LAST_INSERT_ID()"));
+        var msgRow = msgId > 0
+            ? await conn.QueryFirstOrDefaultAsync<dynamic>(
+                "SELECT * FROM live_chat_messages WHERE id=@id LIMIT 1", new { id = msgId })
+            : await conn.QueryFirstOrDefaultAsync<dynamic>(
+                "SELECT * FROM live_chat_messages WHERE session_id=@sid ORDER BY id DESC LIMIT 1", new { sid = req.sessionId });
 
-        return Ok(new { status = true, data = FormatMessage((IDictionary<string, object>)msgRow!) });
+        if (msgRow == null)
+            return StatusCode(500, new { status = false, message = "خطا در ذخیره‌سازی پیام" });
+
+        return Ok(new { status = true, data = FormatMessage((IDictionary<string, object>)msgRow) });
     }
 }
 
