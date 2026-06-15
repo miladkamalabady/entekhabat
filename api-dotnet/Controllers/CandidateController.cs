@@ -12,11 +12,13 @@ public class CandidateController : ControllerBase
 {
     private readonly DatabaseService _db;
     private readonly JalaliService _jalali;
+    private readonly BaleService _bale;
 
-    public CandidateController(DatabaseService db, JalaliService jalali)
+    public CandidateController(DatabaseService db, JalaliService jalali, BaleService bale)
     {
         _db = db;
         _jalali = jalali;
+        _bale = bale;
     }
 
     private string NationalId => User.Claims.FirstOrDefault(c => c.Type == "national_id")?.Value ?? "";
@@ -155,6 +157,11 @@ public class CandidateController : ControllerBase
             await conn.ExecuteAsync(
                 "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'ثبت کاندید',@desc)",
                 new { nid = NationalId, desc = $"تغییر کد {NationalId} ثبت نام کرد" }, tx);
+
+            var mobile = await conn.QueryFirstOrDefaultAsync<string>(
+                "SELECT mobile FROM users WHERE national_id=@nid LIMIT 1", new { nid = NationalId }, tx);
+            if (!string.IsNullOrWhiteSpace(mobile))
+                _bale.SendAsync(mobile, "ثبت‌نام کاندیداتوری شما در سامانه انتخابات با موفقیت انجام شد.");
 
             return Ok(new
             {

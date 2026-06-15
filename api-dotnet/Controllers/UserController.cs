@@ -12,11 +12,13 @@ public class UserController : ControllerBase
 {
     private readonly DatabaseService _db;
     private readonly JalaliService _jalali;
+    private readonly BaleService _bale;
 
-    public UserController(DatabaseService db, JalaliService jalali)
+    public UserController(DatabaseService db, JalaliService jalali, BaleService bale)
     {
         _db = db;
         _jalali = jalali;
+        _bale = bale;
     }
 
     private string NationalId => User.Claims.FirstOrDefault(c => c.Type == "national_id")?.Value ?? "";
@@ -242,6 +244,22 @@ public class UserController : ControllerBase
                 new { nid = NationalId, desc = $"تغییر کدملی {req.national_Id} به {req.requestStatus}" }, tx);
 
             await tx.CommitAsync();
+
+            // پیام بله به کاندید
+            var statusMessages = new Dictionary<string, string>
+            {
+                ["SUPERVISION_APPROVED"]  = "صلاحیت شما توسط ناظر تأیید شد.",
+                ["SUPERVISION_REJECTED"]  = "صلاحیت شما توسط ناظر رد شد.",
+                ["EXECUTIVE_APPROVED"]    = "مدارک شما توسط اجرایی تأیید شد.",
+                ["EXECUTIVE_REJECTED"]    = "مدارک شما توسط اجرایی رد شد.",
+            };
+            if (statusMessages.TryGetValue(req.requestStatus, out var smsText))
+            {
+                var mobile = await conn.QueryFirstOrDefaultAsync<string>(
+                    "SELECT mobile FROM users WHERE national_id=@nid LIMIT 1", new { nid = req.national_Id });
+                if (!string.IsNullOrWhiteSpace(mobile))
+                    _bale.SendAsync(mobile, $"سامانه انتخابات: {smsText}");
+            }
 
             return Ok(new
             {

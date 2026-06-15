@@ -102,7 +102,6 @@
 
 <script>
 import { mapActions, mapMutations, mapGetters } from "vuex";
-import { notifs } from "../data/dataConst";
 
 const gohomepath = [];
 
@@ -111,22 +110,22 @@ export default {
     return {
       gohomepath,
       shookOnce: false,
-      notifs,
+      seenIds: JSON.parse(localStorage.getItem('seenAnnouncements') || '[]'),
       location: "HomePage",
       showname: true,
     };
   },
   computed: {
-    ...mapGetters(["processing", "sidebarVisible", "currentUser"]),
+    ...mapGetters(["processing", "sidebarVisible", "currentUser", "announcements"]),
     newNotifCount() {
-      return this.notifs?.filter(n => n.isNew).length;
+      return this.announcements?.filter(n => !this.seenIds.includes(n.id)).length || 0;
     },
     topNotifs() {
-      return this.notifs?.slice(0, 3);
+      return this.announcements?.slice(0, 3) || [];
     }
   },
   methods: {
-    ...mapActions(["signOut"]),
+    ...mapActions(["signOut", "getAnnouncements"]),
     ...mapMutations(["setsidebarVisible"]),
     toggleSidebar() {
       this.setsidebarVisible(!this.sidebarVisible);
@@ -137,27 +136,35 @@ export default {
       }
     },
     goToNotifs(item) {
-      this.$router.push({
-        name: "Notifications",
-        query: { id: item.id }
-      });
+      if (!this.seenIds.includes(item.id)) {
+        this.seenIds.push(item.id);
+        localStorage.setItem('seenAnnouncements', JSON.stringify(this.seenIds));
+      }
+      this.$router.push({ name: "Notifications", query: { id: item.id } });
     },
     logout() {
       this.signOut().then(() => {
         window.location.href = "https://my.medu.ir";
       });
     },
+    async loadAnnouncements() {
+      if (this.currentUser) {
+        await this.getAnnouncements();
+      }
+    }
   },
   mounted() {
     if (this.$route?.path?.includes("/sso")) this.showname = false;
+    this.loadAnnouncements();
   },
   watch: {
+    currentUser(val) {
+      if (val) this.loadAnnouncements();
+    },
     newNotifCount(val) {
       if (val > 0 && !this.shookOnce) {
         this.shookOnce = true;
-        setTimeout(() => {
-          this.shookOnce = false;
-        }, 3000);
+        setTimeout(() => { this.shookOnce = false; }, 3000);
       }
     }
   }

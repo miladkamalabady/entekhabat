@@ -14,11 +14,13 @@ public class VoteController : ControllerBase
 {
     private readonly DatabaseService _db;
     private readonly JalaliService _jalali;
+    private readonly BaleService _bale;
 
-    public VoteController(DatabaseService db, JalaliService jalali)
+    public VoteController(DatabaseService db, JalaliService jalali, BaleService bale)
     {
         _db = db;
         _jalali = jalali;
+        _bale = bale;
     }
 
     private string NationalId => User.Claims.FirstOrDefault(c => c.Type == "national_id")?.Value ?? "";
@@ -122,6 +124,11 @@ public class VoteController : ControllerBase
             await conn.ExecuteAsync(
                 "UPDATE voting_tokens SET used=1, used_at=NOW() WHERE id=@id",
                 new { id = tokenId }, tx);
+
+            var mobile = await conn.QueryFirstOrDefaultAsync<string>(
+                "SELECT mobile FROM users WHERE national_id=@nid LIMIT 1", new { nid = NationalId }, tx);
+            if (!string.IsNullOrWhiteSpace(mobile))
+                _bale.SendAsync(mobile, $"رأی شما با موفقیت ثبت شد. کد رهگیری: {trackingCode}");
 
             return Ok(new
             {
@@ -407,6 +414,106 @@ public class VoteController : ControllerBase
             message = "جستجوی آرای کاربران با موفقیت انجام شد."
         });
     }
+
+    // GET /api/exportResults?region=&province=  - خروجی CSV نتایج برای ادمین
+    [HttpGet("exportResults")]
+    public async Task<IActionResult> ExportResults([FromQuery] int? region = null, [FromQuery] int? province = null)
+    {
+        await using var conn = _db.CreateConnection();
+
+        var me = await conn.QueryRowDict(
+            "SELECT roles FROM users WHERE national_id=@nid LIMIT 1", new { nid = NationalId });
+        if (me == null) return Unauthorized();
+
+        if (me.Str("roles") != "ADMIN")
+            return StatusCode(403, new { status = false, message = "فقط ادمین می‌تواند نتایج را دریافت کند." });
+
+        var p = province.HasValue ? (object)province.Value : DBNull.Value;
+        var r = region.HasValue   ? (object)region.Value   : DBNull.Value;
+
+        var candidates = (await conn.QueryAsync<dynamic>(@"
+            SELECT fi.id AS codeentekhabati,
+                   u.national_id, u.first_name, u.last_name,
+                   u.org_position_desc, u.gender, u.education, u.yearsOfService,
+                   reg.name AS region_name, reg.ProvinceCode,
+                   prov.Name AS province_name,
+                   COUNT(CASE WHEN (@r IS NOT NULL AND voter.region_id = @r)
+                                OR (@r IS NULL AND (@p IS NULL OR vr.ProvinceCode = @p))
+                              THEN v.id ELSE NULL END) AS vote_count,
+                   fi.requestStatus, fi.create_date
+            FROM final_submissions fi
+            JOIN users u ON u.national_id = fi.nationalId
+            LEFT JOIN region reg ON reg.id = u.region_id
+            LEFT JOIN region prov ON prov.id = (reg.ProvinceCode * 100)
+            LEFT JOIN votes v ON v.candidate_id = fi.id
+            LEFT JOIN users voter ON voter.national_id = v.national_id
+            LEFT JOIN region vr ON vr.id = voter.region_id
+            WHERE fi.requestStatus IN ('SUPERVISION_APPROVED','SUPERVISION_REJECTED','SUBMITTED')
+            GROUP BY fi.id, u.national_id, u.first_name, u.last_name,
+                     u.org_position_desc, u.gender, u.education, u.yearsOfService,
+                     reg.name, reg.ProvinceCode, prov.Name, fi.requestStatus, fi.create_date
+            ORDER BY vote_count DESC, u.last_name ASC",
+            new { p, r })).AsList();
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("ردیف,کد انتخاباتی,کد ملی,نام,نام خانوادگی,جنسیت,تحصیلات,سابقه خدمت,سمت سازمانی,استان,منطقه,وضعیت,تعداد آرا,تاریخ ثبت نام");
+
+        int row = 1;
+        foreach (IDictionary<string, object> c in candidates)
+        {
+            string statusFa = c.Str("requestStatus") switch
+            {
+                "SUPERVISION_APPROVED"  => "تایید شده",
+                "SUPERVISION_REJECTED"  => "رد شده",
+                "SUBMITTED"             => "در انتظار بررسی",
+                _                       => c.Str("requestStatus")
+            };
+
+            string regDate = c.GetValueOrDefault("create_date") is DateTime dt
+                ? _jalali.Format(dt, "Y/n/j") : "";
+
+            sb.AppendLine(string.Join(",", new[]
+            {
+                row++.ToString(),
+                CsvCell(c.Str("codeentekhabati")),
+                CsvCell(c.Str("national_id")),
+                CsvCell(c.Str("first_name")),
+                CsvCell(c.Str("last_name")),
+                CsvCell(c.Str("gender")),
+                CsvCell(c.Str("education")),
+                CsvCell(c.Str("yearsOfService")),
+                CsvCell(c.Str("org_position_desc")),
+                CsvCell(c.Str("province_name")),
+                CsvCell(c.Str("region_name")),
+                CsvCell(statusFa),
+                c.GetValueOrDefault("vote_count")?.ToString() ?? "0",
+                CsvCell(regDate)
+            }));
+        }
+
+        await conn.ExecuteAsync(
+            "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'دریافت خروجی اکسل نتایج',@desc)",
+            new { nid = NationalId, desc = $"خروجی نتایج - منطقه:{region} استان:{province}" });
+
+        // UTF-8 BOM برای نمایش صحیح فارسی در اکسل
+        var bom = new byte[] { 0xEF, 0xBB, 0xBF };
+        var csvBytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+        var result = new byte[bom.Length + csvBytes.Length];
+        bom.CopyTo(result, 0);
+        csvBytes.CopyTo(result, bom.Length);
+
+        var fileName = $"election_results_{DateTime.Now:yyyyMMdd_HHmm}.csv";
+        return File(result, "text/csv; charset=utf-8", fileName);
+    }
+
+    private static string CsvCell(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return "";
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+            return $"\"{value.Replace("\"", "\"\"")}\"";
+        return value;
+    }
 }
 
 public record InsertVoteRequest(int[] candidateIds, string vote_token);
+

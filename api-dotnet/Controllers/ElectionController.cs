@@ -223,8 +223,97 @@ public class ElectionController : ControllerBase
             data = new { region_id = req.region_id, maxVotes = req.maxVotes }
         });
     }
+
+    private const string CreateInvalidationsTable = @"CREATE TABLE IF NOT EXISTS election_invalidations (
+        id INT(11) NOT NULL AUTO_INCREMENT,
+        region_id INT(11) NULL,
+        reason TEXT NOT NULL,
+        invalidated_by VARCHAR(20) NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+
+    // POST /api/invalidateElection  {region_id?, reason}
+    [HttpPost("invalidateElection")]
+    public async Task<IActionResult> InvalidateElection([FromBody] InvalidateElectionRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.reason))
+            return BadRequest(new { status = false, message = "دلیل ابطال الزامی است." });
+
+        await using var conn = _db.CreateConnection();
+        await conn.OpenAsync();
+
+        var me = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            @"SELECT u.roles, u.region_id, r.ProvinceCode
+              FROM users u LEFT JOIN region r ON r.id=u.region_id
+              WHERE u.national_id=@nid LIMIT 1", new { nid = NationalId });
+
+        if (me == null) return Unauthorized();
+
+        string myRole = (string)me.roles;
+        bool isAdmin = myRole == "ADMIN";
+        bool isSupervisor = myRole == "SUPERVISOR";
+
+        if (!isAdmin && !isSupervisor)
+            return StatusCode(403, new { status = false, message = "فقط ناظر یا ادمین می‌تواند انتخابات را باطل کند." });
+
+        await conn.ExecuteAsync(CreateInvalidationsTable);
+
+        int targetRegion = req.region_id ?? 0;
+
+        if (!isAdmin && isSupervisor && targetRegion > 0)
+        {
+            int myRegion = (int)me.region_id;
+            int myProvince = (int)me.ProvinceCode;
+            bool isProvinceSupervisor = myRegion.ToString().EndsWith("00");
+
+            if (!isProvinceSupervisor)
+            {
+                if (targetRegion != myRegion)
+                    return StatusCode(403, new { status = false, message = "شما فقط می‌توانید منطقه خود را باطل کنید." });
+            }
+            else
+            {
+                var targetReg = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                    "SELECT ProvinceCode FROM region WHERE id=@id LIMIT 1", new { id = targetRegion });
+                if (targetReg == null || (int)targetReg.ProvinceCode != myProvince)
+                    return StatusCode(403, new { status = false, message = "امکان ابطال مناطق خارج از استان شما وجود ندارد." });
+            }
+        }
+
+        return await DbHelper.WithTransaction(conn, async tx =>
+        {
+            await conn.ExecuteAsync(
+                "INSERT INTO election_invalidations (region_id, reason, invalidated_by) VALUES (@rid, @reason, @by)",
+                new { rid = targetRegion == 0 ? (object)DBNull.Value : targetRegion, reason = req.reason, by = NationalId }, tx);
+
+            await conn.ExecuteAsync(
+                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'ابطال انتخابات',@desc)",
+                new { nid = NationalId, desc = $"انتخابات منطقه {targetRegion} باطل شد - دلیل: {req.reason}" }, tx);
+
+            return Ok(new { status = true, message = "انتخابات با موفقیت باطل اعلام شد.", data = new { region_id = targetRegion, reason = req.reason } });
+        });
+    }
+
+    // GET /api/getElectionInvalidations
+    [HttpGet("getElectionInvalidations")]
+    public async Task<IActionResult> GetElectionInvalidations()
+    {
+        await using var conn = _db.CreateConnection();
+        await conn.ExecuteAsync(CreateInvalidationsTable);
+
+        var rows = await conn.QueryAsync<dynamic>(@"
+            SELECT ei.id, ei.region_id, ei.reason, ei.invalidated_by, ei.created_at,
+                   r.Name AS region_name, u.first_name, u.last_name
+            FROM election_invalidations ei
+            LEFT JOIN region r ON r.id=ei.region_id
+            LEFT JOIN users u ON u.national_id=ei.invalidated_by
+            ORDER BY ei.created_at DESC");
+
+        return Ok(new { status = true, data = rows });
+    }
 }
 
 public record SaveScheduleRequest(ScheduleEvent[]? events);
 public record ScheduleEvent(string? key, string? name, string? startDate, string? endDate, int? id);
 public record SaveMaxVotesRequest(int region_id, int maxVotes);
+public record InvalidateElectionRequest(int? region_id, string? reason);

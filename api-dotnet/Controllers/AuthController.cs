@@ -41,7 +41,6 @@ public class AuthController : ControllerBase
                 "UPDATE users SET roles=@role WHERE national_id=@nid",
                 new { role = roleParam, nid = nationalId });
 
-        // دریافت کاربر به صورت Dictionary برای دسترسی امن
         var user = await conn.QueryRowDict(
             "SELECT * FROM users WHERE national_id=@nid",
             new { nid = nationalId });
@@ -49,7 +48,6 @@ public class AuthController : ControllerBase
         if (user == null)
             return BadRequest(new { status = false, message = "خطای دریافت کاربر!" });
 
-        // دسترسی امن با GetValueOrDefault
         int    userId     = Convert.ToInt32(user.GetValueOrDefault("id") ?? 0);
         string userRoles  = !string.IsNullOrWhiteSpace(roleParam)
                                 ? roleParam

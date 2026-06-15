@@ -95,6 +95,9 @@ const global = {
     },getLogs: {
         url: "/getLogs",
         method: 'GET'
+    },getRecentLogs: {
+        url: "/getRecentLogs",
+        method: 'GET'
     },searchUserVotes: {
         url: "/searchUserVotes",
         method: 'GET'
@@ -124,6 +127,18 @@ const global = {
         method: 'POST'
     }, closeLiveChat: {
         url: "/closeLiveChat",
+        method: 'POST'
+    }, getAnnouncements: {
+        url: "/getAnnouncements",
+        method: 'GET'
+    }, getMyAnnouncements: {
+        url: "/getMyAnnouncements",
+        method: 'GET'
+    }, saveAnnouncement: {
+        url: "/saveAnnouncement",
+        method: 'POST'
+    }, deleteAnnouncement: {
+        url: "/deleteAnnouncement",
         method: 'POST'
     }
 

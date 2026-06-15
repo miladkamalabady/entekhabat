@@ -26,8 +26,22 @@ public class DocumentController : ControllerBase
     private string UserRole => User.Claims.FirstOrDefault(c => c.Type == "roles")?.Value ?? "";
 
     private static readonly string[] AllowedImages = { "image/jpeg", "image/png", "image/jpg" };
-    private static readonly string[] AllowedDocs = { "image/jpeg", "image/png", "image/jpg", "application/pdf" };
+    private static readonly string[] AllowedDocs   = { "image/jpeg", "image/png", "image/jpg", "application/pdf" };
     private const long MaxSize = 1 * 1024 * 1024; // 1 MB
+
+    // اعتبارسنجی magic bytes — جلوگیری از جعل Content-Type
+    private static bool IsValidMagicBytes(IFormFile file)
+    {
+        using var reader = new BinaryReader(file.OpenReadStream());
+        var header = reader.ReadBytes(8);
+        // JPEG: FF D8 FF
+        if (header.Length >= 3 && header[0] == 0xFF && header[1] == 0xD8 && header[2] == 0xFF) return true;
+        // PNG: 89 50 4E 47 0D 0A 1A 0A
+        if (header.Length >= 8 && header[0] == 0x89 && header[1] == 0x50 && header[2] == 0x4E && header[3] == 0x47) return true;
+        // PDF: 25 50 44 46 (%PDF)
+        if (header.Length >= 4 && header[0] == 0x25 && header[1] == 0x50 && header[2] == 0x44 && header[3] == 0x46) return true;
+        return false;
+    }
 
     // POST /api/UploadUserDocuments  (multipart form)
     // Required: user_photo, soPishine_cert, ravan_cert
@@ -50,7 +64,7 @@ public class DocumentController : ControllerBase
             ("ravan_cert", ravan_cert, AllowedDocs)
         };
 
-        // Validate required files
+        // Validate required files (Content-Type + magic bytes)
         foreach (var (field, file, allowed) in required)
         {
             if (file == null || file.Length == 0)
@@ -59,6 +73,8 @@ public class DocumentController : ControllerBase
                 return BadRequest(new { status = false, message = $"فایل {field} نباید بیشتر از 1 مگابایت باشد." });
             if (!allowed.Contains(file.ContentType))
                 return BadRequest(new { status = false, message = $"فرمت فایل {field} مجاز نیست." });
+            if (!IsValidMagicBytes(file))
+                return BadRequest(new { status = false, message = $"محتوای فایل {field} معتبر نیست." });
         }
 
         var baseDir = Path.Combine(_env.WebRootPath ?? _env.ContentRootPath, "uploads", "user_documents");

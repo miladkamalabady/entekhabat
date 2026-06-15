@@ -5,6 +5,7 @@ import { getCurrentUser } from '../../utils'
 export default {
   state: {
     currentUser: isAuthGuardActive ? getCurrentUser() : null,
+    announcements: [],
     userstatusInfo: null,
     UploadUserDocumentsInfo: null,
     confirmRegisterInfo: null,
@@ -39,6 +40,7 @@ export default {
     confirmRegisterInfo: state => state.confirmRegisterInfo,
     ChangeStateInfo: state => state.ChangeStateInfo,
     stateCandidInfo: state => state.stateCandidInfo,
+    announcements: state => state.announcements,
     EXECUTIVEListInfo: state => state.EXECUTIVEListInfo,
     ConfigInfo: state => state.ConfigInfo,
     SystemScheduleInfo: state => state.SystemScheduleInfo,
@@ -91,6 +93,9 @@ export default {
         // else
         state.loginError = payload
       state.processing = false
+    },
+    setAnnouncements(state, payload) {
+      state.announcements = payload || [];
     },
     setuserstatusInfo(state, payload) {
       state.userstatusInfo = payload
@@ -321,6 +326,30 @@ export default {
       return response;
     }, async getLogs({ commit }, payload) {
       const response = await apiservice({ name: "getLogs", params: payload || {} }, { commit });
+      if (response?.status)
+        commit('clearError');
+      return response?.data || [];
+    }, async getAnnouncements({ commit }) {
+      const response = await apiservice({ name: "getAnnouncements" }, { commit });
+      if (response?.status) {
+        commit('setAnnouncements', response.data);
+        commit('clearError');
+      }
+      return response?.data || [];
+    }, async getMyAnnouncements({ commit }) {
+      const response = await apiservice({ name: "getMyAnnouncements" }, { commit });
+      if (response?.status) commit('clearError');
+      return response?.data || [];
+    }, async saveAnnouncement({ commit }, payload) {
+      const response = await apiservice({ name: "saveAnnouncement", params: payload }, { commit });
+      if (response?.status) commit('clearError');
+      return response;
+    }, async deleteAnnouncement({ commit }, payload) {
+      const response = await apiservice({ name: "deleteAnnouncement", params: payload }, { commit });
+      if (response?.status) commit('clearError');
+      return response;
+    }, async getRecentLogs({ commit }, payload) {
+      const response = await apiservice({ name: "getRecentLogs", params: payload || {} }, { commit });
       if (response?.status)
         commit('clearError');
       return response?.data || [];

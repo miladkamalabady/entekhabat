@@ -225,6 +225,111 @@ public class AdvertisementController : ControllerBase
         }
     }
 
+    // POST /api/approveAdvertisement  {id, status, reason}
+    // status: "active" = تایید، "rejected" = رد
+    [HttpPost("approveAdvertisement")]
+    public async Task<IActionResult> ApproveAdvertisement([FromBody] ApproveAdvRequest? req)
+    {
+        if (req == null || req.id <= 0 || string.IsNullOrWhiteSpace(req.status))
+            return BadRequest(new { status = false, message = "پارامترهای ضروری ارسال نشده‌اند." });
+
+        if (req.status != "active" && req.status != "rejected")
+            return BadRequest(new { status = false, message = "وضعیت باید 'active' یا 'rejected' باشد." });
+
+        await using var conn = _db.CreateConnection();
+        await conn.OpenAsync();
+
+        var me = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            "SELECT roles, region_id FROM users WHERE national_id=@nid", new { nid = NationalId });
+        if (me == null) return Unauthorized();
+
+        string myRole = (string)me.roles;
+        if (!new[] { "SUPERVISOR", "EXECUTIVE", "ADMIN" }.Contains(myRole))
+            return StatusCode(403, new { status = false, message = "شما دسترسی لازم را ندارید." });
+
+        var ad = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            "SELECT id, nationalId, status FROM advertisements WHERE id=@id LIMIT 1", new { id = req.id });
+        if (ad == null)
+            return NotFound(new { status = false, message = "تبلیغ یافت نشد." });
+
+        await using var tx = await conn.BeginTransactionAsync();
+        try
+        {
+            if (req.status == "active")
+                await conn.ExecuteAsync(
+                    "UPDATE advertisements SET status='active', deleter=NULL, reson=NULL WHERE id=@id",
+                    new { id = req.id }, tx);
+            else
+                await conn.ExecuteAsync(
+                    "UPDATE advertisements SET status='rejected', deleter=@role, reson=@reason WHERE id=@id",
+                    new { id = req.id, role = myRole, reason = req.reason ?? "" }, tx);
+
+            await conn.ExecuteAsync(
+                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'بررسی تبلیغ',@desc)",
+                new { nid = NationalId, desc = $"تبلیغ {req.id} به وضعیت {req.status} تغییر کرد - دلیل: {req.reason}" }, tx);
+
+            await tx.CommitAsync();
+            return Ok(new
+            {
+                status = true,
+                message = req.status == "active" ? "تبلیغ با موفقیت تایید شد." : "تبلیغ رد شد.",
+                data = new { id = req.id, newStatus = req.status }
+            });
+        }
+        catch
+        {
+            await tx.RollbackAsync();
+            throw;
+        }
+    }
+
+    // GET /api/getPublicAdvertisements - نمایش تبلیغات تایید شده (بدون احراز هویت)
+    [AllowAnonymous]
+    [HttpGet("getPublicAdvertisements")]
+    public async Task<IActionResult> GetPublicAdvertisements()
+    {
+        await using var conn = _db.CreateConnection();
+
+        // بررسی بازه نمایش: از ۲۴ ساعت قبل انتخابات تا پایان آن
+        var votingRow = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            "SELECT start_date, end_date FROM election_schedule_events WHERE event_key='voting' LIMIT 1");
+
+        if (votingRow != null)
+        {
+            DateTime? votingStart = _jalali.NormalizeToGregorian((object?)votingRow.start_date);
+            DateTime? votingEnd   = _jalali.NormalizeToGregorian((object?)votingRow.end_date);
+            if (votingStart.HasValue)
+            {
+                var viewStart = votingStart.Value.AddHours(-24);
+                var now = DateTime.Now;
+                if (now < viewStart || (votingEnd.HasValue && now > votingEnd.Value))
+                    return StatusCode(403, new { status = false, message = "نمایش تبلیغات در این بازه زمانی مجاز نیست." });
+            }
+        }
+
+        var rows = (await conn.QueryAsync<dynamic>(@"
+            SELECT f.id AS codeentekhabati, ad.id, ad.nationalId, ad.title, ad.description, ad.image,
+                   ad.type, ad.status, ad.views, ad.target_link, ad.managerialRecords, ad.academicRecords,
+                   ad.honors, ad.plans, ad.slogan, ad.create_date,
+                   u.first_name, u.last_name, u.education, u.user_type, u.yearsOfService,
+                   re.name AS regionName
+            FROM advertisements ad
+            JOIN users u ON u.national_id=ad.nationalId
+            LEFT JOIN final_submissions f ON f.nationalId=ad.nationalId
+            LEFT JOIN region re ON re.id=u.region_id
+            WHERE ad.status='active' AND ad.deleter IS NULL
+            ORDER BY ad.create_date DESC")).AsList();
+
+        var list = rows.Select(r =>
+        {
+            var d = (IDictionary<string, object>)r;
+            if (d["create_date"] is DateTime cd) d["create_atsh"] = _jalali.Format(cd, "H:i Y-n-j");
+            return d;
+        });
+
+        return Ok(new { status = true, data = list });
+    }
+
     // POST /api/increaseViewAdd  {id}
     [HttpPost("increaseViewAdd")]
     public async Task<IActionResult> IncreaseViewAdd([FromBody] IncreaseViewRequest? req)
@@ -263,3 +368,4 @@ public class DeleteAdvRequest
     public string? status { get; set; }
 }
 public class IncreaseViewRequest { public long? id { get; set; } }
+public record ApproveAdvRequest(long id, string? status, string? reason);

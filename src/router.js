@@ -87,6 +87,14 @@ const routes = [
           loginRequired: true,
           roles: [UserRole.ADMIN]
         }
+      },{
+        name: "announcements",
+        path: 'announcements',
+        component: () => import(/* webpackChunkName: "supervisor" */ "./views/home/Announcements"),
+        meta: {
+          loginRequired: true,
+          roles: [UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.EXECUTIVE]
+        }
       }
     ]
   },

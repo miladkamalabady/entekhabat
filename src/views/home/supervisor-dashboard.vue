@@ -996,36 +996,7 @@ export default {
       },
 
       // Recent Activities
-      recentActivities: [
-        {
-          id: 1,
-          type: 'approve',
-          text: 'مدارک دکتر احمدی تایید شد',
-          time: '۱۰ دقیقه پیش',
-          user: 'دکتر موسوی'
-        },
-        {
-          id: 2,
-          type: 'reject',
-          text: 'تبلیغ شرایط صلاحیت رد شد',
-          time: '۱ ساعت پیش',
-          user: 'دکتر موسوی'
-        },
-        {
-          id: 3,
-          type: 'upload',
-          text: 'کاندیدای جدید ثبت‌نام کرد',
-          time: '۲ ساعت پیش',
-          user: 'سیستم'
-        },
-        {
-          id: 4,
-          type: 'approve',
-          text: 'تبلیغ مهلت ثبت‌نام تایید شد',
-          time: '۳ ساعت پیش',
-          user: 'دکتر موسوی'
-        }
-      ],
+      recentActivities: [],
 
       // Modals
       showDocumentModal: false,
@@ -1236,14 +1207,13 @@ export default {
     }
   },
   mounted() {
-    // this.calculateStats();
-    // this.initializeCharts();
     if (!this.EXECUTIVEListInf)
       this.getEXECUTIVEList()
+    this.loadRecentActivities()
   },
   methods: {
     ...mapMutations(["setChangeStateInfo"]),
-    ...mapActions(["getEXECUTIVEList", "ChangeState", "UpdateDocumentReview", "getAdvertisements", "deleteAdv", "getSystemSchedule", "getObjections", "updateObjectionStatus"]),
+    ...mapActions(["getEXECUTIVEList", "ChangeState", "UpdateDocumentReview", "getAdvertisements", "deleteAdv", "getSystemSchedule", "getObjections", "updateObjectionStatus", "getRecentLogs"]),
     getFileIcon(file) {
       const ext = (file.name || file.file_name || '').split('.').pop().toLowerCase()
       if (ext === 'pdf') return 'file-earmark-pdf'
@@ -1779,6 +1749,25 @@ export default {
           solid: true
         });
       }
+    },
+    async loadRecentActivities() {
+      const logs = await this.getRecentLogs({ limit: 20 });
+      this.recentActivities = logs.map(log => ({
+        id: log.id,
+        type: this.logActionToType(log.action),
+        text: log.description || log.action,
+        time: log.create_date_shamsi || '',
+        user: log.first_name ? `${log.first_name} ${log.last_name}` : log.nationalId
+      }));
+    },
+    logActionToType(action) {
+      if (!action) return 'info';
+      if (action.includes('تایید') || action.includes('approve')) return 'approve';
+      if (action.includes('رد') || action.includes('reject')) return 'reject';
+      if (action.includes('ثبت') || action.includes('آپلود') || action.includes('upload')) return 'upload';
+      if (action.includes('ویرایش') || action.includes('edit')) return 'edit';
+      if (action.includes('حذف') || action.includes('delete')) return 'delete';
+      return 'info';
     },
     getActivityIcon(type) {
       const icons = {
