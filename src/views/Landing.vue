@@ -180,6 +180,8 @@
 </template>
 
 <script>
+import { apiUrlrtb } from "@/constants/config";
+
 export default {
   name: "LandingPage",
   data() {
@@ -215,7 +217,7 @@ export default {
     async loadAnnouncements() {
       this.loadingAnn = true;
       try {
-        const res = await fetch("/api/getPublicAnnouncements");
+        const res = await fetch(apiUrlrtb + "/getPublicAnnouncements");
         const json = await res.json();
         this.announcements = json?.data || [];
       } catch {

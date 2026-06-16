@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jun 06, 2026 at 12:28 AM
+-- Generation Time: Jun 16, 2026 at 05:13 PM
 -- Server version: 10.4.24-MariaDB
 -- PHP Version: 7.4.29
 
@@ -62,6 +62,31 @@ INSERT INTO `advertisements` (`id`, `nationalId`, `title`, `create_date`, `descr
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `announcements`
+--
+
+CREATE TABLE `announcements` (
+  `id` int(11) NOT NULL,
+  `title` varchar(255) COLLATE utf8mb4_persian_ci NOT NULL,
+  `content` text COLLATE utf8mb4_persian_ci NOT NULL,
+  `target_scope` varchar(20) COLLATE utf8mb4_persian_ci NOT NULL DEFAULT 'region',
+  `target_ids` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`target_ids`)),
+  `created_by` varchar(20) COLLATE utf8mb4_persian_ci NOT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` datetime DEFAULT current_timestamp(),
+  `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_persian_ci;
+
+--
+-- Dumping data for table `announcements`
+--
+
+INSERT INTO `announcements` (`id`, `title`, `content`, `target_scope`, `target_ids`, `created_by`, `is_active`, `created_at`, `updated_at`) VALUES
+(1, '123', '321', 'country', '[]', '0534921973', 1, '2026-06-15 20:00:31', '2026-06-15 20:00:31');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `api_rate_limits`
 --
 
@@ -79,14 +104,14 @@ CREATE TABLE `api_rate_limits` (
 --
 
 INSERT INTO `api_rate_limits` (`id`, `ip`, `route`, `request_count`, `last_request`, `blocked_until`) VALUES
-(40, '::1', 'AccountLogin', 1, '2026-06-03 02:19:35', NULL),
+(40, '::1', 'AccountLogin', 1, '2026-06-16 19:41:28', NULL),
 (42, '::1', 'advertisementsSave', 1, '2026-05-07 00:24:35', NULL),
 (43, '::1', 'deleteAdv', 1, '2026-05-07 00:27:46', NULL),
 (45, '::1', 'increaseViewAdd', 1, '2026-05-26 02:20:44', NULL),
 (48, '::1', 'getVote', 1, '2026-05-26 00:08:09', NULL),
 (49, '::1', 'createVoteToken', 1, '2026-05-26 00:07:44', NULL),
 (50, '::1', 'getCandidsList', 1, '2026-05-26 00:07:44', NULL),
-(51, '::1', 'getConfig', 1, '2026-06-03 02:19:34', NULL),
+(51, '::1', 'getConfig', 1, '2026-06-16 19:41:39', NULL),
 (52, '::1', 'user-status', 1, '2026-05-25 22:53:27', NULL),
 (53, '::1', 'UploadUserDocuments', 1, '2026-05-25 22:55:41', NULL),
 (54, '::1', 'FinalSubmit', 1, '2026-05-25 22:56:40', NULL),
@@ -98,7 +123,7 @@ INSERT INTO `api_rate_limits` (`id`, `ip`, `route`, `request_count`, `last_reque
 (64, '::1', 'getObjections', 1, '2026-05-26 02:02:29', NULL),
 (65, '::1', 'saveObjection', 1, '2026-05-26 01:03:29', NULL),
 (66, '::1', 'getstateCandid', 1, '2026-05-26 01:23:34', NULL),
-(68, '::1', 'getFinalResultsApprovalStatus', 1, '2026-06-03 02:20:58', NULL),
+(68, '::1', 'getFinalResultsApprovalStatus', 1, '2026-06-16 19:41:28', NULL),
 (69, '::1', 'insertVote', 1, '2026-05-26 00:07:50', NULL),
 (70, '::1', 'getInfoVote', 1, '2026-06-03 02:16:49', NULL),
 (71, '::1', 'getEXECUTIVEList', 1, '2026-06-02 22:12:34', NULL),
@@ -121,7 +146,9 @@ INSERT INTO `api_rate_limits` (`id`, `ip`, `route`, `request_count`, `last_reque
 (89, '::1', 'getLiveChatMessages', 1, '2026-06-03 02:00:31', NULL),
 (90, '::1', 'sendLiveChatMessage', 1, '2026-06-03 01:59:45', NULL),
 (91, '::1', 'getLiveChatSessions', 1, '2026-06-03 02:00:19', NULL),
-(92, '::1', 'Contract/GetList', 1, '2026-06-04 19:59:23', NULL);
+(92, '::1', 'Contract/GetList', 1, '2026-06-04 19:59:23', NULL),
+(93, '::1', 'getPublicAnnouncements', 1, '2026-06-16 19:41:38', NULL),
+(94, '::1', 'getAnnouncements', 1, '2026-06-16 19:41:38', NULL);
 
 -- --------------------------------------------------------
 
@@ -266,7 +293,8 @@ INSERT INTO `final_results_approvals` (`id`, `executive_approved`, `supervisor_a
 (28, 0, 0, 0, NULL, NULL, NULL, NULL, '2026-05-31 20:42:29', '2026-05-31 20:42:29', 1103, '1103IU4530', '11038U76Z3', 10000),
 (29, 0, 0, 0, NULL, NULL, NULL, NULL, '2026-06-02 21:12:44', '2026-06-02 21:12:44', 1500, '15006JE4SV', '15000MMEMR', 10000),
 (30, 1, 1, 1, '4269875895', '2026-06-03 01:16:49', '4269875895', '2026-06-03 01:16:49', '2026-06-03 01:16:54', '2026-06-02 23:26:27', 1107, '1107WBMCZ1', '110739ANXY', 10000),
-(31, 0, 0, 0, NULL, NULL, NULL, NULL, '2026-06-05 10:42:10', '2026-06-05 10:42:10', 1101, '1101PIX0HW', '1101TQWT70', 10000);
+(31, 0, 0, 0, NULL, NULL, NULL, NULL, '2026-06-05 10:42:10', '2026-06-05 10:42:10', 1101, '1101PIX0HW', '1101TQWT70', 10000),
+(32, 0, 0, 0, NULL, NULL, NULL, NULL, '2026-06-15 18:54:46', '2026-06-15 18:54:46', 1000, '10005RKPYM', '10004D3I5W', 10000);
 
 -- --------------------------------------------------------
 
@@ -585,7 +613,8 @@ INSERT INTO `logs` (`id`, `nationalId`, `action`, `create_date`, `description`) 
 (200, '1111111111', 'ثبت رای', '2026-06-05 10:56:33', 'کد 1111111111 به 41 رای داد'),
 (201, '0534921973', 'جستجوی آرای کاربر', '2026-06-05 13:33:12', 'جستجوی آرای کاربران با عبارت امینی'),
 (202, '0534921973', 'جستجوی آرای کاربر', '2026-06-05 13:33:34', 'جستجوی آرای کاربران با عبارت رضائی'),
-(203, '0534921973', 'جستجوی آرای کاربر', '2026-06-05 13:33:36', 'جستجوی آرای کاربران با عبارت رضایی');
+(203, '0534921973', 'جستجوی آرای کاربر', '2026-06-05 13:33:36', 'جستجوی آرای کاربران با عبارت رضایی'),
+(204, '0534921973', 'ذخیره اطلاعیه', '2026-06-15 16:30:31', 'اطلاعیه \'123\' — محدوده: country');
 
 -- --------------------------------------------------------
 
@@ -1971,6 +2000,12 @@ ALTER TABLE `advertisements`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `announcements`
+--
+ALTER TABLE `announcements`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `api_rate_limits`
 --
 ALTER TABLE `api_rate_limits`
@@ -2150,10 +2185,16 @@ ALTER TABLE `advertisements`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
+-- AUTO_INCREMENT for table `announcements`
+--
+ALTER TABLE `announcements`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
 -- AUTO_INCREMENT for table `api_rate_limits`
 --
 ALTER TABLE `api_rate_limits`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=93;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=95;
 
 --
 -- AUTO_INCREMENT for table `config1`
@@ -2183,7 +2224,7 @@ ALTER TABLE `feedback`
 -- AUTO_INCREMENT for table `final_results_approvals`
 --
 ALTER TABLE `final_results_approvals`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
 
 --
 -- AUTO_INCREMENT for table `final_submissions`
@@ -2207,7 +2248,7 @@ ALTER TABLE `live_chat_sessions`
 -- AUTO_INCREMENT for table `logs`
 --
 ALTER TABLE `logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=204;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=205;
 
 --
 -- AUTO_INCREMENT for table `maxvotes`
