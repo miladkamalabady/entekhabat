@@ -81,10 +81,10 @@
         </div>
         <div class="user-details d-none d-md-block">
           <div class="user-name">{{ currentUser?.full_name || 'کاربر مهمان' }}</div>
-          <div class="user-meta">
-            <small>{{ currentUser?.userType == 3 ? 'شاغل' : 'بازنشسته' }}</small>
+          <div v-if="currentUser" class="user-meta">
+            <small>{{ currentUser.userType == 3 ? 'شاغل' : 'بازنشسته' }}</small>
             <small class="mx-1">•</small>
-            <small>{{ currentUser?.regionName || 'منطقه نامشخص' }}</small>
+            <small>{{ currentUser.regionName || 'منطقه نامشخص' }}</small>
           </div>
         </div>
         <div class="logout-btn" @click="logout()" title="خروج از سیستم">
@@ -144,7 +144,7 @@ export default {
     },
     logout() {
       this.signOut().then(() => {
-        window.location.href = "https://my.medu.ir";
+        this.$router.push({ name: "landing" });
       });
     },
     async loadAnnouncements() {

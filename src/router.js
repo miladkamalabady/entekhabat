@@ -8,8 +8,8 @@ Vue.use(VueRouter);
 const routes = [
   {
     path: "/",
-     component: () => import("./views/home"),
-    redirect: `home`,
+    name: "landing",
+    component: () => import("./views/Landing"),
   },
   {
     path: "/sso",

@@ -35,6 +35,32 @@ public class AnnouncementController : ControllerBase
         PRIMARY KEY (id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_persian_ci";
 
+    // GET /api/getPublicAnnouncements — بدون نیاز به لاگین (فقط سراسری)
+    [AllowAnonymous]
+    [HttpGet("getPublicAnnouncements")]
+    public async Task<IActionResult> GetPublicAnnouncements()
+    {
+        await using var conn = _db.CreateConnection();
+        await conn.ExecuteAsync(CreateTable);
+
+        var rows = (await conn.QueryAsync<dynamic>(@"
+            SELECT a.id, a.title, a.content, a.target_scope, a.created_at
+            FROM announcements a
+            WHERE a.is_active = 1 AND a.target_scope = 'country'
+            ORDER BY a.created_at DESC
+            LIMIT 10")).AsList();
+
+        var list = rows.Select(r =>
+        {
+            var d = (IDictionary<string, object>)r;
+            if (d["created_at"] is DateTime dt)
+                d["created_at_shamsi"] = _jalali.Format(dt, "Y/n/j");
+            return d;
+        });
+
+        return Ok(new { status = true, data = list });
+    }
+
     // GET /api/getAnnouncements
     [HttpGet("getAnnouncements")]
     public async Task<IActionResult> GetAnnouncements()
