@@ -142,6 +142,23 @@ public class CandidateController : ControllerBase
             if (!end.HasValue || now > end.Value)
                 return StatusCode(403, new { status = false, message = "مهلت ثبت‌نام داوطلبان به پایان رسیده است." });
 
+            // استعلام عضویت از userscheck
+            var checkRow = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                "SELECT yearsOfService, education FROM userscheck WHERE national_id=@nid LIMIT 1",
+                new { nid = NationalId }, tx);
+
+            if (checkRow == null)
+                return StatusCode(403, new { status = false, message = "عضویت در صندوق ذخیره فرهنگیان احراز نشده است." });
+
+            float years = Convert.ToSingle(checkRow.yearsOfService ?? 0);
+            if (years < 1f)
+                return StatusCode(403, new { status = false, message = $"سابقه عضویت شما در صندوق کمتر از یک سال است ({years} سال). حداقل یک سال سابقه الزامی است." });
+
+            string[] validDegrees = { "لیسانس", "کارشناسی", "فوق لیسانس", "کارشناسی ارشد", "دکتری", "دکترا", "فوق دکتری", "فوق دکترا", "پست دکترا" };
+            string edu = ((string?)checkRow.education)?.Trim() ?? "";
+            if (!validDegrees.Contains(edu))
+                return StatusCode(403, new { status = false, message = $"مدرک تحصیلی شما ({edu}) حداقل کارشناسی (لیسانس) نیست." });
+
             var existing = await conn.QueryFirstOrDefaultAsync<string>(
                 "SELECT nationalId FROM final_submissions WHERE nationalId=@nid", new { nid = NationalId }, tx);
             if (existing != null)

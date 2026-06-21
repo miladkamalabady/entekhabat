@@ -138,11 +138,19 @@
     <div class="user-list-card">
       <div class="list-header">
         <h3>لیست کاربران</h3>
-        <span>{{ filteredUsers.length }} کاربر</span>
+        <span>{{ total }} کاربر (صفحه {{ page }} از {{ totalPages }})</span>
+      </div>
+
+      <!-- نوار جستجوی سریع -->
+      <div class="search-bar mb-3">
+        <input v-model="searchInput" type="text" placeholder="جستجو: کد ملی، نام، کد پرسنلی، منطقه..."
+          class="search-input" @input="onSearchInput" />
+        <span v-if="searchLoading" class="search-spinner">⏳</span>
+        <button v-if="searchInput" class="btn-clear-search" @click="clearSearch">✕</button>
       </div>
 
       <div v-if="loading" class="state-message">در حال دریافت کاربران از دیتابیس...</div>
-      <div v-else-if="!filteredUsers.length" class="state-message">کاربری برای نمایش یافت نشد.</div>
+      <div v-else-if="!pagedUsers.length" class="state-message">کاربری برای نمایش یافت نشد.</div>
 
       <div v-else class="table-responsive">
         <table class="users-table">
@@ -164,7 +172,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="user in filteredUsers" :key="user.id">
+            <tr v-for="user in pagedUsers" :key="user.id">
               <td>{{ user.national_id }}</td>
               <td>{{ user.first_name }}</td>
               <td>{{ user.last_name }}</td>
@@ -202,6 +210,25 @@
           </tbody>
         </table>
       </div>
+
+      <!-- صفحه‌بندی -->
+      <div v-if="totalPages > 1" class="pagination-bar">
+        <button class="pg-btn" :disabled="page <= 1" @click="changePage(1)">«</button>
+        <button class="pg-btn" :disabled="page <= 1" @click="changePage(page - 1)">‹</button>
+
+        <button v-for="p in pageNumbers" :key="p"
+          class="pg-btn" :class="{ active: p === page }"
+          @click="changePage(p)">{{ p }}</button>
+
+        <button class="pg-btn" :disabled="page >= totalPages" @click="changePage(page + 1)">›</button>
+        <button class="pg-btn" :disabled="page >= totalPages" @click="changePage(totalPages)">»</button>
+
+        <select class="pg-per-page" v-model.number="perPage" @change="onPerPageChange">
+          <option :value="20">۲۰ در صفحه</option>
+          <option :value="50">۵۰ در صفحه</option>
+          <option :value="100">۱۰۰ در صفحه</option>
+        </select>
+      </div>
     </div>
   </div>
 </template>
@@ -217,11 +244,19 @@ export default {
       areasByProvince: {},
       loading: false,
       saving: false,
+      searchLoading: false,
       editMode: false,
       selectedProvinceCode: '',
       maxVotesProvinceCode: '',
       regionMaxVotesSaving: '',
       revealedPasswords: new Set(),
+      // صفحه‌بندی سرور
+      page: 1,
+      perPage: 50,
+      total: 0,
+      totalPages: 1,
+      searchInput: '',
+      searchDebounce: null,
       filters: {
         search: '',
         role: '',
@@ -279,25 +314,24 @@ export default {
       return map;
     },
     filteredUsers() {
-      const search = this.filters.search.toLowerCase();
-
       return this.users.filter(user => {
-        const matchesRole = !this.filters.role || user.roles === this.filters.role;
+        const matchesRole     = !this.filters.role         || user.roles === this.filters.role;
         const matchesProvince = !this.filters.provinceCode || String(user.provinceCode) === this.filters.provinceCode;
-        const searchableText = [
-          user.national_id,
-          user.first_name,
-          user.last_name,
-          user.regionName,
-          user.personnel_code,
-          user.regionName,
-          user.provinceName,
-          user.roles,
-          this.getRoleName(user.roles)
-        ].filter(Boolean).join(' ').toLowerCase();
-
-        return matchesRole && matchesProvince && (!search || searchableText.includes(search));
+        return matchesRole && matchesProvince;
       });
+    },
+    pagedUsers() {
+      return this.filteredUsers;
+    },
+    pageNumbers() {
+      const pages = this.totalPages;
+      const cur   = this.page;
+      const delta = 2;
+      const range = [];
+      for (let i = Math.max(1, cur - delta); i <= Math.min(pages, cur + delta); i++) {
+        range.push(i);
+      }
+      return range;
     }
   },
   mounted() {
@@ -309,14 +343,18 @@ export default {
     async loadInitialData() {
       this.loading = true;
       try {
-        const [users, regionsResponse] = await Promise.all([
-          this.getUsers({ limit: 1000 }),
+        const [usersRes, regionsResponse] = await Promise.all([
+          this.getUsers({ page: this.page, limit: this.perPage, search: this.searchInput }),
           this.getRegions()
         ]);
 
-        this.users = Array.isArray(users) ? users : [];
-        this.provinces = regionsResponse?.data || [];
+        this.users      = Array.isArray(usersRes?.data) ? usersRes.data : [];
+        this.total      = usersRes?.meta?.total ?? this.users.length;
+        this.totalPages = usersRes?.meta?.pages  ?? 1;
+
+        this.provinces       = regionsResponse?.data || [];
         this.areasByProvince = regionsResponse?.areasByProvince || {};
+
         if (this.isProvinceSupervisor) {
           this.filters.provinceCode = this.currentUserProvinceCode;
           this.maxVotesProvinceCode = this.currentUserProvinceCode;
@@ -325,15 +363,44 @@ export default {
         }
         this.syncRegionVoteDefaults();
       } catch (error) {
-        console.error("Error loading advertisements:", error);
-        this.$bvToast.toast("خطا در بارگذاری کاربران", {
-          title: "خطا",
-          variant: "danger",
-          solid: true
-        });
+        this.$bvToast.toast("خطا در بارگذاری کاربران", { title: "خطا", variant: "danger", solid: true });
       } finally {
         this.loading = false;
       }
+    },
+    async fetchUsers() {
+      this.loading = true;
+      try {
+        const res       = await this.getUsers({ page: this.page, limit: this.perPage, search: this.searchInput });
+        this.users      = Array.isArray(res?.data) ? res.data : [];
+        this.total      = res?.meta?.total ?? this.users.length;
+        this.totalPages = res?.meta?.pages  ?? 1;
+      } finally {
+        this.loading       = false;
+        this.searchLoading = false;
+      }
+    },
+    changePage(p) {
+      if (p < 1 || p > this.totalPages) return;
+      this.page = p;
+      this.fetchUsers();
+    },
+    onPerPageChange() {
+      this.page = 1;
+      this.fetchUsers();
+    },
+    onSearchInput() {
+      this.searchLoading = true;
+      clearTimeout(this.searchDebounce);
+      this.searchDebounce = setTimeout(() => {
+        this.page = 1;
+        this.fetchUsers();
+      }, 400);
+    },
+    clearSearch() {
+      this.searchInput = '';
+      this.page = 1;
+      this.fetchUsers();
     },
     syncRegionVoteDefaults() {
       this.maxVotesProvinceAreas.forEach(area => {
@@ -668,6 +735,102 @@ button {
 
 .text-muted {
   color: #adb5bd;
+}
+
+/* جستجو */
+.search-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-input {
+  width: 100%;
+  height: 42px;
+  border: 1px solid #d9dee7;
+  border-radius: 10px;
+  padding: 8px 40px 8px 36px;
+  font-size: 0.9rem;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #3f51b5;
+  box-shadow: 0 0 0 3px rgba(63,81,181,0.1);
+}
+
+.search-spinner {
+  position: absolute;
+  left: 36px;
+  font-size: 0.85rem;
+}
+
+.btn-clear-search {
+  position: absolute;
+  left: 10px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.btn-clear-search:hover { color: #ef4444; }
+
+/* صفحه‌بندی */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #eef1f5;
+}
+
+.pg-btn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid #d9dee7;
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pg-btn:hover:not(:disabled) {
+  background: #f0f2ff;
+  border-color: #3f51b5;
+  color: #3f51b5;
+}
+
+.pg-btn.active {
+  background: #3f51b5;
+  border-color: #3f51b5;
+  color: #fff;
+  font-weight: 700;
+}
+
+.pg-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.pg-per-page {
+  height: 36px;
+  border: 1px solid #d9dee7;
+  border-radius: 8px;
+  padding: 0 10px;
+  font-size: 0.82rem;
+  color: #475569;
+  cursor: pointer;
+  margin-right: 8px;
 }
 
 @media (max-width: 768px) {

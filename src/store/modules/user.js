@@ -227,7 +227,7 @@ export default {
       if (response?.status) {
         commit('clearError');
       }
-      return response.data;
+      return response;
     }, async updateUser({ commit }, payload) {
       const response = await apiservice({ name: "updateUser", params: payload }, { commit });
       if (response?.status) {

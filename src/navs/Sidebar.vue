@@ -15,7 +15,8 @@
           <hr class="my-2" style="border-color: rgba(255,255,255,0.2);" />
           
           <!-- پروفایل کاربر -->
-          <div class="d-flex align-items-center gap-2 p-2 rounded-3 user-profile-card">
+          <div class="d-flex align-items-center gap-2 p-2 rounded-3 user-profile-card"
+            style="cursor:pointer" @click="$router.push({ name: 'Profile' })">
             <div class="avatar-icon">
               <i class="bi bi-person-circle fs-4 text-white"></i>
             </div>

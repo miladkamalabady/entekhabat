@@ -144,18 +144,20 @@ public class AdvertisementController : ControllerBase
 
         string sql = roles == "CANDIDATE"
             ? @"SELECT f.id AS codeentekhabati, ad.*, u.first_name, u.last_name, u.id AS code,
-                       re.name AS regionName, u.education, u.user_type, u.yearsOfService
+                       re.name AS regionName, u.user_type, uc.education, uc.yearsOfService
                 FROM advertisements ad
                 JOIN users u ON u.national_id=ad.nationalId
                 LEFT JOIN final_submissions f ON ad.nationalId=f.nationalId
                 LEFT JOIN region re ON re.id=u.region_id
+                LEFT JOIN userscheck uc ON uc.national_id=u.national_id
                 WHERE ad.nationalId=@nid ORDER BY ad.create_date DESC"
             : @"SELECT f.id AS codeentekhabati, ad.*, u.first_name, u.last_name, u.id AS code,
-                       re.name AS regionName, u.education, u.user_type, u.yearsOfService
+                       re.name AS regionName, u.user_type, uc.education, uc.yearsOfService
                 FROM advertisements ad
                 JOIN users u ON u.national_id=ad.nationalId
                 LEFT JOIN final_submissions f ON ad.nationalId=f.nationalId
                 LEFT JOIN region re ON re.id=u.region_id
+                LEFT JOIN userscheck uc ON uc.national_id=u.national_id
                 WHERE region_id=@rid ORDER BY create_date DESC";
 
         var param = roles == "CANDIDATE"

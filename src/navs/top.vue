@@ -70,7 +70,7 @@
 
       <!-- پروفایل کاربر -->
       <div class="user-info-modern d-flex align-items-center gap-2">
-        <div class="user-avatar">
+        <div class="user-avatar" @click="goToProfile" style="cursor:pointer">
           <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
             <circle cx="18" cy="18" r="17" fill="#e8eef5" stroke="#cbd5e1" stroke-width="1" />
             <path d="M18 16C20.2091 16 22 14.2091 22 12C22 9.79086 20.2091 8 18 8C15.7909 8 14 9.79086 14 12C14 14.2091 15.7909 16 18 16Z"
@@ -79,7 +79,7 @@
               fill="#3f51b5" fill-opacity="0.5" />
           </svg>
         </div>
-        <div class="user-details d-none d-md-block">
+        <div class="user-details d-none d-md-block" @click="goToProfile" style="cursor:pointer">
           <div class="user-name">{{ currentUser?.full_name || 'کاربر مهمان' }}</div>
           <div v-if="currentUser" class="user-meta">
             <small>{{ currentUser.userType == 3 ? 'شاغل' : 'بازنشسته' }}</small>
@@ -146,6 +146,9 @@ export default {
       this.signOut().then(() => {
         this.$router.push({ name: "landing" });
       });
+    },
+    goToProfile() {
+      if (this.currentUser) this.$router.push({ name: "Profile" });
     },
     async loadAnnouncements() {
       if (this.currentUser) {

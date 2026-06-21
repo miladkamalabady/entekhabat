@@ -91,13 +91,13 @@ commit.commit('setProcessing', true)
       else if (error.response?.status == 401) {
         localStorage.removeItem('user');
         localStorage.clear();
+        commit.commit('setLogout');
 
         let err = "زمان ورود شما به پایان رسیده است، لطفا مجدد وارد شوید";
         commit.commit('setError', err)
         setTimeout(() => {
-          if (location.href == 'https://election.teacherassisant.ir/')
-            location.replace("https://my.medu.ir");
-        }, 500)
+          location.replace("/");
+        }, 1500)
 
       } else if (error.response?.status == 500) {
         

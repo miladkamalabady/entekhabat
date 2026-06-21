@@ -21,7 +21,7 @@
           با کد ملی <strong>{{ currentUser.national_id }}</strong>
           و کد پرسنلی <strong>{{ currentUser.personnel_code }}</strong>
           با آخرین پست <strong>{{ currentUser.orgPositionDesc }}</strong>
-          متقاضی ثبت‌نام در انتخابات در حوزه انتخابیه {{ currentUser.orgPositionDesc }} می‌باشم و اذعان می‌نمایم قبلا در این سامانه اعلام داوطلبی ننموده‌ام.
+          متقاضی ثبت‌نام در انتخابات در حوزه انتخابیه <strong>{{ currentUser.regionName }}</strong> می‌باشم و اذعان می‌نمایم قبلا در این سامانه اعلام داوطلبی ننموده‌ام.
         </b-form-checkbox>
 
         <hr />
@@ -154,8 +154,8 @@ export default {
           reason: ''
         },
         {
-          key: 'region',
-          label: 'پرسشنامه داوطلبی عکس‌دار',
+          key: 'degree',
+          label: 'دارا بودن حداقل مدرک تحصیلی کارشناسی (لیسانس)',
           state: 'checking',
           reason: ''
         },
@@ -278,6 +278,7 @@ export default {
   min-height: calc(100vh - 70px);
   padding: 20px;
 }
+
 
 /* Wizard */
 .wizard {

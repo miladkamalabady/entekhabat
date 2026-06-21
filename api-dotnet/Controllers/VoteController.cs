@@ -434,7 +434,7 @@ public class VoteController : ControllerBase
         var candidates = (await conn.QueryAsync<dynamic>(@"
             SELECT fi.id AS codeentekhabati,
                    u.national_id, u.first_name, u.last_name,
-                   u.org_position_desc, u.gender, u.education, u.yearsOfService,
+                   u.org_position_desc, u.gender, uc.education, uc.yearsOfService,
                    reg.name AS region_name, reg.ProvinceCode,
                    prov.Name AS province_name,
                    COUNT(CASE WHEN (@r IS NOT NULL AND voter.region_id = @r)
@@ -443,6 +443,7 @@ public class VoteController : ControllerBase
                    fi.requestStatus, fi.create_date
             FROM final_submissions fi
             JOIN users u ON u.national_id = fi.nationalId
+            LEFT JOIN userscheck uc ON uc.national_id = u.national_id
             LEFT JOIN region reg ON reg.id = u.region_id
             LEFT JOIN region prov ON prov.id = (reg.ProvinceCode * 100)
             LEFT JOIN votes v ON v.candidate_id = fi.id
@@ -450,7 +451,7 @@ public class VoteController : ControllerBase
             LEFT JOIN region vr ON vr.id = voter.region_id
             WHERE fi.requestStatus IN ('SUPERVISION_APPROVED','SUPERVISION_REJECTED','SUBMITTED')
             GROUP BY fi.id, u.national_id, u.first_name, u.last_name,
-                     u.org_position_desc, u.gender, u.education, u.yearsOfService,
+                     u.org_position_desc, u.gender, uc.education, uc.yearsOfService,
                      reg.name, reg.ProvinceCode, prov.Name, fi.requestStatus, fi.create_date
             ORDER BY vote_count DESC, u.last_name ASC",
             new { p, r })).AsList();

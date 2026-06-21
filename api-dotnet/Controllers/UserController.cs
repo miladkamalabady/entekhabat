@@ -24,35 +24,49 @@ public class UserController : ControllerBase
     private string NationalId => User.Claims.FirstOrDefault(c => c.Type == "national_id")?.Value ?? "";
     private string UserRole => User.Claims.FirstOrDefault(c => c.Type == "roles")?.Value ?? "";
 
+    private static readonly string[] ValidDegrees = {
+        "لیسانس", "کارشناسی", "فوق لیسانس", "کارشناسی ارشد",
+        "دکتری", "دکترا", "فوق دکتری", "فوق دکترا", "پست دکترا"
+    };
+
     // GET /api/user-status
     [HttpGet("user-status")]
     public async Task<IActionResult> UserStatus()
     {
         await using var conn = _db.CreateConnection();
-        var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            @"SELECT ozvsandogh, sabegheO, madrak, create_date
-              FROM userstatus WHERE nationalId=@nid ORDER BY create_date DESC LIMIT 1",
+
+        var check = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            "SELECT national_id, yearsOfService, education FROM userscheck WHERE national_id=@nid LIMIT 1",
             new { nid = NationalId });
 
-        if (row == null)
-            return NotFound(new { status = false, message = "وضعیت یافت نشد!" });
+        bool inFund         = check != null;
+        float yearsOfService = check != null ? Convert.ToSingle(check.yearsOfService ?? 0) : 0f;
+        bool hasMinYears    = yearsOfService >= 1f;
+        string education    = ((string?)check?.education)?.Trim() ?? "";
+        bool hasDegree      = ValidDegrees.Contains(education);
+
+        var reg = await conn.QueryFirstOrDefaultAsync<string>(
+            "SELECT nationalId FROM final_submissions WHERE nationalId=@nid LIMIT 1",
+            new { nid = NationalId });
 
         return Ok(new
         {
             status = true,
             data = new
             {
-                membershipActive = (bool)(row.ozvsandogh == 1),
-                membershipYears = (bool)(row.sabegheO == 1),
-                degree = (bool)(row.madrak == 1),
-                alreadyRegistered = false
+                membershipActive  = inFund,
+                membershipYears   = hasMinYears,
+                yearsOfService    = yearsOfService,
+                education         = education,
+                degree            = hasDegree,
+                alreadyRegistered = reg != null
             }
         });
     }
 
-    // GET /api/getUsers?limit=200
+    // GET /api/getUsers?page=1&limit=50&search=
     [HttpGet("getUsers")]
-    public async Task<IActionResult> GetUsers([FromQuery] int limit = 200)
+    public async Task<IActionResult> GetUsers([FromQuery] int page = 1, [FromQuery] int limit = 50, [FromQuery] string? search = null)
     {
         await using var conn = _db.CreateConnection();
 
@@ -71,11 +85,21 @@ public class UserController : ControllerBase
         if (!isAdmin && !isProvinceSupervisor)
             return StatusCode(403, new { status = false, message = "شما دسترسی لازم را ندارید" });
 
-        limit = Math.Clamp(limit <= 0 ? 200 : limit, 1, 1000);
+        page  = Math.Max(1, page);
+        limit = Math.Clamp(limit, 10, 200);
+        int offset = (page - 1) * limit;
 
-        string where = "";
+        var conditions = new List<string>();
         if (isProvinceSupervisor)
-            where = $"WHERE r.ProvinceCode = {(int)currentUser.ProvinceCode}";
+            conditions.Add($"r.ProvinceCode = {(int)currentUser.ProvinceCode}");
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Replace("'", "''");
+            conditions.Add($@"(u.national_id LIKE '%{s}%' OR u.first_name LIKE '%{s}%'
+                               OR u.last_name LIKE '%{s}%' OR u.personnel_code LIKE '%{s}%'
+                               OR r.name LIKE '%{s}%')");
+        }
+        string where = conditions.Count > 0 ? "WHERE " + string.Join(" AND ", conditions) : "";
 
         string passColumns = isAdmin
             ? @", CASE WHEN u.roles='EXECUTIVE' AND (u.region_id % 100) != 0 THEN fra.EXECUTIVEPass ELSE NULL END AS executivePass,
@@ -85,17 +109,22 @@ public class UserController : ControllerBase
             ? "LEFT JOIN final_results_approvals fra ON fra.region_id = u.region_id"
             : "";
 
+        var total = await conn.QueryFirstOrDefaultAsync<int>(
+            $"SELECT COUNT(*) FROM users u JOIN region r ON r.id=u.region_id {where}");
+        int pages = limit > 0 ? (int)Math.Ceiling(total / (double)limit) : 1;
+
         var sql = $@"SELECT u.id, u.national_id, u.first_name, u.last_name,
-                    u.personnel_code, u.region_id, u.roles, u.education,
-                    u.yearsOfService, u.created_at,
+                    u.personnel_code, u.region_id, u.roles, u.created_at,
                     r.name AS regionName, r.ProvinceCode AS provinceCode,
-                    p.Name AS provinceName{passColumns}
+                    p.Name AS provinceName,
+                    uc.education, uc.yearsOfService{passColumns}
                 FROM users u
                 JOIN region r ON r.id=u.region_id
                 LEFT JOIN region p ON p.id=(r.ProvinceCode * 100)
+                LEFT JOIN userscheck uc ON uc.national_id=u.national_id
                 {passJoin}
                 {where}
-                ORDER BY u.id DESC LIMIT {limit}";
+                ORDER BY u.id DESC LIMIT {limit} OFFSET {offset}";
 
         var rows = (await conn.QueryAsync<dynamic>(sql)).AsList();
         var list = rows.Select(r =>
@@ -106,7 +135,12 @@ public class UserController : ControllerBase
             return d;
         });
 
-        return Ok(new { status = true, data = list });
+        return Ok(new
+        {
+            status = true,
+            data = list,
+            meta = new { total, page, limit, pages }
+        });
     }
 
     // POST /api/updateUser  {national_id, region_id, roles}
@@ -176,7 +210,7 @@ public class UserController : ControllerBase
             @"SELECT f.id AS codeentekhabati, tracking_code, requestStatus, f.create_date,
                      u.id, u.national_Id, u.first_name, u.last_name, u.persian_birth_date,
                      u.personnel_code, u.gender, u.father_name, u.org_position_desc,
-                     yearsOfService, education, u.user_type, u.region_id,
+                     uc.yearsOfService, uc.education, u.user_type, u.region_id,
                      re.name AS regname, u.roles,
                      ud.user_photo, ud.education_doc, ud.employment_cert,
                      ud.soPishine_cert, ud.ravan_cert, ud.document_reviews,
@@ -187,6 +221,7 @@ public class UserController : ControllerBase
               LEFT JOIN region re ON re.id=u.region_id
               JOIN user_documents ud ON ud.nationalId=f.nationalId
               LEFT JOIN user_addresses ua ON ua.user_id=u.id
+              LEFT JOIN userscheck uc ON uc.national_id=u.national_id
               WHERE u.region_id=@rid ORDER BY create_date DESC",
             new { rid = regionId })).AsList();
 

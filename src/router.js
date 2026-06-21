@@ -35,6 +35,11 @@ const routes = [
     component: () => import(/* webpackChunkName: "Notifications" */ "./views/home/Notifications"),
     meta: { loginRequired: true },
   }, {
+    name: "Profile",
+    path: '/profile',
+    component: () => import(/* webpackChunkName: "profile" */ "./views/home/Profile"),
+    meta: { loginRequired: true },
+  }, {
     path: "/supervisor",
     component: () =>
       import(/* webpackChunkName: "supervisor" */ "./views/home"),
