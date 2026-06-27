@@ -217,7 +217,7 @@ export default {
     async loadAnnouncements() {
       this.loadingAnn = true;
       try {
-        const res = await fetch(apiUrlrtb + "/getPublicAnnouncements");
+        const res = await fetch(apiUrlrtb + "/api/getPublicAnnouncements");
         const json = await res.json();
         this.announcements = json?.data || [];
       } catch {

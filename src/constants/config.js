@@ -5,13 +5,13 @@ export const adminRoot = '/app';
 export const searchPath = `${adminRoot}/pages/miscellaneous/search`
 export const buyUrl = '#'
 
-export var apiUrlrtb = 'http://localhost/apiEntekhabat';
+export var apiUrlrtb = 'http://localhost:81';
 
-async function doGetRequest() {
-  let res = await axios.get('/../config.js');
-  apiUrlrtb = (JSON.parse(res.data)[0].apiUrlNew);
-}
-doGetRequest();
+// async function doGetRequest() {
+//   let res = await axios.get('/../config.js');
+//   apiUrlrtb = (JSON.parse(res.data)[0].apiUrlNew);
+// }
+// doGetRequest();
 
 
 export const subHiddenBreakpoint = 1440

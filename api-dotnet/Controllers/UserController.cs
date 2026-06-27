@@ -35,19 +35,31 @@ public class UserController : ControllerBase
     {
         await using var conn = _db.CreateConnection();
 
-        var check = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT national_id, yearsOfService, education FROM userscheck WHERE national_id=@nid LIMIT 1",
-            new { nid = NationalId });
+        bool inFund = false;
+        float yearsOfService = 0f;
+        string education = "";
+        try
+        {
+            var check = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                "SELECT national_id, yearsOfService, education FROM userscheck WHERE national_id=@nid LIMIT 1",
+                new { nid = NationalId });
+            inFund = check != null;
+            yearsOfService = check != null ? Convert.ToSingle(check.yearsOfService ?? 0) : 0f;
+            education = ((string?)check?.education)?.Trim() ?? "";
+        }
+        catch { }
 
-        bool inFund         = check != null;
-        float yearsOfService = check != null ? Convert.ToSingle(check.yearsOfService ?? 0) : 0f;
-        bool hasMinYears    = yearsOfService >= 1f;
-        string education    = ((string?)check?.education)?.Trim() ?? "";
-        bool hasDegree      = ValidDegrees.Contains(education);
+        bool hasMinYears = yearsOfService >= 1f;
+        bool hasDegree   = ValidDegrees.Contains(education);
 
-        var reg = await conn.QueryFirstOrDefaultAsync<string>(
-            "SELECT nationalId FROM final_submissions WHERE nationalId=@nid LIMIT 1",
-            new { nid = NationalId });
+        string? reg = null;
+        try
+        {
+            reg = await conn.QueryFirstOrDefaultAsync<string>(
+                "SELECT nationalId FROM final_submissions WHERE nationalId=@nid LIMIT 1",
+                new { nid = NationalId });
+        }
+        catch { }
 
         return Ok(new
         {
@@ -121,7 +133,7 @@ public class UserController : ControllerBase
                 FROM users u
                 JOIN region r ON r.id=u.region_id
                 LEFT JOIN region p ON p.id=(r.ProvinceCode * 100)
-                LEFT JOIN userscheck uc ON uc.national_id=u.national_id
+                LEFT JOIN userscheck uc ON uc.national_id COLLATE utf8mb4_persian_ci=u.national_id
                 {passJoin}
                 {where}
                 ORDER BY u.id DESC LIMIT {limit} OFFSET {offset}";

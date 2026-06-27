@@ -1,144 +1,144 @@
 const global = {
     AccountLogin: {
-        url: "/AccountLogin",
-        method: 'GET'
+        url: "/api/api/AccountLogin",
+        method: 'POST'
     }, userstatus: {
-        url: "/user-status",
+        url: "/api/user-status",
         method: 'GET'
     }, UploadUserDocuments: {
-        url: "/UploadUserDocuments",
+        url: "/api/UploadUserDocuments",
         method: 'POST'
     }, confirmRegister: {
-        url: "/FinalSubmit",
+        url: "/api/FinalSubmit",
         method: 'POST'
     }, canselRequestCANDIDATE: {
-        url: "/canselRequestCANDIDATE",
+        url: "/api/canselRequestCANDIDATE",
         method: 'POST'
     }, getstateCandid: {
-        url: "/getstateCandid",
+        url: "/api/getstateCandid",
         method: 'GET'
     }, getEXECUTIVEList: {
-        url: "/getEXECUTIVEList",
+        url: "/api/getEXECUTIVEList",
         method: 'GET'
     }, ChangeState: {
-        url: "/ChangeState",
+        url: "/api/ChangeState",
         method: 'POST'
     }, UpdateDocumentReview: {
-        url: "/UpdateDocumentReview",
+        url: "/api/UpdateDocumentReview",
         method: 'POST'
     }, advertisementsSave: {
-        url: "/advertisementsSave",
+        url: "/api/advertisementsSave",
         method: 'POST'
     }, getAdvertisements: {
-        url: "/getAdvertisements",
+        url: "/api/getAdvertisements",
         method: 'GET'
     },getUsers: {
-        url: "/getUsers",
+        url: "/api/getUsers",
         method: 'GET'
     }, updateUser: {
-        url: "/updateUser",
+        url: "/api/updateUser",
         method: 'POST'
     },increaseViewAdd: {
-        url: "/increaseViewAdd",
+        url: "/api/increaseViewAdd",
         method: 'POST'
     }, deleteAdv: {
-        url: "/deleteAdv",
+        url: "/api/deleteAdv",
         method: 'POST'
     }, getConfig: {
-        url: "/getConfig",
+        url: "/api/getConfig",
         method: 'GET'
     }, getCandidsList: {
-        url: "/getCandidsList",
+        url: "/api/getCandidsList",
         method: 'GET'
     }, insertVote: {
-        url: "/insertVote",
+        url: "/api/insertVote",
         method: 'POST'
     }, getVote: {
-        url: "/getVote",
+        url: "/api/getVote",
         method: 'GET'
     }, getInfoVote: {
-        url: "/getInfoVote",
+        url: "/api/getInfoVote",
         method: 'GET'
     }, createVoteToken: {
-        url: "/createVoteToken",
+        url: "/api/createVoteToken",
         method: 'POST'
     }, submitFeedback: {
-        url: "/submitFeedback",
+        url: "/api/submitFeedback",
         method: 'POST'
     }, getSystemSchedule: {
-        url: "/getSystemSchedule",
+        url: "/api/getSystemSchedule",
         method: 'GET'
     }, saveSystemSchedule: {
-        url: "/saveSystemSchedule",
+        url: "/api/saveSystemSchedule",
         method: 'POST'
     }, getObjections: {
-        url: "/getObjections",
+        url: "/api/getObjections",
         method: 'GET'
     }, saveObjection: {
-        url: "/saveObjection",
+        url: "/api/saveObjection",
         method: 'POST'
     }, updateObjectionStatus: {
-        url: "/updateObjectionStatus",
+        url: "/api/updateObjectionStatus",
         method: 'POST'
     }, getRegions: {
-        url: "/getRegions",
+        url: "/api/getRegions",
         method: 'GET'
     }, getFinalResultsApprovalStatus: {
-        url: "/getFinalResultsApprovalStatus",
+        url: "/api/getFinalResultsApprovalStatus",
         method: 'GET'
     }, submitFinalResultsApproval: {
-        url: "/submitFinalResultsApproval",
+        url: "/api/submitFinalResultsApproval",
         method: 'POST'
     }, setFinalResultsApproval: {
-        url: "/setFinalResultsApproval",
+        url: "/api/setFinalResultsApproval",
         method: 'POST'
     },getLogs: {
-        url: "/getLogs",
+        url: "/api/getLogs",
         method: 'GET'
     },getRecentLogs: {
-        url: "/getRecentLogs",
+        url: "/api/getRecentLogs",
         method: 'GET'
     },searchUserVotes: {
-        url: "/searchUserVotes",
+        url: "/api/searchUserVotes",
         method: 'GET'
     },saveRegionMaxVotes: {
-        url: "/saveRegionMaxVotes",
+        url: "/api/saveRegionMaxVotes",
         method: 'POST'
     },getSupportTickets: {
-        url: "/getSupportTickets",
+        url: "/api/getSupportTickets",
         method: 'GET'
     }, saveSupportTicket: {
-        url: "/saveSupportTicket",
+        url: "/api/saveSupportTicket",
         method: 'POST'
     }, replySupportTicket: {
-        url: "/replySupportTicket",
+        url: "/api/replySupportTicket",
         method: 'POST'
     }, startLiveChat: {
-        url: "/startLiveChat",
+        url: "/api/startLiveChat",
         method: 'POST'
     }, getLiveChatSessions: {
-        url: "/getLiveChatSessions",
+        url: "/api/getLiveChatSessions",
         method: 'GET'
     }, getLiveChatMessages: {
-        url: "/getLiveChatMessages",
+        url: "/api/getLiveChatMessages",
         method: 'GET'
     }, sendLiveChatMessage: {
-        url: "/sendLiveChatMessage",
+        url: "/api/sendLiveChatMessage",
         method: 'POST'
     }, closeLiveChat: {
-        url: "/closeLiveChat",
+        url: "/api/closeLiveChat",
         method: 'POST'
     }, getAnnouncements: {
-        url: "/getAnnouncements",
+        url: "/api/getAnnouncements",
         method: 'GET'
     }, getMyAnnouncements: {
-        url: "/getMyAnnouncements",
+        url: "/api/getMyAnnouncements",
         method: 'GET'
     }, saveAnnouncement: {
-        url: "/saveAnnouncement",
+        url: "/api/saveAnnouncement",
         method: 'POST'
     }, deleteAnnouncement: {
-        url: "/deleteAnnouncement",
+        url: "/api/deleteAnnouncement",
         method: 'POST'
     }
 

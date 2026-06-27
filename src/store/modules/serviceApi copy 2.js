@@ -1,0 +1,147 @@
+const global = {
+    AccountLogin: {
+        url: "/api/v2/Tokens/sso-login",
+        method: 'POST'
+    }, userstatus: {
+        url: "/api/v2/election/users/status",
+        method: 'GET'
+    }, UploadUserDocuments: {
+        url: "/api/v2/election/documents/upload",
+        method: 'POST'
+    }, confirmRegister: {
+        url: "/api/v2/election/candidates/final-submit",
+        method: 'POST'
+    }, canselRequestCANDIDATE: {
+        url: "/api/v2/election/candidates/cancel",
+        method: 'POST'
+    }, getstateCandid: {
+        url: "/api/v2/election/candidates/state",
+        method: 'GET'
+    }, getEXECUTIVEList: {
+        url: "/api/v2/election/candidates/review",
+        method: 'GET'
+    }, ChangeState: {
+        url: "/api/v2/election/candidates/review/status",
+        method: 'POST'
+    }, UpdateDocumentReview: {
+        url: "/api/v2/election/documents/review",
+        method: 'POST'
+    }, advertisementsSave: {
+        url: "/api/v2/election/advertisements/save",
+        method: 'POST'
+    }, getAdvertisements: {
+        url: "/api/v2/election/advertisements",
+        method: 'GET'
+    },getUsers: {
+        url: "/api/v2/election/users/search",
+        method: 'POST'
+    }, updateUser: {
+        url: "/api/v2/election/users/assignment",
+        method: 'PUT'
+    },increaseViewAdd: {
+        url: "/api/v2/election/advertisements/increase-view",
+        method: 'POST'
+    }, deleteAdv: {
+        url: "/api/v2/election/advertisements/delete",
+        method: 'POST'
+    }, getConfig: {
+        url: "/api/v2/election/schedule/config",
+        method: 'GET'
+    }, getCandidsList: {
+        url: "/api/v2/election/candidates",
+        method: 'GET'
+    }, insertVote: {
+        url: "/api/v2/election/votes",
+        method: 'POST'
+    }, getVote: {
+        url: "/api/v2/election/votes/my",
+        method: 'GET'
+    }, getInfoVote: {
+        url: "/api/v2/election/votes/info",
+        method: 'GET'
+    }, createVoteToken: {
+        url: "/api/v2/election/votes/token",
+        method: 'POST'
+    }, submitFeedback: {
+        url: "/api/v2/election/feedback",
+        method: 'POST'
+    }, getSystemSchedule: {
+        url: "/api/v2/election/schedule",
+        method: 'GET'
+    }, saveSystemSchedule: {
+        url: "/api/v2/election/schedule/save",
+        method: 'POST'
+    }, getObjections: {
+        url: "/api/v2/election/objections",
+        method: 'GET'
+    }, saveObjection: {
+        url: "/api/v2/election/objections",
+        method: 'POST'
+    }, updateObjectionStatus: {
+        url: "/api/v2/election/objections/status",
+        method: 'POST'
+    }, getRegions: {
+        url: "/api/v2/election/regions",
+        method: 'GET'
+    }, getFinalResultsApprovalStatus: {
+        url: "/api/v2/election/approval/final-results/status",
+        method: 'GET'
+    }, submitFinalResultsApproval: {
+        url: "/api/v2/election/approval/final-results/submit",
+        method: 'POST'
+    }, setFinalResultsApproval: {
+        url: "/api/v2/election/approval/final-results/set-active",
+        method: 'POST'
+    },getLogs: {
+        url: "/api/v2/election/logs",
+        method: 'GET'
+    },getRecentLogs: {
+        url: "/api/v2/election/logs",
+        method: 'GET'
+    },searchUserVotes: {
+        url: "/api/v2/election/votes/search",
+        method: 'GET'
+    },saveRegionMaxVotes: {
+        url: "/api/v2/election/regions/max-votes",
+        method: 'POST'
+    },getSupportTickets: {
+        url: "/api/v2/election/support-tickets",
+        method: 'GET'
+    }, saveSupportTicket: {
+        url: "/api/v2/election/support-tickets",
+        method: 'POST'
+    }, replySupportTicket: {
+        url: "/api/v2/election/support-tickets/reply",
+        method: 'POST'
+    }, startLiveChat: {
+        url: "/api/v2/election/live-chat/start",
+        method: 'POST'
+    }, getLiveChatSessions: {
+        url: "/api/v2/election/live-chat/sessions",
+        method: 'GET'
+    }, getLiveChatMessages: {
+        url: "/api/v2/election/live-chat/{sessionId}/messages",
+        method: 'GET'
+    }, sendLiveChatMessage: {
+        url: "/api/v2/election/live-chat/message",
+        method: 'POST'
+    }, closeLiveChat: {
+        url: "/api/v2/election/live-chat/close",
+        method: 'POST'
+    }, getAnnouncements: {
+        url: "/api/v2/election/announcements",
+        method: 'GET'
+    }, getMyAnnouncements: {
+        url: "/api/v2/election/announcements/managed",
+        method: 'GET'
+    }, saveAnnouncement: {
+        url: "/api/v2/election/announcements",
+        method: 'POST'
+    }, deleteAnnouncement: {
+        url: "/api/v2/election/announcements",
+        method: 'DELETE'
+    }
+
+};
+
+export default global;
