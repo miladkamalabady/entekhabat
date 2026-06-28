@@ -158,7 +158,7 @@ public class AdvertisementController : ControllerBase
                 LEFT JOIN final_submissions f ON ad.nationalId=f.nationalId
                 LEFT JOIN region re ON re.id=u.region_id
                 LEFT JOIN userscheck uc ON uc.national_id=u.national_id
-                WHERE region_id=@rid ORDER BY create_date DESC";
+                WHERE u.region_id=@rid ORDER BY ad.create_date DESC";
 
         var param = roles == "CANDIDATE"
             ? (object)new { nid = NationalId }

@@ -58,7 +58,7 @@
             
             <template #cell(image)="data">
               <div class="ad-image-cell" v-if="data.value">
-                <img :src="`${data.value}`" class="ad-thumbnail-modern" />
+                <img :src="`${apiUrlrtb}/${data.value}`" class="ad-thumbnail-modern" />
               </div>
               <span v-else class="no-image-badge">بدون تصویر</span>
             </template>
@@ -290,12 +290,13 @@
 import { isMobile } from "../../utils";
 import { mapGetters, mapMutations, mapActions } from "vuex";
 import Sidebar from "../../navs/Sidebar.vue";
+import { apiUrlrtb } from '../../constants/config';
 export default {
   name: "AdvertisementManagement",
   components: { Sidebar },
   data() {
     return {
-      isMobile,
+      isMobile,apiUrlrtb,
       filters: { type: "", status: "" },
       adTypes: [
         { value: "banner", text: "بنر" },
@@ -418,7 +419,7 @@ export default {
       if (imagePath.startsWith("http://") || imagePath.startsWith("https://") || imagePath.startsWith("data:")) {
         return imagePath;
       }
-      return `${imagePath}`;
+      return `${apiUrlrtb}/${imagePath}`;
     },
     getStatusBadge(status) {
       const variants = { active: "success", inactive: "danger", pending: "warning" };

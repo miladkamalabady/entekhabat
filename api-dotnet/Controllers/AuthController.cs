@@ -66,18 +66,6 @@ public class AuthController : ControllerBase
             }
         }
 
-        var statusExists = await conn.QueryFirstOrDefaultAsync<int?>(
-            "SELECT user_id FROM userstatus WHERE user_id=@uid", new { uid = userId });
-
-        if (statusExists.HasValue)
-            await conn.ExecuteAsync(
-                "UPDATE userstatus SET nationalId=@nid, ozvsandogh=1, sabegheO=1, madrak=1 WHERE user_id=@uid",
-                new { nid = nationalId, uid = userId });
-        else
-            await conn.ExecuteAsync(
-                "INSERT INTO userstatus (user_Id, nationalId, ozvsandogh, sabegheO, madrak) VALUES (@uid,@nid,1,1,1)",
-                new { uid = userId, nid = nationalId });
-
         var token = _jwt.GenerateToken(nationalId, userRoles, regionName);
 
         string firstName = user.GetValueOrDefault("first_name") as string ?? "";
@@ -268,20 +256,7 @@ public class AuthController : ControllerBase
             }
         }
 
-        // ── 5. userstatus upsert ─────────────────────────────────────────────
-        var statusExists = await conn.QueryFirstOrDefaultAsync<int?>(
-            "SELECT user_id FROM userstatus WHERE user_id=@uid", new { uid = userId });
-
-        if (statusExists.HasValue)
-            await conn.ExecuteAsync(
-                "UPDATE userstatus SET nationalId=@nid, ozvsandogh=1, sabegheO=1, madrak=1 WHERE user_id=@uid",
-                new { nid = nationalId, uid = userId });
-        else
-            await conn.ExecuteAsync(
-                "INSERT INTO userstatus (user_Id, nationalId, ozvsandogh, sabegheO, madrak) VALUES (@uid, @nid, 1, 1, 1)",
-                new { uid = userId, nid = nationalId });
-
-        // ── 6. JWT ───────────────────────────────────────────────────────────
+        // ── 5. JWT ───────────────────────────────────────────────────────────
         var token = _jwt.GenerateToken(nationalId, userRoles, regionName);
 
         return Ok(new

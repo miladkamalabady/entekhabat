@@ -14,7 +14,7 @@ export default {
     EXECUTIVEListInfo: null,
     ConfigInfo: null,
     SystemScheduleInfo: null,
-    requestStatus: null,
+    requestStatus: localStorage.getItem('requestStatus') || null,
     hasActiveRequest: false,
     electionStatusAll: 'inactive',
     loginError: null,
@@ -63,6 +63,8 @@ export default {
       state.loginError = null
     }, setRequestStatus(state, payload) {
       state.requestStatus = payload
+      if (payload) localStorage.setItem('requestStatus', payload)
+      else localStorage.removeItem('requestStatus')
     }, SetelectionStatusAll(state, payload) {
       state.electionStatusAll = payload
     }, setHasActiveRequest(state, payload) {
@@ -80,8 +82,10 @@ export default {
     },
     setLogout(state) {
       state.currentUser = null
+      state.requestStatus = null
       state.processing = false
       state.loginError = null
+      localStorage.removeItem('requestStatus')
     },
     setProcessing(state, payload) {
       state.processing = payload

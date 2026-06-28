@@ -408,6 +408,7 @@
 <script>
 import Chart from 'chart.js';
 import { mapGetters, mapActions, mapMutations } from "vuex";
+import { apiUrlrtb } from '../../constants/config';
 export default {
   name: "ElectionFinalResults",
   data() {
@@ -581,7 +582,7 @@ export default {
           id: candidate.id ?? index,
           name: `${candidate.first_name || ''} ${candidate.last_name || ''}`.trim(),
           position: candidate.org_position_desc || '',
-          photo: candidate.user_photo ? `${candidate.user_photo}` : null,
+          photo: candidate.user_photo ? `${apiUrlrtb}/${candidate.user_photo}` : null,
           votes,
           percentage,
           color: colors[index % colors.length],

@@ -57,6 +57,14 @@ public class DocumentController : ControllerBase
         if (string.IsNullOrWhiteSpace(NationalId))
             return BadRequest(new { status = false, message = "پارامتر nationalId الزامی است." });
 
+        var fieldNames = new Dictionary<string, string>
+        {
+            ["user_photo"]     = "عکس پرسنلی",
+            ["soPishine_cert"] = "گواهی عدم سوپیشینه",
+            ["ravan_cert"]     = "گواهی سلامت جسمی و روانی",
+            ["education_doc"]  = "مدرک تحصیلی"
+        };
+
         var required = new[]
         {
             ("user_photo", user_photo, AllowedImages),
@@ -64,17 +72,17 @@ public class DocumentController : ControllerBase
             ("ravan_cert", ravan_cert, AllowedDocs)
         };
 
-        // Validate required files (Content-Type + magic bytes)
         foreach (var (field, file, allowed) in required)
         {
+            var label = fieldNames.GetValueOrDefault(field, field);
             if (file == null || file.Length == 0)
-                return BadRequest(new { status = false, message = $"فایل {field} ارسال نشده." });
+                return BadRequest(new { status = false, message = $"فایل {label} ارسال نشده." });
             if (file.Length > MaxSize)
-                return BadRequest(new { status = false, message = $"فایل {field} نباید بیشتر از 1 مگابایت باشد." });
+                return BadRequest(new { status = false, message = $"فایل {label} نباید بیشتر از ۱ مگابایت باشد." });
             if (!allowed.Contains(file.ContentType))
-                return BadRequest(new { status = false, message = $"فرمت فایل {field} مجاز نیست." });
+                return BadRequest(new { status = false, message = $"فرمت فایل {label} مجاز نیست. فقط JPG، PNG و PDF قابل قبول است." });
             if (!IsValidMagicBytes(file))
-                return BadRequest(new { status = false, message = $"محتوای فایل {field} معتبر نیست." });
+                return BadRequest(new { status = false, message = $"محتوای فایل {label} معتبر نیست." });
         }
 
         var baseDir = Path.Combine(_env.WebRootPath ?? _env.ContentRootPath, "uploads", "user_documents");
