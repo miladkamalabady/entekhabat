@@ -8,14 +8,13 @@ export default {
     announcements: [],
     userstatusInfo: null,
     UploadUserDocumentsInfo: null,
-    UpdateUserDocumentsInfo:null,
     confirmRegisterInfo: null,
     ChangeStateInfo: null,
     stateCandidInfo: null,
     EXECUTIVEListInfo: null,
     ConfigInfo: null,
     SystemScheduleInfo: null,
-    requestStatus: localStorage.getItem('requestStatus') || null,
+    requestStatus: null,
     hasActiveRequest: false,
     electionStatusAll: 'inactive',
     loginError: null,
@@ -38,7 +37,6 @@ export default {
     currentUser: state => state.currentUser,
     userstatusInfo: state => state.userstatusInfo,
     UploadUserDocumentsInfo: state => state.UploadUserDocumentsInfo,
-    UpdateUserDocumentsInfo: state => state.UpdateUserDocumentsInfo,
     confirmRegisterInfo: state => state.confirmRegisterInfo,
     ChangeStateInfo: state => state.ChangeStateInfo,
     stateCandidInfo: state => state.stateCandidInfo,
@@ -49,7 +47,6 @@ export default {
     processing: state => state.processing,
     loginError: state => state.loginError,
     candidateFiles: state => state.candidateFiles,
-    LoginSSOInfo: state => state.LoginSSOInfo,
   },
   mutations: {
     setCandidateFiles(state, payload) {
@@ -65,8 +62,6 @@ export default {
       state.loginError = null
     }, setRequestStatus(state, payload) {
       state.requestStatus = payload
-      if (payload) localStorage.setItem('requestStatus', payload)
-      else localStorage.removeItem('requestStatus')
     }, SetelectionStatusAll(state, payload) {
       state.electionStatusAll = payload
     }, setHasActiveRequest(state, payload) {
@@ -84,10 +79,8 @@ export default {
     },
     setLogout(state) {
       state.currentUser = null
-      state.requestStatus = null
       state.processing = false
       state.loginError = null
-      localStorage.removeItem('requestStatus')
     },
     setProcessing(state, payload) {
       state.processing = payload
@@ -109,10 +102,7 @@ export default {
     }, setUploadUserDocumentsInfo(state, payload) {
       state.UploadUserDocumentsInfo = payload
       state.loginError = null
-    }, setUpdateUserDocumentsInfo(state, payload) {
-      state.UpdateUserDocumentsInfo = payload
-      state.loginError = null
-    },setconfirmRegisterInfo(state, payload) {
+    }, setconfirmRegisterInfo(state, payload) {
       state.confirmRegisterInfo = payload
       state.loginError = null
     }, setChangeStateInfo(state, payload) {
@@ -143,21 +133,15 @@ export default {
       setTimeout(() => {
         try {
           localStorage.removeItem('user')
-          if (!payload.role)
-            apiservice({ name: "AccountLogin", params: payload }, { commit })
-              .then(response => {
-                if (response.status) {
-                  commit('setUser', { ...response.user, token: response.token })
-                  commit('setHasActiveRequest', response.hasActiveRequest)
-                  commit('clearError')
-                }
-              })
-          else apiservice({ name: "AccountLoginTest", params: payload }, { commit })
+          apiservice({ name: "AccountLogin", params: payload }, { commit })
             .then(response => {
-              if (response.status) {
-                commit('setUser', { ...response.user, token: response.token })
+              if (response?.succeeded) {
+                commit('setUser', { ...response.data?.user, token: response?.data.token })
                 commit('setHasActiveRequest', response.hasActiveRequest)
                 commit('clearError')
+              }
+              else{
+                commit('setError',"خطای دریافت اطلاعات" )
               }
             })
         } catch (e) {
@@ -178,9 +162,9 @@ export default {
         })
 
     }, signOut({ commit }, payload) {
-      localStorage.removeItem('user')
+     localStorage.removeItem('user')
 
-    }, async UploadUserDocuments({ commit }, payload) {
+    },async UploadUserDocuments({ commit }, payload) {
       await apiservice({ name: "UploadUserDocuments", params: payload }, { commit })
         .then(response => {
           if (response.status) {
@@ -188,15 +172,7 @@ export default {
             commit('clearError')
           }
         })
-    },  async UpdateUserDocuments ({ commit }, payload) {
-      await apiservice({ name: "UpdateUserDocuments", params: payload }, { commit })
-        .then(response => {
-          if (response.status) {
-            commit('setUpdateUserDocumentsInfo', response.data)
-            commit('clearError')
-          }
-        })
-    },confirmRegister({ commit }, payload) {
+    }, confirmRegister({ commit }, payload) {
       apiservice({ name: "confirmRegister", params: payload }, { commit })
         .then(response => {
           if (response.status) {
@@ -260,7 +236,7 @@ export default {
         commit('clearError');
       }
       return response.data;
-    }, async increaseViewAdd({ commit }, payload) {
+    },async increaseViewAdd({ commit }, payload) {
       const response = await apiservice({ name: "increaseViewAdd", params: payload }, { commit });
       if (response?.status) {
         commit('clearError');
@@ -285,11 +261,6 @@ export default {
         commit('clearError');
       }
       return response.data;
-    }, async getCandidateDocuments({ commit }) {
-      const response = await apiservice({ name:"getCandidateDocuments"} ,{commit});
-      if (response.succeeded)
-        commit('clearError');
-      return response?.data || null;
     }, async insertVote({ commit }, payload) {
       const response = await apiservice({ name: "insertVote", params: payload }, { commit });
       if (response?.status) {
@@ -350,7 +321,7 @@ export default {
       if (response?.status)
         commit('clearError');
       return response;
-    }, async setFinalResultsApproval({ commit }, payload) {
+    },async setFinalResultsApproval({ commit }, payload) {
       const response = await apiservice({ name: "setFinalResultsApproval", params: payload }, { commit });
       if (response?.status)
         commit('clearError');
@@ -395,8 +366,8 @@ export default {
         commit('clearError');
       return response || { items: [], summary: [] };
     },
-
-    async startLiveChat({ commit }, payload) {
+    
+     async startLiveChat({ commit }, payload) {
       const response = await apiservice({ name: "startLiveChat", params: payload || {} }, { commit });
       if (response?.status)
         commit('clearError');
@@ -451,11 +422,6 @@ export default {
     }, async updateObjectionStatus({ commit }, payload) {
       const response = await apiservice({ name: "updateObjectionStatus", params: payload }, { commit });
       if (response?.status)
-        commit('clearError');
-      return response;
-    }, async downloadObjectionFile({ commit }, payload) {
-      const response = await apiservice({ name: "downloadObjectionFile", params: payload }, { commit });
-      if (response)
         commit('clearError');
       return response;
     },

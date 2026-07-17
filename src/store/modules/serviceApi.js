@@ -1,6 +1,9 @@
 const global = {
     AccountLogin: {
-        url: "/api/api/AccountLogin",
+        url: "/api/SsoAccountLogin",
+        method: 'POST'
+    },AccountLoginTest: {
+        url: "/api/AccountLogin",
         method: 'POST'
     }, userstatus: {
         url: "/api/user-status",
@@ -20,7 +23,13 @@ const global = {
     }, getEXECUTIVEList: {
         url: "/api/getEXECUTIVEList",
         method: 'GET'
-    }, ChangeState: {
+    }, getCandidateDocuments: {
+        url: "/api/getCandidateDocuments",
+        method: 'GET'
+    }, UpdateUserDocuments: {
+        url: "/api/UpdateUserDocuments",
+        method: 'POST'
+    },ChangeState: {
         url: "/api/ChangeState",
         method: 'POST'
     }, UpdateDocumentReview: {
@@ -29,7 +38,10 @@ const global = {
     }, advertisementsSave: {
         url: "/api/advertisementsSave",
         method: 'POST'
-    }, getAdvertisements: {
+    }, downloadObjectionFile: {
+        url: "/api/downloadObjectionFile",
+        method: 'GET'
+    },getAdvertisements: {
         url: "/api/getAdvertisements",
         method: 'GET'
     },getUsers: {

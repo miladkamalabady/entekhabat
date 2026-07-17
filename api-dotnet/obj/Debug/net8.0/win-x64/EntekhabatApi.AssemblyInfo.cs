@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("EntekhabatApi")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c0b512986be7a07b323fd09facb27526d62c9350")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+df4dcd478331b37024999b3b77368fa320b94eef")]
 [assembly: System.Reflection.AssemblyProductAttribute("EntekhabatApi")]
 [assembly: System.Reflection.AssemblyTitleAttribute("EntekhabatApi")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -49,7 +49,18 @@
                         <div class="progress-step"></div>
                       </div>
                     </div>
-                    <div class="status-card-action">
+                    <div class="status-card-action d-flex flex-column">
+                      <button class="btn-action-primary mb-2" @click="editDocuments()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                          <path
+                            d="M11 4H4C3.44772 4 3 4.44772 3 5V20C3 20.5523 3.44772 21 4 21H19C19.5523 21 20 20.5523 20 20V13"
+                            stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                          <path
+                            d="M18.5 2.50001C18.8978 2.10219 19.4374 1.87869 20 1.87869C20.5626 1.87869 21.1022 2.10219 21.5 2.50001C21.8978 2.89784 22.1213 3.4374 22.1213 4.00001C22.1213 4.56262 21.8978 5.10219 21.5 5.50001L12 15L8 16L9 12L18.5 2.50001Z"
+                            stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        ویرایش مدارک
+                      </button>
                       <button class="btn-action-outline" @click="canselRequest()">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                           <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="1.8"
@@ -87,7 +98,7 @@
                       </div>
                     </div>
                     <div class="status-card-action">
-                      <button class="btn-action-primary" @click="submitAgain()">
+                      <!--<button class="btn-action-primary" @click="submitAgain()">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                           <path d="M1 12C1 12 4 4 12 4C20 4 23 12 23 12C23 12 20 20 12 20C4 20 1 12 1 12Z"
                             stroke="currentColor" stroke-width="1.5" fill="none" />
@@ -96,6 +107,17 @@
                             stroke="currentColor" stroke-width="1.5" />
                         </svg>
                         ثبت مجدد درخواست
+                      </button>-->
+                      <button class="btn-action-primary mb-2" @click="editDocuments()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                          <path
+                            d="M11 4H4C3.44772 4 3 4.44772 3 5V20C3 20.5523 3.44772 21 4 21H19C19.5523 21 20 20.5523 20 20V13"
+                            stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                          <path
+                            d="M18.5 2.50001C18.8978 2.10219 19.4374 1.87869 20 1.87869C20.5626 1.87869 21.1022 2.10219 21.5 2.50001C21.8978 2.89784 22.1213 3.4374 22.1213 4.00001C22.1213 4.56262 21.8978 5.10219 21.5 5.50001L12 15L8 16L9 12L18.5 2.50001Z"
+                            stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        ویرایش مدارک
                       </button>
                     </div>
                   </div>
@@ -392,6 +414,10 @@ export default {
       if (item.roles.includes('SUPERVISOR')) return 'نظارت بر فرآیند انتخابات';
       return 'برای مشاهده کلیک کنید';
     },
+    editDocuments() {
+      this.setRequestStatus("CONDITIONS_ACCEPTED")
+      this.$router.push({ path: '/candidate/UploadDocuments', query: { edit: 'true' } })
+    },
     submitAgain() {
       this.canselRequest()
       // this.$router.push("/candidate/request")
@@ -467,6 +493,22 @@ export default {
           centered: true,
           okVariant: 'danger'
         })
+        return
+      }
+
+      const confirmed = await this.$bvModal.msgBoxConfirm(
+        'در صورت ثبت نهایی انصراف، امکان ثبت‌نام مجدد در این دوره انتخابات وجود نخواهد داشت',
+        {
+          title: 'آیا از انصراف ثبت‌نام اطمینان دارید؟',
+          centered: true,
+          okTitle: 'بله، انصراف می‌دهم',
+          cancelTitle: 'انصراف',
+          okVariant: 'danger',
+          cancelVariant: 'secondary'
+        }
+      )
+
+      if (!confirmed) {
         return
       }
 

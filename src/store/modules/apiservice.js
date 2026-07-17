@@ -37,10 +37,9 @@ commit.commit('setProcessing', true)
 
    if (user?.token) config.headers.Authorization = `Bearer ${user.token}`;
 
-  if (data.name.includes('GetFileById') || data.name.includes('HrmImage')) {
+  if (data.name.includes('downloadObjectionFile')) {
+    config.responseType = 'blob';
 
-    config.responseType= 'arraybuffer'
-    // config.responseType= 'blob'
   }
   if (commit && commit.inline_insert) config.url = urlInlineInsertResolver(data.params, apiUrlrtb + url);
 

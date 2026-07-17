@@ -603,7 +603,7 @@
 </template>
 
 <script>
-import { apiUrlrtb, currentUser } from '../../constants/config'
+import { apiUrlrtb } from '../../constants/config'
 
 import Chart from 'chart.js';
 import { isMobile } from "../../utils";
@@ -802,7 +802,7 @@ export default {
     }
   },
   mounted() {
-    if (!this.EXECUTIVEListInf)
+    if (!this.EXECUTIVEListInfo)
       this.getEXECUTIVEList()
     this.loadRecentActivities()
   },
@@ -885,7 +885,8 @@ export default {
         { key: 'user_photo', label: 'تصویر کاربر', path: candidate.user_photo },
         { key: 'education_doc', label: 'مدرک تحصیلی', path: candidate.education_doc },
         { key: 'ravan_cert', label: 'گواهی سلامت جسمی و روانی', path: candidate.ravan_cert },
-        { key: 'soPishine_cert', label: 'عدم سوء پیشینه', path: candidate.soPishine_cert }
+        { key: 'soPishine_cert', label: 'عدم سوء پیشینه', path: candidate.soPishine_cert },
+        { key: 'transparency_form', label: 'فرم تعهد شفافیت', path: candidate.transparency_form }
       ].filter(doc => doc.path);
     },
 
@@ -1167,10 +1168,10 @@ export default {
 
     // Statistics
     calculateStats() {
-      this.stats.totalCandidates = this.EXECUTIVEListInf?.length;
-      this.stats.pendingDocuments = this.EXECUTIVEListInf?.filter(c => c.requestStatus === 'SUBMITTED').length;
-      this.stats.approvedCandidates = this.EXECUTIVEListInf?.filter(c => c.requestStatus === 'EXECUTIVE_APPROVED').length;
-      this.stats.rejectedCandidates = this.EXECUTIVEListInf?.filter(c => c.requestStatus === 'EXECUTIVE_REJECTED').length;
+      this.stats.totalCandidates = this.EXECUTIVEListInfo?.length;
+      this.stats.pendingDocuments = this.EXECUTIVEListInfo?.filter(c => c.requestStatus === 'SUBMITTED').length;
+      this.stats.approvedCandidates = this.EXECUTIVEListInfo?.filter(c => c.requestStatus === 'EXECUTIVE_APPROVED').length;
+      this.stats.rejectedCandidates = this.EXECUTIVEListInfo?.filter(c => c.requestStatus === 'EXECUTIVE_REJECTED').length;
 
       this.stats.pendingAds = this.advertisements.filter(a => a.status === 'SUBMITTED').length;
       this.stats.approvedAds = this.advertisements.filter(a => a.status === 'EXECUTIVE_APPROVED').length;
@@ -1307,7 +1308,19 @@ export default {
         } catch (error) {
           console.error("Error loading ads:", error);
         }
+      } else if (val === 2) {
+        // تب آمار و گزارشات
+        this.calculateStats();
+        this.$nextTick(() => {
+          this.initializeCharts();
+        });
       }
+    },
+    EXECUTIVEListInfo: {
+      handler() {
+        this.calculateStats();
+      },
+      immediate: true
     },
     ChangeStateInfo(val) {
       if (val) {

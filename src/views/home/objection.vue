@@ -69,19 +69,15 @@
           <!-- Tab 1: ثبت اعتراض جدید -->
           <div v-if="activeTab === 0" class="tab-pane">
             <div class="form-card-modern">
-              <b-form @submit.prevent="validateBeforeSubmit">
-                <!-- انتخاب مخاطب -->
-                <div class="form-group-modern">
-                  <label>مخاطب <span class="required">*</span></label>
-                  <select v-model="complaintData.decisionType" class="input-modern"
-                    :class="{ 'is-invalid': formState.decisionType === false }">
-                    <option :value="null" disabled>-- لطفا انتخاب کنید --</option>
-                    <option v-for="opt in decisionTypeOptions" :key="opt.value" :value="opt.value">{{ opt.text }}
-                    </option>
-                  </select>
-                  <div v-if="formState.decisionType === false" class="invalid-feedback">لطفا مخاطب را انتخاب کنید</div>
-                </div>
+              <!-- هشدار محدودیت تعداد اعتراض -->
+              <div v-if="complaintCount >= 2" class="alert-warning-modern">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M12 9V13M12 17H12.01M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z" stroke-width="1.5" />
+                </svg>
+                <span>شما قبلاً حداکثر تعداد مجاز اعتراض (۲ بار) را ثبت کرده‌اید.</span>
+              </div>
 
+              <b-form @submit.prevent="validateBeforeSubmit">
                 <!-- اطلاعات کاندیدا (در صورت نیاز) -->
                 <div v-if="showCandidateFields" class="candidate-fields">
                   <h6 class="section-title-mini">اطلاعات کاندیدا</h6>
@@ -114,9 +110,33 @@
                     کاراکتر وارد کنید</div>
                 </div>
 
-                <!-- بارگذاری مستندات - نسخه اصلاح شده -->
+                <!-- بارگذاری مستندات - نسخه اصلاح شده با محدودیت‌ها -->
                 <div class="form-group-modern">
                   <label>بارگذاری مستندات و مدارک اثباتی <span class="required">*</span></label>
+                  
+                  <!-- نمایش محدودیت‌ها -->
+                  <div class="file-limits-info">
+                    <span class="limit-badge">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z" stroke-width="1.5" />
+                        <path d="M12 8V12M12 16H12.01" stroke-width="1.5" stroke-linecap="round" />
+                      </svg>
+                      حداکثر ۳ فایل
+                    </span>
+                    <span class="limit-badge">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke-width="1.5" />
+                      </svg>
+                      حداکثر ۱ مگابایت هر فایل
+                    </span>
+                    <span class="limit-badge">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke-width="1.5" />
+                      </svg>
+                      PDF, JPG, PNG, DOC, DOCX
+                    </span>
+                  </div>
+
                   <div class="file-upload-modern" :class="{ 'is-invalid': formState.documents === false }">
                     <input type="file" ref="fileInput" multiple @change="onDocumentsChange" class="file-input-hidden"
                       accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
@@ -125,12 +145,18 @@
                         <path d="M12 4V20M20 12H4" stroke-width="1.5" stroke-linecap="round" />
                       </svg>
                       <span>فایل‌های خود را انتخاب کنید</span>
-                      <small>فرمت‌های مجاز: PDF, JPG, PNG, DOC, DOCX | حداکثر حجم: ۵ مگابایت</small>
+                      <small>فرمت‌های مجاز: PDF, JPG, PNG, DOC, DOCX | حداکثر حجم: ۱ مگابایت | حداکثر تعداد: ۳ فایل</small>
                     </div>
 
-                    <!-- لیست فایل‌های انتخاب شده با پیش‌نمایش -->
+                    <!-- نمایش تعداد فایل‌های انتخاب شده -->
+                    <div v-if="uploadedFiles.length > 0" class="files-counter">
+                      <span>{{ uploadedFiles.length }} از ۳ فایل انتخاب شده</span>
+                    </div>
+
+                    <!-- لیست فایل‌های انتخاب شده با پیش‌نمایش و وضعیت حجم -->
                     <div v-if="uploadedFiles.length > 0" class="files-list-modern">
-                      <div v-for="(file, index) in uploadedFiles" :key="index" class="file-item-modern">
+                      <div v-for="(file, index) in uploadedFiles" :key="index" class="file-item-modern"
+                        :class="{ 'file-error': file.size > maxFileSize }">
                         <div class="file-info">
                           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                             <path
@@ -139,6 +165,9 @@
                           </svg>
                           <span class="file-name">{{ file.name }}</span>
                           <small class="file-size">{{ formatFileSize(file.size) }}</small>
+                          <span v-if="file.size > maxFileSize" class="file-error-badge">
+                            حجم بیش از حد مجاز
+                          </span>
                         </div>
                         <button type="button" class="remove-file" @click.stop="removeFile(index)">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -147,22 +176,21 @@
                         </button>
                       </div>
                     </div>
+
+                    <!-- نمایش خطاهای اعتبارسنجی فایل -->
+                    <div v-if="fileValidationErrors.length > 0" class="file-errors">
+                      <div v-for="(error, index) in fileValidationErrors" :key="index" class="file-error-item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444">
+                          <circle cx="12" cy="12" r="10" stroke-width="1.5" />
+                          <path d="M12 8V12M12 16H12.01" stroke-width="1.5" stroke-linecap="round" />
+                        </svg>
+                        {{ error }}
+                      </div>
+                    </div>
                   </div>
                   <div v-if="formState.documents === false" class="invalid-feedback">لطفا حداقل یک مدرک بارگذاری کنید
                   </div>
                 </div>
-
-                <!-- تعهدنامه -->
-                <div class="checkbox-modern declaration-check">
-                  <input type="checkbox" v-model="complaintData.declaration" id="declaration">
-                  <label for="declaration">
-                    <strong>تعهدنامه:</strong> من متعهد می‌شوم که اطلاعات فوق صحیح و مستند بوده و در صورت اثبات خلاف آن،
-                    مسئولیت حقوقی و قانونی آن را می‌پذیرم. همچنین موافقت می‌کنم که این اعتراض
-                    طبق آیین‌نامه هیأت نظارت بررسی شود.
-                  </label>
-                </div>
-                <div v-if="formState.declaration === false" class="invalid-feedback d-block">لطفا این گزینه را تایید
-                  کنید</div>
 
                 <!-- دکمه‌های اقدام -->
                 <div class="form-actions">
@@ -173,7 +201,7 @@
                     </svg>
                     پاک کردن فرم
                   </button>
-                  <button type="submit" class="btn-primary-modern" :disabled="submitting">
+                  <button type="submit" class="btn-primary-modern" :disabled="submitting || complaintCount >= 2">
                     <span v-if="submitting" class="spinner-small"></span>
                     <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                       <path d="M20 6L9 17L4 12" stroke-width="2" stroke-linecap="round" />
@@ -341,6 +369,8 @@
                   <li>اعتراض باید حداکثر تا ۷ روز پس از اعلام تصمیم هیأت نظارت ثبت شود.</li>
                   <li>اعتراض باید مستند و همراه با دلایل محکمه‌پسند ارائه شود.</li>
                   <li>اعتراضات توهین‌آمیز یا فاقد مستندات معتبر بررسی نخواهند شد.</li>
+                  <li>هر داوطلب حداکثر <strong>۲ بار</strong> مجاز به ثبت اعتراض می‌باشد.</li>
+                  <li>حداکثر <strong>۳ فایل</strong> با حجم <strong>۱ مگابایت</strong> هر فایل مجاز است.</li>
                 </ul>
               </div>
               <div class="rules-section">
@@ -401,14 +431,6 @@
                   </svg>
                   <span>دانلود</span>
                 </button>
-                <button class="btn-view" @click="viewDocument(doc)" title="مشاهده آنلاین">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M1 12C1 12 5 4 12 4C19 4 23 12 23 12C23 12 19 20 12 20C5 20 1 12 1 12Z"
-                      stroke-width="1.5" />
-                    <circle cx="12" cy="12" r="3" stroke-width="1.5" />
-                  </svg>
-                  <span>مشاهده</span>
-                </button>
               </div>
             </div>
           </div>
@@ -453,9 +475,10 @@
 
 <script>
 import { mapActions, mapGetters } from 'vuex'
+import axios from 'axios'
 
 const createDefaultComplaintData = () => ({
-  decisionType: null,
+  decisionType: 'province',
   caseNumber: '',
   candidateName: '',
   candidateRegion: '',
@@ -464,29 +487,22 @@ const createDefaultComplaintData = () => ({
   description: '',
   reasons: [],
   documents: [],
-  urgency: 'normal',
-  declaration: false
+  urgency: 'normal'
 })
-
+import { apiUrlrtb } from '../../constants/config'
 export default {
   name: 'UserComplaint',
   data() {
     return {
+      apiUrlrtb,
       activeTab: 0,
       submitting: false,
       trackingLoading: false,
       complaintData: createDefaultComplaintData(),
       formState: {
-        decisionType: null,
         description: null,
-        documents: null,
-        declaration: null
+        documents: null
       },
-      decisionTypeOptions: [
-        { value: 'candidate_rejection', text: 'هیأت نظارت استان' },
-        { value: 'document_rejection', text: 'هیأت مرکزی نظارت' },
-        { value: 'other', text: 'سایر موارد' }
-      ],
       uploadedFiles: [],
       userComplaints: [],
       trackingCode: '',
@@ -494,7 +510,13 @@ export default {
       showComplaintModal: false,
       showSuccessModal: false,
       selectedComplaint: null,
-      newTrackingCode: ''
+      newTrackingCode: '',
+      complaintCount: 0,
+      // محدودیت‌های فایل
+      maxFileCount: 3,
+      maxFileSize: 1 * 1024 * 1024, // 1 مگابایت
+      allowedFileTypes: ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'],
+      fileValidationErrors: []
     }
   },
   computed: {
@@ -507,7 +529,8 @@ export default {
     await this.loadUserComplaints()
   },
   methods: {
-    ...mapActions(['getObjections', 'saveObjection', 'updateObjectionStatus']),
+    ...mapActions(['getObjections', 'saveObjection', 'updateObjectionStatus','downloadObjectionFile']),
+
     async downloadDocument(doc) {
       if (!doc || !doc.id) {
         this.$bvToast.toast('اطلاعات فایل موجود نیست', { title: 'خطا', variant: 'danger', solid: true })
@@ -516,16 +539,8 @@ export default {
 
       try {
         const token = this.currentUser.token
-
-        const response = await axios.get(`http://localhost/apiEntekhabat/downloadObjectionFile.php?id=${doc.id}`, {
-          responseType: 'blob', // مهم: برای دریافت فایل
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        })
-
-        // ایجاد لینک دانلود از blob
-        const blob = new Blob([response.data], { type: response.headers['content-type'] })
+        const response = await this.downloadObjectionFile({id:`${doc.id}`})
+        const blob = new Blob([response])
         const url = window.URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.href = url
@@ -541,37 +556,25 @@ export default {
         console.error('Download error:', error)
         this.$bvToast.toast('خطا در دانلود فایل', { title: 'خطا', variant: 'danger', solid: true })
       }
-    }, // مشاهده آنلاین فایل (در تب جدید)
-    viewDocument(doc) {
-      if (!doc || !doc.id && !doc.path) {
-        this.$bvToast.toast('اطلاعات فایل موجود نیست', { title: 'خطا', variant: 'danger', solid: true })
-        return
-      }
+    },
 
-      let viewUrl = ''
-      if (doc.id) {
-        viewUrl = `http://localhost/apiEntekhabat/downloadObjectionFile.php?id=${doc.id}`
-      } else if (doc.path) {
-        viewUrl = doc.path
-      }
 
-      window.open(viewUrl, '_blank')
-    }, async loadUserComplaints() {
+    async loadUserComplaints() {
       try {
         const response = await this.getObjections({})
-        // اطمینان از وجود documents در پاسخ
         this.userComplaints = (response?.data || []).map(complaint => ({
           ...complaint,
           documents: complaint.documents || [],
           documentsCount: complaint.documents?.length || complaint.documentsCount || 0
         }))
+        this.complaintCount = this.userComplaints.filter(c => c.status !== 'cancelled').length
       } catch (error) {
         console.error('Error loading complaints:', error)
         this.userComplaints = []
+        this.complaintCount = 0
       }
     },
 
-    // اصلاح متد viewComplaintDetails
     viewComplaintDetails(complaint) {
       this.selectedComplaint = {
         ...complaint,
@@ -579,26 +582,70 @@ export default {
       }
       this.showComplaintModal = true
     },
+
     getDefaultComplaintData() {
       return createDefaultComplaintData()
     },
 
+    // اعتبارسنجی فایل‌ها
+    validateFiles(files) {
+      this.fileValidationErrors = []
+      const validFiles = []
+
+      for (const file of files) {
+        // بررسی تعداد
+        if (validFiles.length >= this.maxFileCount) {
+          this.fileValidationErrors.push(`حداکثر ${this.maxFileCount} فایل مجاز است`)
+          break
+        }
+
+        // بررسی حجم
+        if (file.size > this.maxFileSize) {
+          this.fileValidationErrors.push(`فایل ${file.name} حجم بیشتر از ۱ مگابایت دارد`)
+          continue
+        }
+
+        // بررسی نوع فایل
+        const extension = file.name.split('.').pop().toLowerCase()
+        if (!this.allowedFileTypes.includes(extension)) {
+          this.fileValidationErrors.push(`نوع فایل ${file.name} مجاز نیست (فرمت‌های مجاز: ${this.allowedFileTypes.join(', ')})`)
+          continue
+        }
+
+        validFiles.push(file)
+      }
+
+      return validFiles
+    },
+
     onDocumentsChange(event) {
       const files = Array.from(event.target.files)
-      // فیلتر فایل‌های با حجم بیش از 5 مگابایت
-      const validFiles = files.filter(file => file.size <= 5 * 1024 * 1024)
-      const invalidFiles = files.filter(file => file.size > 5 * 1024 * 1024)
+      
+      // اعتبارسنجی فایل‌ها
+      const validFiles = this.validateFiles(files)
+      
+      // اضافه کردن فایل‌های معتبر
+      const newFiles = [...this.uploadedFiles, ...validFiles]
+      
+      // محدودیت تعداد کل
+      if (newFiles.length > this.maxFileCount) {
+        this.fileValidationErrors.push(`حداکثر ${this.maxFileCount} فایل مجاز است`)
+        this.uploadedFiles = newFiles.slice(0, this.maxFileCount)
+      } else {
+        this.uploadedFiles = newFiles
+      }
 
-      if (invalidFiles.length > 0) {
-        this.$bvToast.toast(`${invalidFiles.length} فایل حجم بیشتر از ۵ مگابایت دارد`, {
-          title: 'خطا',
+      // به‌روزرسانی وضعیت فرم
+      this.formState.documents = this.uploadedFiles.length > 0 ? true : null
+
+      // نمایش پیام خطا
+      if (this.fileValidationErrors.length > 0) {
+        this.$bvToast.toast(this.fileValidationErrors.join('\n'), {
+          title: 'خطا در انتخاب فایل',
           variant: 'danger',
           solid: true
         })
       }
-
-      this.uploadedFiles = [...this.uploadedFiles, ...validFiles]
-      this.formState.documents = this.uploadedFiles.length > 0 ? true : null
 
       // ریست کردن input فایل
       if (this.$refs.fileInput) {
@@ -609,6 +656,7 @@ export default {
     removeFile(index) {
       this.uploadedFiles.splice(index, 1)
       this.formState.documents = this.uploadedFiles.length > 0 ? true : null
+      this.fileValidationErrors = []
     },
 
     formatFileSize(bytes) {
@@ -619,55 +667,105 @@ export default {
       return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
     },
 
-    validateBeforeSubmit() {
-      Object.keys(this.formState).forEach(key => this.formState[key] = null)
-      let isValid = true
-
-      if (!this.complaintData.decisionType) {
-        this.formState.decisionType = false
-        isValid = false
+    // بررسی اینکه آیا فایل‌ها معتبر هستند
+    areFilesValid() {
+      if (this.uploadedFiles.length === 0) return false
+      
+      // بررسی حجم فایل‌ها
+      for (const file of this.uploadedFiles) {
+        if (file.size > this.maxFileSize) {
+          this.fileValidationErrors.push(`فایل ${file.name} حجم بیشتر از ۱ مگابایت دارد`)
+          return false
+        }
       }
+      
+      return true
+    },
+
+    validateBeforeSubmit() {
+      if (this.complaintCount >= 2) {
+        this.$bvToast.toast('شما قبلاً حداکثر تعداد مجاز اعتراض (۲ بار) را ثبت کرده‌اید.', {
+          title: 'خطا',
+          variant: 'danger',
+          solid: true
+        })
+        return
+      }
+
+      this.fileValidationErrors = []
+
+      // اعتبارسنجی شرح
       if (!this.complaintData.description.trim() || this.complaintData.description.length < 50) {
         this.formState.description = false
-        isValid = false
-      }
-      if (this.uploadedFiles.length === 0) {
-        this.formState.documents = false
-        isValid = false
-      }
-      if (!this.complaintData.declaration) {
-        this.formState.declaration = false
-        isValid = false
+      } else {
+        this.formState.description = true
       }
 
-      if (isValid) this.submitComplaint()
-      else {
+      // اعتبارسنجی فایل‌ها
+      if (this.uploadedFiles.length === 0) {
+        this.formState.documents = false
+        this.$bvToast.toast('لطفا حداقل یک مدرک بارگذاری کنید', {
+          title: 'خطا',
+          variant: 'danger',
+          solid: true
+        })
+        return
+      }
+
+      // اعتبارسنجی حجم فایل‌ها
+      for (const file of this.uploadedFiles) {
+        if (file.size > this.maxFileSize) {
+          this.fileValidationErrors.push(`فایل ${file.name} حجم بیشتر از ۱ مگابایت دارد`)
+        }
+      }
+
+      if (this.fileValidationErrors.length > 0) {
+        this.$bvToast.toast(this.fileValidationErrors.join('\n'), {
+          title: 'خطا در فایل‌ها',
+          variant: 'danger',
+          solid: true
+        })
+        return
+      }
+
+      // اگر همه چیز معتبر است
+      if (this.formState.description === true && this.uploadedFiles.length > 0) {
+        this.submitComplaint()
+      } else {
         this.$bvToast.toast('لطفا تمام فیلدهای الزامی را به درستی تکمیل کنید', {
-          title: 'خطا', variant: 'danger', solid: true
+          title: 'خطا',
+          variant: 'danger',
+          solid: true
         })
       }
     },
 
     async submitComplaint() {
+      if (this.complaintCount >= 2) {
+        this.$bvToast.toast('شما قبلاً حداکثر تعداد مجاز اعتراض (۲ بار) را ثبت کرده‌اید.', {
+          title: 'خطا',
+          variant: 'danger',
+          solid: true
+        })
+        return
+      }
+
       this.submitting = true
 
       try {
-        // ساخت FormData برای ارسال فایل‌ها
         const formData = new FormData()
 
-        // اضافه کردن فیلدهای متنی
-        formData.append('decisionType', this.complaintData.decisionType || '')
+        formData.append('decisionType', 'province')
         formData.append('description', this.complaintData.description || '')
-        formData.append('declaration', this.complaintData.declaration ? '1' : '0')
         formData.append('subject', '-')
+        formData.append('declaration', 'true')
 
-        // اضافه کردن فایل‌ها
-        this.uploadedFiles.forEach((file, index) => {
-          formData.append(`documents[${index}]`, file)
-          formData.append(`documents_names[${index}]`, file.name)
+        // فقط فایل‌های معتبر را ارسال کن
+        const validFiles = this.uploadedFiles.filter(file => file.size <= this.maxFileSize)
+        validFiles.forEach((file, index) => {
+              formData.append('documents', file)
         })
 
-        // ارسال به API (با استفاده از action موجود یا مستقیم با axios)
         const response = await this.saveObjection(formData)
 
         if (!response?.status) {
@@ -677,10 +775,8 @@ export default {
         this.newTrackingCode = response?.data?.trackingCode || this.generateTrackingCode()
         this.showSuccessModal = true
 
-        // ریست فرم
         this.resetForm()
 
-        // رفتن به تب اعتراضات من
         this.activeTab = 1
         await this.loadUserComplaints()
 
@@ -705,6 +801,7 @@ export default {
     resetForm() {
       this.complaintData = this.getDefaultComplaintData()
       this.uploadedFiles = []
+      this.fileValidationErrors = []
       Object.keys(this.formState).forEach(key => {
         this.formState[key] = null
       })
@@ -712,6 +809,7 @@ export default {
         this.$refs.fileInput.value = ''
       }
     },
+
     generateTrackingCode() {
       const date = new Date()
       const year = date.getFullYear() - 621
@@ -719,16 +817,6 @@ export default {
       const day = date.getDate().toString().padStart(2, '0')
       const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0')
       return `${year}${month}${day}${random}`
-    },
-
-
-    async loadUserComplaints() {
-      try {
-        const response = await this.getObjections({})
-        this.userComplaints = response?.data || []
-      } catch (error) {
-        this.userComplaints = []
-      }
     },
 
     getComplaintStatusVariant(status) {
@@ -741,12 +829,15 @@ export default {
       return texts[status] || status
     },
 
-    viewComplaintDetails(complaint) {
-      this.selectedComplaint = complaint
-      this.showComplaintModal = true
-    },
-
     editComplaint(complaint) {
+      if (this.complaintCount >= 2) {
+        this.$bvToast.toast('شما قبلاً حداکثر تعداد مجاز اعتراض را ثبت کرده‌اید.', {
+          title: 'خطا',
+          variant: 'danger',
+          solid: true
+        })
+        return
+      }
       this.complaintData = { ...this.getDefaultComplaintData(), ...complaint }
       this.uploadedFiles = complaint.documents || []
       this.activeTab = 0
@@ -986,6 +1077,29 @@ export default {
   margin-top: 6px;
 }
 
+/* اطلاعات محدودیت‌های فایل */
+.file-limits-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.limit-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: #f1f5f9;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  color: #475569;
+}
+
+.limit-badge svg {
+  flex-shrink: 0;
+}
+
 /* آپلود فایل */
 .file-upload-modern {
   position: relative;
@@ -1028,8 +1142,16 @@ export default {
   margin-top: 8px;
 }
 
+.files-counter {
+  text-align: right;
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 8px;
+  padding: 0 4px;
+}
+
 .files-list-modern {
-  margin-top: 16px;
+  margin-top: 8px;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   overflow: hidden;
@@ -1047,20 +1169,38 @@ export default {
   border-bottom: none;
 }
 
+.file-item-modern.file-error {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
 .file-info {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex: 1;
+  min-width: 0;
 }
 
 .file-name {
   font-size: 0.85rem;
   color: #1e293b;
+  word-break: break-all;
 }
 
 .file-size {
   font-size: 0.7rem;
   color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.file-error-badge {
+  font-size: 0.65rem;
+  color: #ef4444;
+  background: #fee2e2;
+  padding: 2px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
 }
 
 .remove-file {
@@ -1069,40 +1209,21 @@ export default {
   cursor: pointer;
   color: #ef4444;
   padding: 4px;
-}
-
-/* چک‌باکس */
-.checkbox-modern {
-  margin-bottom: 20px;
-}
-
-.checkbox-modern input {
-  display: none;
-}
-
-.checkbox-modern label {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  cursor: pointer;
-  font-size: 0.8rem;
-  line-height: 1.5;
-  color: #475569;
-}
-
-.checkbox-modern label::before {
-  content: '';
-  width: 20px;
-  height: 20px;
-  border: 2px solid #cbd5e1;
-  border-radius: 6px;
-  background: white;
   flex-shrink: 0;
 }
 
-.checkbox-modern input:checked+label::before {
-  background: #10b981;
-  border-color: #10b981;
+/* خطاهای فایل */
+.file-errors {
+  margin-top: 8px;
+}
+
+.file-error-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: #ef4444;
+  padding: 4px 0;
 }
 
 /* دکمه‌ها */
@@ -1170,6 +1291,23 @@ export default {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* هشدار محدودیت */
+.alert-warning-modern {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: #fef3c7;
+  border-radius: 16px;
+  border: 1px solid #f59e0b;
+  color: #92400e;
+  margin-bottom: 24px;
+}
+
+.alert-warning-modern svg {
+  flex-shrink: 0;
 }
 
 /* کارت‌های اعتراضات */
@@ -1573,44 +1711,7 @@ export default {
   margin: 16px 0;
 }
 
-/* موبایل */
-@media (max-width: 768px) {
-  .page-spacer {
-    margin-top: 60px;
-  }
-
-  .tab-header {
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-
-  .tab-btn {
-    padding: 10px 16px;
-  }
-
-  .tab-content-modern {
-    padding: 20px;
-  }
-
-  .form-actions {
-    flex-direction: column;
-  }
-
-  .btn-outline-modern,
-  .btn-primary-modern {
-    justify-content: center;
-  }
-
-  .tracking-input-group {
-    flex-direction: column;
-  }
-
-  .complaint-card-header {
-    flex-direction: column;
-  }
-}
-
-/* ========== استایل نمایش فایل‌های ضمیمه در مودال ========== */
+/* استایل نمایش فایل‌های ضمیمه در مودال */
 .documents-list-modal {
   max-height: 300px;
   overflow-y: auto;
@@ -1719,5 +1820,46 @@ export default {
   display: block;
   font-size: 0.8rem;
   color: #94a3b8;
+}
+
+/* موبایل */
+@media (max-width: 768px) {
+  .page-spacer {
+    margin-top: 60px;
+  }
+
+  .tab-header {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .tab-btn {
+    padding: 10px 16px;
+  }
+
+  .tab-content-modern {
+    padding: 20px;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .btn-outline-modern,
+  .btn-primary-modern {
+    justify-content: center;
+  }
+
+  .tracking-input-group {
+    flex-direction: column;
+  }
+
+  .complaint-card-header {
+    flex-direction: column;
+  }
+
+  .file-limits-info {
+    flex-direction: column;
+  }
 }
 </style>

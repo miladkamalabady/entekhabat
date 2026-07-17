@@ -114,66 +114,115 @@
 
       <!-- Winner Announcement -->
       <b-card class="winner-card mb-5">
-        <div class="winner-header text-center mb-4">
-          <h3>
-            <b-icon icon="trophy" variant="warning" class="ml-2"></b-icon>
-            منتخب فرهنگیان
-          </h3>
-          <p class="text-muted">برنده نهایی انتخابات</p>
+        <!-- حالت تساوی -->
+        <div v-if="winner.isTie">
+          <div class="winner-header text-center mb-4">
+            <h3>
+              <b-icon icon="exclamation-triangle-fill" variant="warning" class="ml-2"></b-icon>
+              نتیجه: تساوی آرا
+            </h3>
+            <p class="text-muted">برندگان مساوی انتخابات</p>
+          </div>
+
+          <b-alert variant="warning" show class="text-center mb-4">
+            <h5 class="alert-heading mb-2">
+              <b-icon icon="exclamation-circle-fill" class="ml-1"></b-icon>
+              تساوی آرا!
+            </h5>
+            <p class="mb-0">
+              {{ winner.tiedWinners.length }} نفر با {{ formatNumber(winner.votes) }} رأی ({{ winner.percentage }}%) مساوی هستند.
+              طبق آیین‌نامه باید تکلیف این تساوی مشخص شود.
+            </p>
+          </b-alert>
+
+          <b-row class="justify-content-center">
+            <b-col
+              v-for="(tied, idx) in winner.tiedWinners"
+              :key="tied.id"
+              md="4"
+              class="text-center mb-4"
+            >
+              <div class="winner-photo-container mx-auto" style="width:fit-content">
+              
+                <img v-if="tied.photo" :src="`${apiUrlrtb}/${tied.photo}`" :alt="tied.name" class="winner-photo" />
+                <div v-else class="winner-photo placeholder">
+                  <b-icon icon="person-circle"></b-icon>
+                </div>
+                <div class="winner-crown">
+                  <b-icon icon="trophy-fill"></b-icon>
+                </div>
+              </div>
+              <h4 class="winner-name mt-3">{{ tied.name }}</h4>
+              <p class="text-muted small">{{ tied.org_position_desc }}</p>
+              <b-badge variant="warning" class="p-2">
+                {{ formatNumber(tied.votes) }} رأی — {{ tied.percentage }}%
+              </b-badge>
+            </b-col>
+          </b-row>
         </div>
 
-        <b-row class="align-items-center">
-          <b-col md="4" class="text-center">
-            <div class="winner-photo-container">
-              <img v-if="winner.photo" :src="winner.photo" :alt="winner.name"
-                class="winner-photo" />
-              <div v-else class="winner-photo placeholder">
-                <b-icon icon="person-circle"></b-icon>
+        <!-- حالت عادی: یک برنده مشخص -->
+        <div v-else>
+          <div class="winner-header text-center mb-4">
+            <h3>
+              <b-icon icon="trophy" variant="warning" class="ml-2"></b-icon>
+              منتخب فرهنگیان
+            </h3>
+            <p class="text-muted">برنده نهایی انتخابات</p>
+          </div>
+
+          <b-row class="align-items-center">
+            <b-col md="4" class="text-center">
+              <div class="winner-photo-container">
+                <img v-if="winner.photo" :src="`${apiUrlrtb}/${winner.photo}`" :alt="winner.name"
+                  class="winner-photo" />
+                <div v-else class="winner-photo placeholder">
+                  <b-icon icon="person-circle"></b-icon>
+                </div>
+                <div class="winner-crown">
+                  <b-icon icon="crown-fill"></b-icon>
+                </div>
               </div>
-              <div class="winner-crown">
-                <b-icon icon="crown-fill"></b-icon>
+            </b-col>
+
+            <b-col md="8">
+              <div class="winner-info">
+                <h2 class="winner-name">{{ winner.name }}</h2>
+                <p class="winner-position">{{ winner.org_position_desc }}</p>
+
+                <div class="winner-stats">
+                  <b-row>
+                    <b-col>
+                      <div class="stat-item">
+                        <div class="stat-value">{{ formatNumber(winner.votes) }}</div>
+                        <div class="stat-label">آرای کسب شده</div>
+                      </div>
+                    </b-col>
+                    <b-col>
+                      <div class="stat-item">
+                        <div class="stat-value">{{ winner.percentage }}%</div>
+                        <div class="stat-label">درصد آرا</div>
+                      </div>
+                    </b-col>
+                    <b-col>
+                      <div class="stat-item">
+                        <div class="stat-value">{{ winner.margin }}%</div>
+                        <div class="stat-label">تفاوت با نفر دوم</div>
+                      </div>
+                    </b-col>
+                  </b-row>
+                </div>
               </div>
-            </div>
-          </b-col>
+            </b-col>
+          </b-row>
 
-          <b-col md="8">
-            <div class="winner-info">
-              <h2 class="winner-name">{{ winner.name }}</h2>
-              <p class="winner-position">{{ winner.org_position_desc }}</p>
-
-              <div class="winner-stats">
-                <b-row>
-                  <b-col>
-                    <div class="stat-item">
-                      <div class="stat-value">{{ formatNumber(winner.votes) }}</div>
-                      <div class="stat-label">آرای کسب شده</div>
-                    </div>
-                  </b-col>
-                  <b-col>
-                    <div class="stat-item">
-                      <div class="stat-value">{{ winner.percentage }}%</div>
-                      <div class="stat-label">درصد آرا</div>
-                    </div>
-                  </b-col>
-                  <b-col>
-                    <div class="stat-item">
-                      <div class="stat-value">{{ winner.margin }}%</div>
-                      <div class="stat-label">تفاوت با نفر دوم</div>
-                    </div>
-                  </b-col>
-                </b-row>
-              </div>
-
-            </div>
-          </b-col>
-        </b-row>
-
-        <div class="victory-message text-center mt-4">
-          <b-alert variant="success" show class="d-inline-block">
-            <h5 class="alert-heading mb-2">پیروزی با {{ winner.name }}!</h5>
-            <p class="mb-0">با کسب {{ winner.percentage }}% از آراء به عنوان عضو جدید صندوق ذخیره فرهنگیان
-              انتخاب شدند.</p>
-          </b-alert>
+          <div class="victory-message text-center mt-4">
+            <b-alert variant="success" show class="d-inline-block">
+              <h5 class="alert-heading mb-2">پیروزی با {{ winner.name }}!</h5>
+              <p class="mb-0">با کسب {{ winner.percentage }}% از آراء به عنوان عضو جدید صندوق ذخیره فرهنگیان
+                انتخاب شدند.</p>
+            </b-alert>
+          </div>
         </div>
       </b-card>
 
@@ -216,14 +265,14 @@
 
             <template #cell(candidate)="data">
               <div class="candidate-info">
-                <img v-if="data.item.photo" :src="data.item.photo" class="candidate-photo" :alt="data.item.name" />
+                <img v-if="data.item.photo" :src="`${apiUrlrtb}/${data.item.photo}`" class="candidate-photo" :alt="data.item.name" />
                 <div v-else class="candidate-photo placeholder"><b-icon icon="person-circle"></b-icon></div>
                 <div class="candidate-details">
                   <strong>{{ data.item.name }} </strong>
                   <small class="text-muted d-block">{{ data.item.position }}</small>
                   <div class="candidate-tags">
-                    <b-badge v-if="data.index === 0" variant="warning" class="mr-1">
-                      برنده
+                    <b-badge v-if="data.item.status === 'winner'" variant="warning" class="mr-1">
+                      {{ winner.isTie ? 'مساوی — برنده' : 'برنده' }}
                     </b-badge>
                   </div>
                 </div>
@@ -407,12 +456,13 @@
 
 <script>
 import Chart from 'chart.js';
+import { apiUrlrtb } from '../../constants/config'
 import { mapGetters, mapActions, mapMutations } from "vuex";
-import { apiUrlrtb } from '../../constants/config';
 export default {
   name: "ElectionFinalResults",
   data() {
     return {
+      apiUrlrtb,
       isActive: false,
       document: null,
       electionDate: '۱۴۰۲/۱۱/۱۵',
@@ -446,10 +496,13 @@ export default {
         id: null,
         name: '',
         position: '',
+        org_position_desc: '',
         photo: null,
         votes: 0,
         percentage: 0,
-        margin: 0
+        margin: 0,
+        isTie: false,
+        tiedWinners: []
       },
 
       // Candidates Data
@@ -575,28 +628,41 @@ export default {
 
       const colors = ['#3F51B5', '#4CAF50', '#FF9800', '#9C27B0', '#2196F3', '#E91E63', '#795548', '#607D8B'];
 
-      this.candidates = listCandidates.map((candidate, index) => {
+      const mapped = listCandidates.map((candidate, index) => {
         const votes = Number(candidate.vote_count) || 0;
         const percentage = totalVotes ? Number(((votes / totalVotes) * 100).toFixed(1)) : 0;
         return {
           id: candidate.id ?? index,
           name: `${candidate.first_name || ''} ${candidate.last_name || ''}`.trim(),
           position: candidate.org_position_desc || '',
-          photo: candidate.user_photo ? `${apiUrlrtb}/${candidate.user_photo}` : null,
+          org_position_desc: candidate.org_position_desc || '',
+          photo: candidate.user_photo ? `${candidate.user_photo}` : null,
           votes,
           percentage,
           color: colors[index % colors.length],
-          status: index === 0 ? 'winner' : 'qualified'
+          status: 'qualified'
         };
       }).sort((a, b) => b.votes - a.votes);
 
-      const winner = this.candidates[0];
-      const runnerUp = this.candidates[1];
-      const margin = winner && runnerUp && totalVotes
-        ? Number((((winner.votes - runnerUp.votes) / totalVotes) * 100).toFixed(1))
+      // تشخیص تساوی: تمام کاندیداهایی که با نفر اول رأی برابر دارند برنده هستند
+      const topVotes = mapped.length > 0 ? mapped[0].votes : 0;
+      this.candidates = mapped.map(c => ({
+        ...c,
+        status: c.votes === topVotes ? 'winner' : 'qualified'
+      }));
+
+      const winners = this.candidates.filter(c => c.status === 'winner');
+      const isTie = winners.length > 1;
+      const firstPlace = this.candidates[0];
+      const secondPlace = this.candidates[winners.length]; // اولین نفر بعد از برندگان مساوی
+      const margin = firstPlace && secondPlace && totalVotes
+        ? Number((((firstPlace.votes - secondPlace.votes) / totalVotes) * 100).toFixed(1))
         : 0;
 
-      this.winner = winner ? { ...winner, margin } : this.winner;
+      // در صورت تساوی، winner شامل لیست همه برندگان هم می‌شود
+      this.winner = firstPlace
+        ? { ...firstPlace, margin, isTie, tiedWinners: isTie ? winners : [] }
+        : this.winner;
 
       this.finalResults = {
         ...this.finalResults,

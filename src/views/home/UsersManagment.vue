@@ -395,7 +395,7 @@ export default {
       this.searchDebounce = setTimeout(() => {
         this.page = 1;
         this.fetchUsers();
-      }, 400);
+      }, 1000);
     },
     clearSearch() {
       this.searchInput = '';
