@@ -5,7 +5,7 @@ export const adminRoot = '/app';
 export const searchPath = `${adminRoot}/pages/miscellaneous/search`
 export const buyUrl = '#'
 
-export var apiUrlrtb = '/apiEntekhabat';
+export var apiUrlrtb = 'https://iammeysamsalehi.ir';
 
 // async function doGetRequest() {
 //   let res = await axios.get('/../config.js');
