@@ -5,7 +5,7 @@
 
       <!-- Wizard -->
       <ul class="wizard mb-3">
-        <li class="done">1. بررسی شرایط احراز</li>
+        <li class="done">1. اعلام داوطلبی و پذیرش شرایط</li>
         <li class="active">2. قبول شرایط</li>
         <li>3. بارگذاری مدارک</li>
         <li>4. تأیید ثبت‌نام</li>

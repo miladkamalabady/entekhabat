@@ -2,19 +2,21 @@
 import apiservice from '../../store/modules/apiservice'
 import { isAuthGuardActive } from '../../constants/config'
 import { getCurrentUser } from '../../utils'
+import { mapSearchUsers,mapMaxVotesRegions,mapSearchUsersRequest, mapCurrentUser, mapScheduleConfig, mapLoginResponse, mapSaveSchedule, mapGetSchedule } from '../../utils/Mapper'
 export default {
   state: {
     currentUser: isAuthGuardActive ? getCurrentUser() : null,
     announcements: [],
     userstatusInfo: null,
     UploadUserDocumentsInfo: null,
+    UpdateUserDocumentsInfo: null,
     confirmRegisterInfo: null,
     ChangeStateInfo: null,
     stateCandidInfo: null,
     EXECUTIVEListInfo: null,
     ConfigInfo: null,
     SystemScheduleInfo: null,
-    requestStatus: null,
+    requestStatus: localStorage.getItem('requestStatus') || null,
     hasActiveRequest: false,
     electionStatusAll: 'inactive',
     loginError: null,
@@ -37,6 +39,7 @@ export default {
     currentUser: state => state.currentUser,
     userstatusInfo: state => state.userstatusInfo,
     UploadUserDocumentsInfo: state => state.UploadUserDocumentsInfo,
+    UpdateUserDocumentsInfo: state => state.UpdateUserDocumentsInfo,
     confirmRegisterInfo: state => state.confirmRegisterInfo,
     ChangeStateInfo: state => state.ChangeStateInfo,
     stateCandidInfo: state => state.stateCandidInfo,
@@ -63,6 +66,8 @@ export default {
       state.loginError = null
     }, setRequestStatus(state, payload) {
       state.requestStatus = payload
+      if (payload) localStorage.setItem('requestStatus', payload)
+      else localStorage.removeItem('requestStatus')
     }, SetelectionStatusAll(state, payload) {
       state.electionStatusAll = payload
     }, setHasActiveRequest(state, payload) {
@@ -80,8 +85,10 @@ export default {
     },
     setLogout(state) {
       state.currentUser = null
+      state.requestStatus = null
       state.processing = false
       state.loginError = null
+      localStorage.removeItem('requestStatus')
     },
     setProcessing(state, payload) {
       state.processing = payload
@@ -102,6 +109,9 @@ export default {
       state.loginError = null
     }, setUploadUserDocumentsInfo(state, payload) {
       state.UploadUserDocumentsInfo = payload
+      state.loginError = null
+    }, setUpdateUserDocumentsInfo(state, payload) {
+      state.UpdateUserDocumentsInfo = payload
       state.loginError = null
     }, setconfirmRegisterInfo(state, payload) {
       state.confirmRegisterInfo = payload
@@ -130,71 +140,110 @@ export default {
   },
   actions: {
     LoginUserSSO({ commit }, payload) {
-      commit('setProcessing', true)
-      setTimeout(() => {
-        try {
-          localStorage.removeItem('user')
-          apiservice({ name: "AccountLogin", params: payload }, { commit })
-            .then(response => {
-              if (response.status) {
-                commit('setUser', { ...response.user, token: response.token })
-                commit('setHasActiveRequest', response.hasActiveRequest)
-                commit('clearError')
-              }
-            })
-        } catch (e) {
-          commit('setLogout')
-          commit('setError', 'خطا در ورود. لطفاً مجدد تلاش نمایید')
-        } finally {
-          commit('setProcessing', false)
-        }
-      }, 2000);
+      commit("setProcessing", true);
+
+      localStorage.removeItem("user");
+
+      const request = !payload.role
+        ? apiservice(
+          { name: "AccountLogin", params: payload },
+          { commit }
+        )
+        : apiservice(
+          {
+            name: "AccountLoginTest",
+            params: {
+              nationalId: payload.code,
+              role: payload.role
+            }
+          },
+          { commit }
+        );
+
+      request
+        .then(response => {
+          if (!response?.succeeded || !response?.data?.status) {
+            commit("setError", response?.messages?.join("\n") || "خطا در ورود");
+            return;
+          }
+          response.data.user.roles = response.data.user.roles.map(role => role.toUpperCase());
+          const result = response.data;
+
+
+          commit("setUser", {
+            ...mapCurrentUser(result.user),
+            token: result.token,
+            refreshToken: result.refreshToken
+          });
+
+          commit("setHasActiveRequest", result.hasActiveRequest ?? false);
+          commit("clearError");
+        })
+        .catch(() => {
+          commit("setLogout");
+          commit("setError", "خطا در ورود. لطفاً مجدد تلاش نمایید");
+        })
+        .finally(() => {
+          commit("setProcessing", false);
+        });
     },
     userstatus({ commit }, payload) {
       apiservice({ name: "userstatus", params: payload }, { commit })
         .then(response => {
-          if (response.status) {
+          if (response.succeeded) {
             commit('setuserstatusInfo', response.data)
             commit('clearError')
           }
         })
-
+    }, async Getroles({ commit }, payload) {
+      const response = await apiservice({ name: "roles", params: payload }, { commit })
+      if (response.succeeded) {
+        commit('clearError')
+      }
+      return response
     }, signOut({ commit }, payload) {
-     localStorage.removeItem('user')
-
-    },async UploadUserDocuments({ commit }, payload) {
+      localStorage.removeItem('user')
+    }, async UploadUserDocuments({ commit }, payload) {
       await apiservice({ name: "UploadUserDocuments", params: payload }, { commit })
         .then(response => {
-          if (response.status) {
+          if (response.succeeded) {
             commit('setUploadUserDocumentsInfo', response.data)
+            commit('clearError')
+          }
+        })
+    }, async UpdateUserDocuments({ commit }, payload) {
+      await apiservice({ name: "UpdateUserDocuments", params: payload }, { commit })
+        .then(response => {
+          if (response.succeeded) {
+            commit('setUpdateUserDocumentsInfo', response.data)
             commit('clearError')
           }
         })
     }, confirmRegister({ commit }, payload) {
       apiservice({ name: "confirmRegister", params: payload }, { commit })
         .then(response => {
-          if (response.status) {
+          if (response.succeeded) {
             commit('setconfirmRegisterInfo', response.data)
             commit('clearError')
           }
         })
     }, async ChangeState({ commit }, payload) {
       const response = await apiservice({ name: "ChangeState", params: payload }, { commit });
-      if (response.status) {
+      if (response.succeeded) {
         commit('setChangeStateInfo', response.data);
         commit('clearError');
       }
       return response;
     }, async UpdateDocumentReview({ commit }, payload) {
       const response = await apiservice({ name: "UpdateDocumentReview", params: payload }, { commit });
-      if (response?.status) {
+      if (response.succeeded) {
         commit('clearError');
       }
       return response;
     }, getstateCandid({ commit }, payload) {
       apiservice({ name: "getstateCandid", params: payload }, { commit })
         .then(response => {
-          if (response.status) {
+          if (response.succeeded) {
             commit('setstateCandidInfo', response.data)
             commit('clearError')
           }
@@ -203,65 +252,71 @@ export default {
     }, getEXECUTIVEList({ commit }, payload) {
       apiservice({ name: "getEXECUTIVEList", params: payload }, { commit })
         .then(response => {
-          if (response.status) {
+          if (response.succeeded) {
             commit('setEXECUTIVEListInfo', response.data)
             commit('clearError')
           }
         })
-    }, advertisementsSave({ commit }, payload) {
-      return apiservice({ name: "advertisementsSave", params: payload }, { commit })
-        .then(response => {
-          if (response?.status) {
-            commit('clearError')
-          }
-          return response
-        })
+    }, async advertisementsSave({ commit }, payload) {
+      const response = await apiservice({ name: "advertisementsSave", params: payload }, { commit })
+      if (response.succeeded) {
+        commit('clearError')
+      }
+      return response
     }, async getAdvertisements({ commit }, payload) {
       const response = await apiservice({ name: "getAdvertisements", params: payload }, { commit });
-      if (response?.status) {
+      if (response.succeeded) {
         commit('clearError');
       }
       return response.data;
     }, async getUsers({ commit }, payload) {
-      const response = await apiservice({ name: "getUsers", params: payload }, { commit });
-      if (response?.status) {
+          const request = mapSearchUsersRequest(payload);
+      const response = await apiservice({ name: "getUsers", params: request }, { commit });
+      if (response.succeeded) {
+        const result = mapSearchUsers(response);
         commit('clearError');
+        return result;
       }
-      return response;
     }, async updateUser({ commit }, payload) {
       const response = await apiservice({ name: "updateUser", params: payload }, { commit });
-      if (response?.status) {
+      if (response.succeeded) {
         commit('clearError');
       }
       return response.data;
-    },async increaseViewAdd({ commit }, payload) {
+    }, async increaseViewAdd({ commit }, payload) {
       const response = await apiservice({ name: "increaseViewAdd", params: payload }, { commit });
-      if (response?.status) {
+      if (response.succeeded) {
         commit('clearError');
       }
       return response.data;
     }, async deleteAdv({ commit }, payload) {
       const response = await apiservice({ name: "deleteAdv", params: payload }, { commit });
-      if (response?.status) {
+      if (response.succeeded) {
         commit('clearError');
       }
       return response.data;
     }, async getConfig({ commit }, payload) {
       const response = await apiservice({ name: "getConfig" }, { commit });
-      if (response?.status) {
-        commit('setConfigInfo', response.data)
+      if (response.succeeded) {
+        const config = mapScheduleConfig(response);
+        commit('setConfigInfo', config)
         commit('clearError');
       }
       return response.data;
     }, async getCandidsList({ commit }, payload) {
       const response = await apiservice({ name: "getCandidsList" }, { commit });
-      if (response?.status) {
+      if (response.succeeded) {
         commit('clearError');
       }
       return response.data;
+    }, async getCandidateDocuments({ commit }) {
+      const response = await apiservice({ name: "getCandidateDocuments" }, { commit });
+      if (response.succeeded)
+        commit('clearError');
+      return response?.data || null;
     }, async insertVote({ commit }, payload) {
       const response = await apiservice({ name: "insertVote", params: payload }, { commit });
-      if (response?.status) {
+      if (response.succeeded) {
         commit('clearError');
         return response;
       }
@@ -287,13 +342,23 @@ export default {
         commit('clearError');
       return response.data;
     }, async getSystemSchedule({ commit }) {
-      const response = await apiservice({ name: "getSystemSchedule" }, { commit });
-      if (response?.status) {
-        commit('setSystemScheduleInfo', response.data)
-        commit('clearError');
+      const response = await apiservice(
+        { name: "getSystemSchedule" },
+        { commit }
+      );
+      if (response.succeeded) {
+
+        const rows = mapGetSchedule(response);
+
+        commit("setSystemScheduleInfo", rows);
+        commit("clearError");
+
+        return rows;
       }
-      return response?.data || [];
+
+      return [];
     }, async saveSystemSchedule({ commit }, payload) {
+      payload = mapSaveSchedule(payload)
       const response = await apiservice({ name: "saveSystemSchedule", params: payload }, { commit });
       if (response?.status)
         commit('clearError');
@@ -303,12 +368,23 @@ export default {
       if (response?.status)
         commit('clearError');
       return response;
-    }, async getRegions({ commit }) {
-      const response = await apiservice({ name: "getRegions" }, { commit });
-      if (response?.status)
-        commit('clearError');
-      return response;
-    }, async getFinalResultsApprovalStatus({ commit }) {
+    },async getRegions({ commit }) {
+    const [regionsRes, maxVotesRes] = await Promise.all([
+        apiservice({ name: "getRegions" }, { commit }),
+        apiservice({ name: "getMaxVotesRegions" }, { commit })
+    ]);
+    if (regionsRes.succeeded && maxVotesRes.succeeded) {
+        return {
+            data: regionsRes.data,
+            areasByProvince: mapMaxVotesRegions(maxVotesRes.data)
+        };
+    }
+    return {
+        data: [],
+        areasByProvince: {}
+    };
+}, 
+async getFinalResultsApprovalStatus({ commit }) {
       const response = await apiservice({ name: "getFinalResultsApprovalStatus" }, { commit });
       if (response?.status)
         commit('clearError');
@@ -319,7 +395,7 @@ export default {
       if (response?.status)
         commit('clearError');
       return response;
-    },async setFinalResultsApproval({ commit }, payload) {
+    }, async setFinalResultsApproval({ commit }, payload) {
       const response = await apiservice({ name: "setFinalResultsApproval", params: payload }, { commit });
       if (response?.status)
         commit('clearError');
@@ -331,7 +407,7 @@ export default {
       return response?.data || [];
     }, async getAnnouncements({ commit }) {
       const response = await apiservice({ name: "getAnnouncements" }, { commit });
-      if (response?.status) {
+      if (response.succeeded) {
         commit('setAnnouncements', response.data);
         commit('clearError');
       }
@@ -364,8 +440,8 @@ export default {
         commit('clearError');
       return response || { items: [], summary: [] };
     },
-    
-     async startLiveChat({ commit }, payload) {
+
+    async startLiveChat({ commit }, payload) {
       const response = await apiservice({ name: "startLiveChat", params: payload || {} }, { commit });
       if (response?.status)
         commit('clearError');
@@ -402,7 +478,7 @@ export default {
       if (response?.status)
         commit('clearError');
       return response || { items: [], summary: [] };
-    }, async saveRegionMaxVotes({ commit }, payload) {
+    }, async saveRegionMaxVotes({ commit }, payload) { 
       const response = await apiservice({ name: "saveRegionMaxVotes", params: payload || {} }, { commit });
       if (response?.status)
         commit('clearError');
@@ -420,6 +496,11 @@ export default {
     }, async updateObjectionStatus({ commit }, payload) {
       const response = await apiservice({ name: "updateObjectionStatus", params: payload }, { commit });
       if (response?.status)
+        commit('clearError');
+      return response;
+    }, async downloadObjectionFile({ commit }, payload) {
+      const response = await apiservice({ name: "downloadObjectionFile", params: payload }, { commit });
+      if (response)
         commit('clearError');
       return response;
     },

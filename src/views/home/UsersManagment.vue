@@ -20,8 +20,8 @@
         <label>فیلتر نقش</label>
         <select v-model="filters.role">
           <option value="">همه نقش‌ها</option>
-          <option v-for="role in roleOptions" :key="role.value" :value="role.value">
-            {{ role.text }}
+          <option v-for="role in roleOptions" :key="role.id" :value="role.name">
+            {{ role.name }}
           </option>
         </select>
       </div>
@@ -55,7 +55,6 @@
           </select>
         </div>
       </div>
-
       <div v-if="!maxVotesProvinceAreas.length" class="state-message">برای این استان منطقه‌ای یافت نشد.</div>
       <div v-else class="table-responsive">
         <table class="region-votes-table">
@@ -100,8 +99,8 @@
         <div class="form-group">
           <label>نقش کاربر</label>
           <select v-model="formData.roles" required>
-            <option v-for="role in roleOptions" :key="role.value" :value="role.value">
-              {{ role.text }}
+            <option v-for="role in roleOptions" :key="role.id" :value="role.name">
+              {{ role.name }}
             </option>
           </select>
         </div>
@@ -269,11 +268,6 @@ export default {
         roles: 'VOTER'
       },
       roleOptions: [
-        { value: 'ADMIN', text: 'کاربر ادمین' },
-        { value: 'SUPERVISOR', text: 'کاربر نظارت' },
-        { value: 'EXECUTIVE', text: 'کاربر اجرایی' },
-        { value: 'CANDIDATE', text: 'کاندید' },
-        { value: 'VOTER', text: 'کاربر عادی' }
       ]
     }
   },
@@ -295,13 +289,13 @@ export default {
       return this.isProvinceSupervisor ? this.currentUserRegionId.slice(0, -2) : '';
     },
     visibleProvinces() {
-      if (!this.isProvinceSupervisor) return this.provinces;
+      if (!this.isProvinceSupervisor) return this.provinces.filter(x=>x.id>1 && x.id%100==0);
       return this.provinces.filter(province => String(province.id) === this.currentUserProvinceCode);
     },
     selectedProvinceAreas() {
-      return this.areasByProvince[this.selectedProvinceCode] || [];
+      return this.areasByProvince[this.selectedProvinceCode/100] || [];
     }, maxVotesProvinceAreas() {
-      return this.areasByProvince[this.maxVotesProvinceCode] || [];
+      return this.areasByProvince[this.maxVotesProvinceCode/100] || [];
     },
     voterCountByRegion() {
       const map = {};
@@ -339,13 +333,14 @@ export default {
   },
   methods: {
     ...mapMutations(["setsidebarVisible"]),
-    ...mapActions(["getUsers", "updateUser", "getRegions","saveRegionMaxVotes"]),
+    ...mapActions(["getUsers", "updateUser", "getRegions","saveRegionMaxVotes","Getroles"]),
     async loadInitialData() {
       this.loading = true;
       try {
-        const [usersRes, regionsResponse] = await Promise.all([
+        const [usersRes, regionsResponse,roles] = await Promise.all([
           this.getUsers({ page: this.page, limit: this.perPage, search: this.searchInput }),
-          this.getRegions()
+          this.getRegions(),
+          this.Getroles()
         ]);
 
         this.users      = Array.isArray(usersRes?.data) ? usersRes.data : [];
@@ -353,6 +348,7 @@ export default {
         this.totalPages = usersRes?.meta?.pages  ?? 1;
 
         this.provinces       = regionsResponse?.data || [];
+        this.roleOptions       = roles?.data || [];
         this.areasByProvince = regionsResponse?.areasByProvince || {};
 
         if (this.isProvinceSupervisor) {
@@ -371,6 +367,13 @@ export default {
     async fetchUsers() {
       this.loading = true;
       try {
+      //   const payload = {
+      //   keyword: this.searchInput,
+      //   pageNumber: this.page,
+      //   pageSize: this.perPage,
+      //   isActive: true
+      // };
+      // const res       = await this.getUsers(payload);
         const res       = await this.getUsers({ page: this.page, limit: this.perPage, search: this.searchInput });
         this.users      = Array.isArray(res?.data) ? res.data : [];
         this.total      = res?.meta?.total ?? this.users.length;
@@ -395,7 +398,7 @@ export default {
       this.searchDebounce = setTimeout(() => {
         this.page = 1;
         this.fetchUsers();
-      }, 400);
+      }, 1000);
     },
     clearSearch() {
       this.searchInput = '';
@@ -424,10 +427,12 @@ export default {
       this.regionMaxVotesSaving = String(area.id);
       try {
         const response = await this.saveRegionMaxVotes({
+          electionCycleId:1,
+          regionId: area.id,
           region_id: area.id,
           maxVotes
         });
-        if (!response?.status) {
+        if (!response?.succeeded) {
           throw new Error('Save max votes failed');
         }
         this.$set(area, 'maxVotes', maxVotes);
@@ -497,16 +502,37 @@ export default {
         roles: 'VOTER'
       };
     },
-    getRoleName(role) {
-      const roles = {
-        EXECUTIVE: 'کاربر اجرایی',
-        SUPERVISOR: 'کاربر نظارت',
-        VOTER: 'کاربر عادی',
-        CANDIDATE: 'کاندید',
-        ADMIN: 'کاربر ادمین'
-      };
-      return roles[role] || role || '---';
-    },
+   getRoleName(role) {
+
+  const roles = {
+    EXECUTIVE: 'کاربر اجرایی',
+    SUPERVISOR: 'کاربر نظارت',
+    VOTER: 'کاربر عادی',
+    CANDIDATE: 'کاندید',
+    ADMIN: 'کاربر ادمین'
+  };
+
+  if (!role) return '---';
+
+  // اگر آرایه باشد
+  if (Array.isArray(role)) {
+    return role
+      .map(r => roles[String(r).toUpperCase()] || r)
+      .join('، ');
+  }
+
+  // اگر رشته با کاما باشد
+  if (typeof role === 'string' && role.includes(',')) {
+    return role
+      .split(',')
+      .map(r => r.trim())
+      .map(r => roles[r.toUpperCase()] || r)
+      .join('، ');
+  }
+
+  // یک رول
+  return roles[String(role).toUpperCase()] || role;
+},
     togglePass(key) {
       const s = new Set(this.revealedPasswords);
       s.has(key) ? s.delete(key) : s.add(key);

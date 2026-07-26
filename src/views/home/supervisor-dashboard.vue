@@ -88,7 +88,7 @@
                   <b-table :items="filteredDocuments" :fields="candidateFields" striped hover class="text-right">
                     <template #cell(candidate)="data">
                       <div class="d-flex align-items-center">
-                        <img :src="data.item.user_photo ? `/${data.item.user_photo}` : '/default-avatar.png'"
+                        <img :src="data.item.user_photo ? `${apiUrlrtb}/${data.item.user_photo}` : '/default-avatar.png'"
                           class="candidate-avatar mr-2" alt="عکس کاندیدا" />
                         <div>
                           <div class="font-weight-bold">{{ data.item.first_name }} {{ data.item.last_name }} ({{
@@ -180,7 +180,7 @@
                   <!-- Preview Column -->
                   <template #cell(preview)="data">
                     <div class="ad-preview">
-                      <img v-if="data.item.image" :src="`/${data.item.image}`" class="ad-thumbnail"
+                      <img v-if="data.item.image" :src="`${apiUrlrtb}/${data.item.image}`" class="ad-thumbnail"
                         :alt="data.item.title" @click="viewAd(data.item)" />
                       <div v-else class="ad-thumbnail placeholder">
                         <b-icon icon="image"></b-icon>
@@ -314,8 +314,7 @@
                             <b-icon icon="search"></b-icon>
                           </b-input-group-text>
                         </template>
-                        <b-form-input v-model="objectionFilters.search" placeholder="جستجو در کد پیگیری یا نام..."
-                          @input="loadObjections"></b-form-input>
+                        <b-form-input v-model="objectionFilters.search" placeholder="جستجو در کد پیگیری یا نام..."></b-form-input>
                       </b-input-group>
                     </b-form-group>
                   </b-col>
@@ -323,9 +322,9 @@
               </b-card>
 
               <!-- لیست اعتراضات -->
-              <div v-if="objectionsList.length > 0">
+              <div v-if="filteredObjections.length > 0">
                 <div class="table-responsive">
-                  <b-table :items="objectionsList" :fields="objectionFields" striped hover class="text-right"
+                  <b-table :items="filteredObjections" :fields="objectionFields" striped hover class="text-right"
                     style="overflow: scroll;">
 
                     <!-- ستون اطلاعات اعتراض -->
@@ -389,7 +388,7 @@
               <div v-else class="text-center py-5">
                 <b-icon icon="inbox" font-scale="4" variant="secondary"></b-icon>
                 <h5 class="mt-3">هیچ اعتراضی یافت نشد</h5>
-                <p class="text-muted">هیچ اعتراضی با فیلترهای انتخاب شده وجود ندارد.</p>
+                <p class="text-muted">{{ objectionsList.length === 0 ? 'اعتراضی ثبت نشده است.' : 'هیچ اعتراضی با فیلترهای انتخاب شده وجود ندارد.' }}</p>
               </div>
             </div>
           </b-tab>
@@ -474,7 +473,7 @@
         <!-- اطلاعات پایه کاندیدا -->
         <div class="candidate-info-header">
           <div class="candidate-avatar-sm">
-            <img :src="`/${selectedCandidate.user_photo}`" v-if="selectedCandidate.user_photo" />
+            <img :src="`${apiUrlrtb}/${selectedCandidate.user_photo}`" v-if="selectedCandidate.user_photo" />
             <b-icon icon="person-circle" v-else font-scale="3"></b-icon>
           </div>
           <div class="candidate-info-text">
@@ -502,7 +501,7 @@
           <div class="docs-thumbnails">
             <div v-for="doc in getCandidateDocuments(selectedCandidate)" :key="doc.key" class="doc-thumb-item"
               @click="viewDocument(selectedCandidate, doc.key, doc.path, doc.label, selectedCandidate.create_datesh)">
-              <img v-if="isImageFile(doc.path)" :src="'/' + doc.path" class="thumb-img" />
+              <img v-if="isImageFile(doc.path)" :src="apiUrlrtb + '/' + doc.path" class="thumb-img" />
               <div v-else class="thumb-placeholder">
                 <b-icon icon="file-earmark"></b-icon>
               </div>
@@ -614,7 +613,7 @@
         <!-- Ad Content -->
         <div class="ad-content mb-4 text-center">
           <div v-if="selectedAd.image" class="ad-image mb-3">
-            <img :src="`/${selectedAd.image}`" style="width:200px;height:auto" class="img-fluid"
+            <img :src="`${apiUrlrtb}/${selectedAd.image}`" style="width:200px;height:auto" class="img-fluid"
               alt="تصویر تبلیغ" />
           </div>
           <h5>{{ selectedAd.title }}</h5>
@@ -1302,7 +1301,7 @@ export default {
               responseText: this.objectionReviewComment || 'اعتراض مورد قبول واقع شد'
             })
 
-            if (response?.status) {
+            if (response?.succeeded) {
               this.$bvToast.toast('اعتراض با موفقیت تایید شد', {
                 title: 'تایید موفق',
                 variant: 'success',
@@ -1332,7 +1331,7 @@ export default {
           responseText: this.objectionReviewComment 
         })
 
-        if (response?.status) {
+        if (response?.succeeded) {
           this.$bvToast.toast('اعتراض با موفقیت رد شد', {
             title: 'رد موفق',
             variant: 'warning',
@@ -1609,6 +1608,7 @@ export default {
         no_addiction: 'file-medical',
         certificate: 'patch-check',
         legal: 'shield-check',
+        transparency: 'file-earmark-lock',
         id_card: 'credit-card',
         experience: 'briefcase'
       };
@@ -1620,6 +1620,7 @@ export default {
         { key: 'education_doc', label: 'مدرک تحصیلی', path: candidate.education_doc, icon: 'degree' },
         { key: 'ravan_cert', label: 'گواهی سلامت جسمی و روانی', path: candidate.ravan_cert, icon: 'certificate' },
         { key: 'soPishine_cert', label: 'گواهی سوءپیشینه', path: candidate.soPishine_cert, icon: 'legal' },
+        { key: 'transparency_form', label: 'فرم تعهد شفافیت', path: candidate.transparency_form, icon: 'transparency' },
       ].filter(doc => doc.path);
     },
     normalizeReviewState(rawStatus) {
@@ -2104,10 +2105,10 @@ export default {
 
     // Statistics
     calculateStats() {
-      this.stats.totalCandidates = this.EXECUTIVEListInf?.length;
-      this.stats.pendingDocuments = this.EXECUTIVEListInf?.filter(c => c.requestStatus === 'SUBMITTED').length;
-      this.stats.approvedCandidates = this.EXECUTIVEListInf?.filter(c => c.requestStatus === 'SUPERVISION_APPROVED').length;
-      this.stats.rejectedCandidates = this.EXECUTIVEListInf?.filter(c => c.requestStatus === 'SUPERVISION_REJECTED').length;
+      this.stats.totalCandidates = this.EXECUTIVEListInfo?.length;
+      this.stats.pendingDocuments = this.EXECUTIVEListInfo?.filter(c => c.requestStatus === 'EXECUTIVE_APPROVED').length;
+      this.stats.approvedCandidates = this.EXECUTIVEListInfo?.filter(c => c.requestStatus === 'SUPERVISION_APPROVED').length;
+      this.stats.rejectedCandidates = this.EXECUTIVEListInfo?.filter(c => c.requestStatus === 'SUPERVISION_REJECTED').length;
 
       this.stats.pendingAds = this.advertisements.filter(a => a.status === 'SUBMITTED').length;
       this.stats.approvedAds = this.advertisements.filter(a => a.status === 'SUPERVISION_APPROVED').length;
@@ -2244,13 +2245,20 @@ export default {
         } catch (error) {
           console.error("Error loading ads:", error);
         }
+      } else if (val === 2) {
+        // تب آمار و گزارشات
+        this.calculateStats();
+        this.$nextTick(() => {
+          this.initializeCharts();
+        });
       } else if (val === 3) {
-        // تب اعتراضات (شاخص 2)
+        // تب اعتراضات
         this.loadObjections()
       }
     }, EXECUTIVEListInfo: {
       handler(val) {
         this.applyServerDocumentReviews(val);
+        this.calculateStats();
       },
       immediate: true
     },

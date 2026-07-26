@@ -105,7 +105,7 @@
             :class="{ selected: selectedCandidates?.includes(candidate.codeentekhabati) }"
             @click="toggleCandidate(candidate)">
             <div class="candidate-image">
-              <img :src="`${candidate.user_photo}`" :alt="candidate.first_name">
+              <img :src="`${apiUrlrtb}/${candidate.user_photo}`" :alt="candidate.first_name">
               <div v-if="selectedCandidates?.includes(candidate.codeentekhabati)" class="check-mark">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white">
                   <path d="M20 6L9 17L4 12" stroke-width="2" stroke-linecap="round"/>
@@ -174,7 +174,7 @@
                 <div v-for="cid in selectedCandidates" :key="cid" class="ballot-candidate-item">
                   <div class="ballot-candidate-number">{{ selectedCandidates.indexOf(cid) + 1 }}</div>
                   <div class="ballot-candidate-info">
-                    <img :src="`${findCandidate(cid).user_photo}`" :alt="findCandidate(cid).first_name">
+                    <img :src="`${apiUrlrtb}/${findCandidate(cid).user_photo}`" :alt="findCandidate(cid).first_name">
                     <div>
                       <div class="ballot-candidate-name">
                         {{ findCandidate(cid).gender == 1 ? 'آقای' : 'خانم' }} {{ findCandidate(cid).first_name }} {{ findCandidate(cid).last_name }}
@@ -338,12 +338,12 @@
 <script>
 import { isMobile } from "../../utils";
 import { mapGetters, mapActions } from "vuex";
-
+import { apiUrlrtb } from '../../constants/config';
 export default {
   name: "VotingPage",
   data() {
     return {
-      isMobile,
+      isMobile,apiUrlrtb,
       feedback: { rating: 0, comment: '' },
       submittingFeedback: false,
       voteStatus: '',

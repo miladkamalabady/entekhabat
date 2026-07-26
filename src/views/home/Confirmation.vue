@@ -4,10 +4,9 @@
     <b-container fluid class="upload-wrapper">
       <!-- Wizard -->
       <ul class="wizard mb-3">
-        <li class="done">1. بررسی شرایط احراز</li>
-        <li class="done">2. قبول شرایط</li>
-        <li class="done">3. بارگذاری مدارک</li>
-        <li class="active">4. تأیید ثبت‌نام</li>
+        <li class="done">1. اعلام داوطلبی و پذیرش شرایط</li>
+        <li class="done">2. بارگذاری مدارک</li>
+        <li class="active">3. تأیید ثبت‌نام</li>
       </ul>
       <b-progress height="6px" class="mb-4" :value="progress" max="100" variant="primary" />
 
@@ -19,7 +18,7 @@
         <div class="final-confirm mb-3">
           <!-- عکس پرسنلی -->
           <b-row class="align-items-center mb-2">
-            <b-col cols="4"><strong>عکس پرسنلی:</strong></b-col>
+            <b-col cols="8"><strong>عکس پرسنلی</strong></b-col>
             <b-col>
               <img v-if="files.photo?.preview" :src="files.photo.preview" class="thumbnail" />
               <span v-else-if="files.photo">{{ files.photo.name }}</span>
@@ -29,7 +28,7 @@
 
           <!-- مدرک تحصیلی -->
           <b-row class="align-items-center mb-2" >
-            <b-col cols="4"><strong>مدرک تحصیلی:</strong></b-col>
+            <b-col cols="8"><strong>مدرک تحصیلی</strong></b-col>
             <b-col>
               <img v-if="files.degree?.preview" :src="files.degree.preview" class="thumbnail" />
               <span v-else-if="files.degree">{{ files.degree.name }}</span>
@@ -39,7 +38,7 @@
 
           <!-- گواهی عدم اعتیاد -->
           <!-- <b-row class="align-items-center mb-2">
-            <b-col cols="4"><strong>گواهی عدم اعتیاد:</strong></b-col>
+            <b-col cols="8"><strong>گواهی عدم اعتیاد</strong></b-col>
             <b-col>
               <img v-if="files.noAddiction?.preview" :src="files.noAddiction.preview" class="thumbnail" />
               <span v-else-if="files.noAddiction">{{ files.noAddiction.name }}</span>
@@ -49,7 +48,7 @@
 
           <!-- گواهی سوء پشینیه -->
           <b-row class="align-items-center mb-2">
-            <b-col cols="4"><strong>گواهی عدم سوء پیشینه:</strong></b-col>
+            <b-col cols="8"><strong>گواهی عدم سوء پیشینه</strong></b-col>
             <b-col>
               <img v-if="files.soPishine?.preview" :src="files.soPishine.preview" class="thumbnail" />
               <span v-else-if="files.soPishine">{{ files.soPishine.name }}</span>
@@ -59,10 +58,20 @@
 
           <!-- گواهی روان -->
           <b-row class="align-items-center mb-2">
-            <b-col cols="4"><strong>برخورداری از سلامت جسمی و روانی کامل </strong></b-col>
+            <b-col cols="8"><strong>برخورداری از سلامت جسمی و روانی کامل </strong></b-col>
             <b-col>
               <img v-if="files.ravan?.preview" :src="files.ravan.preview" class="thumbnail" />
               <span v-else-if="files.ravan">{{ files.ravan.name }}</span>
+              <span v-else>بارگذاری نشده</span>
+            </b-col>
+          </b-row>
+
+          <!-- فرم تعهد شفافیت و عدم تعارض منافع -->
+          <b-row class="align-items-center mb-2">
+            <b-col cols="8"><strong>فرم تعهد ویژه التزام به شفافیت و عدم تعارض منافع</strong></b-col>
+            <b-col>
+              <img v-if="files.transparencyForm?.preview" :src="files.transparencyForm.preview" class="thumbnail" />
+              <span v-else-if="files.transparencyForm">{{ files.transparencyForm.name }}</span>
               <span v-else>بارگذاری نشده</span>
             </b-col>
           </b-row>
@@ -112,7 +121,8 @@ export default {
         degree: null,
         noAddiction: null,
         soPishine: null,
-        ravan: null
+        ravan: null,
+        transparencyForm: null
       },
       showSuccess: false,
       trackingCode: ""
@@ -121,7 +131,7 @@ export default {
   computed: {
     ...mapGetters(["confirmRegisterInfo", "candidateFiles", "currentUser"]),
     canConfirm() {
-      return this.files.photo &&  this.files.degree && this.files.soPishine && this.files.ravan;
+      return this.files.photo && this.files.degree && this.files.soPishine && this.files.ravan && this.files.transparencyForm;
     },
     progress() {
       return 100;

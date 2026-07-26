@@ -168,7 +168,7 @@
 
                 <template #cell(candidate)="data">
                   <div class="candidate-info">
-                    <img v-if="data.item.user_photo" :src="`/${data.item.user_photo}`"
+                    <img v-if="data.item.user_photo" :src="`${apiUrlrtb}/${data.item.user_photo}`"
                       class="candidate-photo" :alt="data.item.name" />
                     <div v-else class="candidate-photo placeholder">
                       <b-icon icon="person-circle"></b-icon>

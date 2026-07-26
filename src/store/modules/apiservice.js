@@ -27,7 +27,7 @@ commit.commit('setProcessing', true)
     retryDelay: 32000,
     timeout: 32000,
     headers: {
-      
+      tenant:'root'
     },
     paramsSerializer: (params) => {
       return qs.stringify(params, { arrayFormat: 'repeat' });
@@ -37,20 +37,15 @@ commit.commit('setProcessing', true)
 
    if (user?.token) config.headers.Authorization = `Bearer ${user.token}`;
 
-  if (data.name.includes('GetFileById') || data.name.includes('HrmImage')) {
+  if (data.name.includes('downloadObjectionFile')) {
+    config.responseType = 'blob';
 
-    config.responseType= 'arraybuffer'
-    // config.responseType= 'blob'
   }
   if (commit && commit.inline_insert) config.url = urlInlineInsertResolver(data.params, apiUrlrtb + url);
 
   config[config.method == "POST" || config.method == "PUT" ? "data" : "params"] = data.params;
 
 
-  if (config?.data?.captchaResponse) {
-    config.headers.captchaResponse = config?.data?.captchaResponse;
-    config.headers.CaptchaHash = config?.data?.CaptchaHash;
-  }
 
   if (config?.params?.captchaResponse) {
     config.headers.captchaResponse = config?.params?.captchaResponse;
@@ -89,15 +84,15 @@ commit.commit('setProcessing', true)
         return { status: 200, data: true };
       }
       else if (error.response?.status == 401) {
-        localStorage.removeItem('user');
-        localStorage.clear();
-        commit.commit('setLogout');
+        // localStorage.removeItem('user');
+        // localStorage.clear();
+        // commit.commit('setLogout');
 
         let err = "زمان ورود شما به پایان رسیده است، لطفا مجدد وارد شوید";
         commit.commit('setError', err)
-        setTimeout(() => {
-          location.replace("/");
-        }, 1500)
+        // setTimeout(() => {
+        //   location.replace("/");
+        // }, 1500)
 
       } else if (error.response?.status == 500) {
         

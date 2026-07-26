@@ -4,10 +4,9 @@
 
       <!-- Wizard -->
       <ul class="wizard mb-3">
-        <li class="active">1. بررسی شرایط احراز</li>
-        <li>2. قبول شرایط</li>
-        <li>3. بارگذاری مدارک</li>
-        <li>4. تأیید ثبت‌نام</li>
+        <li class="active">1. اعلام داوطلبی و پذیرش شرایط</li>
+        <li>2. بارگذاری مدارک</li>
+        <li>3. تأیید ثبت‌نام</li>
       </ul>
 
       <!-- Progress Bar -->
@@ -45,8 +44,28 @@
               </div>
             </li>
           </ul>
+
+          <!-- Legal Conditions (merged from step 2) -->
+          <div v-if="checksFinished && allChecksPassed">
+            <hr />
+            <h6 class="mb-3">شرایط داوطلبی</h6>
+            <div class="legal-conditions">
+              <b-form-checkbox
+                v-for="item in legalConditions"
+                :key="item.id"
+                v-model="item.checked"
+                class="mb-2 legal-condition-item"
+              >
+                {{ item.text }}
+              </b-form-checkbox>
+            </div>
+          </div>
+
           <!-- Action -->
-          <div class="text-center mt-4">
+          <div class="d-flex justify-content-between mt-4">
+            <b-button variant="outline-danger" @click="cancel">
+              انصراف
+            </b-button>
             <b-button variant="primary" :disabled="!canContinue" @click="nextStep">
               ادامه
             </b-button>
@@ -114,9 +133,15 @@ export default {
   },
   computed: {
     ...mapGetters(["sidebarVisible", "processing", "loginError", "currentUser", "userstatusInfo", "SystemScheduleInfo"]),
-    canContinue() {
-      if (!this.accepted || !this.checksFinished) return false
+    allChecksPassed() {
       return this.conditions.every(c => c.state === 'success')
+    },
+    allLegalConditionsConfirmed() {
+      return this.legalConditions.every(c => c.checked)
+    },
+    canContinue() {
+      if (!this.accepted || !this.checksFinished || !this.allChecksPassed) return false
+      return this.allLegalConditionsConfirmed
     }
   },
   data() {
@@ -158,12 +183,38 @@ export default {
           label: 'دارا بودن حداقل مدرک تحصیلی کارشناسی (لیسانس)',
           state: 'checking',
           reason: ''
+        }
+      ],
+      legalConditions: [
+        {
+          id: 1,
+          text: 'التزام به قانون اساسی و دارا بودن تابعیت جمهوری اسلامی ایران، امانت‌، وثاقت و حسن شهرت',
+          checked: false
         },
         {
-          key: 'notRegistered',
-          label: 'تکمیل و امضای فرم تعهد ویژه التزام به شفافیت و عدم تعارض منافع',
-          state: 'checking',
-          reason: ''
+          id: 2,
+          text: 'دارا بودن حداقل مدرک تحصیلی کارشناسی مورد تایید وزارت علوم، تحقیقات و فناوری',
+          checked: false
+        },
+        {
+          id: 3,
+          text: 'نداشتن اعتیاد به مواد مخدر یا روان‌گردان یا سابقه بیماری و نقض عضو مانع از انجام وظایف نمایندگی',
+          checked: false
+        },
+        {
+          id: 4,
+          text: 'نداشتن محکومیت قطعی در جرایم مندرج در آئین نامه و عدم محرومیت از حقوق اجتماعی',
+          checked: false
+        },
+        {
+          id: 5,
+          text: 'نداشتن حکم محجوریت و ورشکستگی',
+          checked: false
+        },
+        {
+          id: 6,
+          text: 'تعهد به تکمیل فرم شفافیت و عدم تعارض منافع در صورت انتخاب شدن',
+          checked: false
         }
       ]
     }
@@ -248,11 +299,6 @@ export default {
             ? { ok: true }
             : { ok: false, reason: 'منطقه خدمتی کاربر شناسایی نشد' }
 
-        case 'notRegistered':
-          return !this.userstatusInfo.alreadyRegistered
-            ? { ok: true }
-            : { ok: false, reason: 'قبلاً برای این انتخابات ثبت‌نام انجام شده است' }
-
         default:
           return { ok: false, reason: 'خطای سیستمی' }
       }
@@ -262,9 +308,15 @@ export default {
       return new Promise(resolve => setTimeout(resolve, ms))
     },
 
+    cancel() {
+      if (confirm("آیا از ادامه فرآیند ثبت‌نام انصراف می‌دهید؟")) {
+        this.$router.push("/home");
+      }
+    },
+
     nextStep() {
-      this.setRequestStatus("CANDIDATE")
-      this.$router.push('/candidate/AcceptConditions')
+      this.setRequestStatus("CONDITIONS_ACCEPTED")
+      this.$router.push('/candidate/UploadDocuments')
     }
   }
 }
@@ -300,6 +352,17 @@ export default {
   border-color: #3f51b5;
   color: #3f51b5;
   font-weight: 600;
+}
+
+/* Legal conditions (merged from step 2) */
+.legal-conditions {
+  padding-right: 4px;
+}
+
+.legal-condition-item {
+  background: #f9fafc;
+  padding: 10px 12px;
+  border-radius: 6px;
 }
 
 /* Conditions */

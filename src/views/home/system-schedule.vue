@@ -166,7 +166,7 @@ export default {
       }
 
       const response = await this.saveSystemSchedule(payload)
-      if (response?.status) {
+      if (response?.succeeded) {
         this.$notify('success', 'ثبت موفق', 'زمان‌بندی رویدادها ذخیره شد.', {
           duration: 3000,
           permanent: false

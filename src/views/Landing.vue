@@ -181,7 +181,7 @@
 
 <script>
 import { apiUrlrtb } from "@/constants/config";
-
+import { mapGetters, mapMutations, mapActions } from "vuex";
 export default {
   name: "LandingPage",
   data() {
@@ -199,6 +199,7 @@ export default {
     },
   },
   methods: {
+     ...mapActions(["getAnnouncements"]),
     handleLogin() {
       if (this.currentUser) {
         this.$router.push({ name: "home" });
@@ -217,7 +218,7 @@ export default {
     async loadAnnouncements() {
       this.loadingAnn = true;
       try {
-        const res = await fetch(apiUrlrtb + "/getPublicAnnouncements");
+        const res = await this.getAnnouncements();
         const json = await res.json();
         this.announcements = json?.data || [];
       } catch {
