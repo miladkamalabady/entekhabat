@@ -1,4 +1,3 @@
-
 import apiservice from '../../store/modules/apiservice'
 import { isAuthGuardActive } from '../../constants/config'
 import { getCurrentUser } from '../../utils'
@@ -283,6 +282,17 @@ export default {
         commit('clearError');
       }
       return response.data;
+    }, async assignUserRoles({ commit }, payload) {
+      const { id, userRoles } = payload || {};
+     
+      const response = await apiservice(
+        { name: "assignUserRoles", params: { id, userRoles } },
+        { commit, inline_insert: true }
+      );
+      if (response?.succeeded || response === true) {
+        commit('clearError');
+      }
+      return response;
     }, async increaseViewAdd({ commit }, payload) {
       const response = await apiservice({ name: "increaseViewAdd", params: payload }, { commit });
       if (response.succeeded) {

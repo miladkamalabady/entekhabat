@@ -280,17 +280,17 @@ export default {
     evaluate(key) {
       switch (key) {
         case 'membership':
-          return this.userstatusInfo.membershipActive
+          return this.userstatusInfo.hasValidMembership
             ? { ok: true }
             : { ok: false, reason: 'عضویت فعال در صندوق احراز نشد' }
 
         case 'duration':
-          return this.userstatusInfo.membershipYears
+          return this.userstatusInfo.hasRequiredExperience
             ? { ok: true }
             : { ok: false, reason: 'سابقه عضویت کمتر از یک سال است' }
 
         case 'degree':
-          return this.userstatusInfo.degree
+          return this.userstatusInfo.hasVerifiedDegree
             ? { ok: true }
             : { ok: false, reason: 'مدرک تحصیلی کمتر از کارشناسی است' }
 

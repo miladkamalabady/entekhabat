@@ -95,11 +95,24 @@
         <button type="button" class="btn btn-light" @click="cancelEdit">بستن</button>
       </div>
 
+      <div v-if="assignedRoles.length" class="assigned-roles-block">
+        <label>نقش‌های فعلی کاربر</label>
+        <ul class="assigned-roles-list">
+          <li v-for="role in assignedRoles" :key="role.id">
+            <span>{{ role.name }}</span>
+            <button type="button" class="btn btn-sm btn-outline-danger" :disabled="revokingRoleId === role.id"
+              @click="revokeRole(role)">
+              {{ revokingRoleId === role.id ? 'در حال حذف...' : 'لغو دسترسی' }}
+            </button>
+          </li>
+        </ul>
+      </div>
+
       <form class="edit-form" @submit.prevent="saveUser">
         <div class="form-group">
           <label>نقش کاربر</label>
-          <select v-model="formData.roles" required>
-            <option v-for="role in roleOptions" :key="role.id" :value="role.name">
+          <select v-model="formData.roleId" required>
+            <option v-for="role in roleOptions" :key="role.id" :value="role.id">
               {{ role.name }}
             </option>
           </select>
@@ -245,6 +258,8 @@ export default {
       saving: false,
       searchLoading: false,
       editMode: false,
+      assignedRoles: [],
+      revokingRoleId: '',
       selectedProvinceCode: '',
       maxVotesProvinceCode: '',
       regionMaxVotesSaving: '',
@@ -262,10 +277,12 @@ export default {
         provinceCode: ''
       },
       formData: {
+        id: '',
         national_id: '',
         personnel_code: '',
         region_id: '',
-        roles: 'VOTER'
+        roles: 'VOTER',
+        roleId: ''
       },
       roleOptions: [
       ]
@@ -333,7 +350,7 @@ export default {
   },
   methods: {
     ...mapMutations(["setsidebarVisible"]),
-    ...mapActions(["getUsers", "updateUser", "getRegions","saveRegionMaxVotes","Getroles"]),
+    ...mapActions(["getUsers", "updateUser", "getRegions","saveRegionMaxVotes","Getroles","assignUserRoles"]),
     async loadInitialData() {
       this.loading = true;
       try {
@@ -445,15 +462,62 @@ export default {
       }
     },
     editUser(user) {
+      const currentRoleName = Array.isArray(user.roles) ? user.roles[0] : user.roles;
+      const matchedRole = this.roleOptions.find(
+        role => String(role.name).toUpperCase() === String(currentRoleName || '').toUpperCase()
+      );
       this.formData = {
+        id: user.id,
         national_id: user.national_id,
         personnel_code: user.personnel_code,
         region_id: user.region_id ? String(user.region_id) : '',
-        roles: user.roles || 'VOTER'
+        roles: user.roles || 'VOTER',
+        roleId: matchedRole ? matchedRole.id : ''
       };
+      this.assignedRoles = this.getAssignedRoles(user.roles);
       this.selectedProvinceCode = user.provinceCode ? String(user.provinceCode) : this.findProvinceCodeByRegion(user.region_id);
       this.editMode = true;
       this.$nextTick(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    },
+    getAssignedRoles(rolesValue) {
+      let roleNames = [];
+      if (Array.isArray(rolesValue)) {
+        roleNames = rolesValue.map(r => String(r));
+      } else if (typeof rolesValue === 'string') {
+        roleNames = rolesValue.split(',').map(r => r.trim()).filter(Boolean);
+      }
+      return roleNames
+        .map(name => this.roleOptions.find(role => String(role.name).toUpperCase() === name.toUpperCase()))
+        .filter(Boolean);
+    },
+    async revokeRole(role) {
+      if (!this.formData.id || !role?.id) return;
+      this.revokingRoleId = role.id;
+      try {
+        const response = await this.assignUserRoles({
+          id: this.formData.id,
+          userRoles: [
+            {
+              roleId: role.id,
+              roleName: role.name,
+              description: role.description || '',
+              enabled: false
+            }
+          ]
+        });
+        if (response === false || response?.succeeded === false) {
+          throw new Error('Revoke failed');
+        }
+        this.assignedRoles = this.assignedRoles.filter(r => r.id !== role.id);
+        if (this.formData.roleId === role.id) {
+          this.formData.roleId = '';
+        }
+        this.showToast('دسترسی نقش لغو شد.', 'success');
+      } catch (error) {
+        this.showToast('لغو دسترسی نقش انجام نشد. دوباره تلاش کنید.', 'danger');
+      } finally {
+        this.revokingRoleId = '';
+      }
     },
     onProvinceChange() {
       const areas = this.selectedProvinceAreas;
@@ -465,7 +529,7 @@ export default {
       return province ? String(province.id) : '';
     },
     async saveUser() {
-      if (!this.formData.national_id || !this.formData.region_id || !this.formData.roles) {
+      if (!this.formData.national_id || !this.formData.region_id || !this.formData.roleId) {
         this.showToast('لطفاً نقش و منطقه کاربر را کامل انتخاب کنید.', 'warning');
         return;
       }
@@ -474,15 +538,33 @@ export default {
         return;
       }
 
+      const selectedRole = this.roleOptions.find(role => role.id === this.formData.roleId);
+      if (!selectedRole) {
+        this.showToast('نقش انتخاب‌شده معتبر نیست.', 'warning');
+        return;
+      }
+
       this.saving = true;
       try {
-        const response = await this.updateUser({
-          national_id: this.formData.national_id,
-          region_id: this.formData.region_id,
-          roles: this.formData.roles
-        });
+        const [updateResponse, rolesResponse] = await Promise.all([
+          this.updateUser({
+            national_id: this.formData.national_id,
+            region_id: this.formData.region_id
+          }),
+          this.assignUserRoles({
+            id: this.formData.id,
+            userRoles: [
+              {
+                roleId: selectedRole.id,
+                roleName: selectedRole.name,
+                description: selectedRole.description || '',
+                enabled: true
+              }
+            ]
+          })
+        ]);
 
-        if (response === false) {
+        if (updateResponse === false || rolesResponse === false || rolesResponse?.succeeded === false) {
           throw new Error('Update failed');
         }
         this.cancelEdit();
@@ -495,11 +577,15 @@ export default {
     cancelEdit() {
       this.editMode = false;
       this.selectedProvinceCode = '';
+      this.assignedRoles = [];
+      this.revokingRoleId = '';
       this.formData = {
+        id: '',
         national_id: '',
         personnel_code: '',
         region_id: '',
-        roles: 'VOTER'
+        roles: 'VOTER',
+        roleId: ''
       };
     },
    getRoleName(role) {
@@ -603,6 +689,51 @@ export default {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
+}
+
+.assigned-roles-block {
+  margin-bottom: 16px;
+}
+
+.assigned-roles-block label {
+  display: block;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 8px;
+}
+
+.assigned-roles-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.assigned-roles-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8f9fb;
+  border: 1px solid #eef1f5;
+  border-radius: 999px;
+  padding: 6px 8px 6px 14px;
+}
+
+.btn-outline-danger {
+  background: #fff;
+  border: 1px solid #f1b0b7;
+  color: #dc3545;
+}
+
+.btn-outline-danger:hover:not(:disabled) {
+  background: #fbeaec;
+}
+
+.btn-outline-danger:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 .region-votes-controls {
   display: grid;

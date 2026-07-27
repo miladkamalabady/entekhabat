@@ -38,7 +38,10 @@ const global = {
     },getUsers: {
         url: "/api/v1/election/users/search",
         method: 'POST'
-    }, updateUser: {
+    },assignUserRoles: { 
+        url: '/api/v2/Identity/{{id}}/roles',
+         method: 'POST' 
+    },updateUser: {
         url: "/api/v1/election/users/assignment",
         method: 'PUT'
     },increaseViewAdd: {

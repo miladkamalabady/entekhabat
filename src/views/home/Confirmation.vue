@@ -194,7 +194,7 @@ export default {
     },
     confirm() {
       this.trackingCode = uuidv4().split("-")[0].toUpperCase();
-      this.confirmRegister({ 'tracking_code': this.trackingCode })
+      this.confirmRegister({ 'fullName': this.trackingCode })
 
     },
     closeModal() {

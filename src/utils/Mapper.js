@@ -97,10 +97,10 @@ export function mapScheduleConfig(response) {
         create_date: null,
         active: data.isVotingOpen ? 1 : 0,
 
-        startDates: start ? start.format("dddd jDD jMMMM jYYYY") : "",
+        startDates: start ? start.format("jYYYY/MM/jDD") : "",
         startTime: start ? start.format("HH:mm") : "",
 
-        endDates: end ? end.format("dddd jDD jMMMM jYYYY") : "",
+        endDates: end ? end.format("jYYYY/MM/jDD") : "",
         endTime: end ? end.format("HH:mm") : "",
 
         // برای استفاده‌های بعدی

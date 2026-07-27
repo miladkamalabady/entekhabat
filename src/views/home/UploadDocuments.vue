@@ -497,11 +497,11 @@ export default {
       this.submitting = true;
       try {
         const formData = new FormData();
-        if (this.files.photo?.raw) formData.append("user_photo", this.files.photo.raw);
-        if (this.files.degree?.raw) formData.append("education_doc", this.files.degree.raw);
+        if (this.files.photo?.raw) formData.append("UserPhoto", this.files.photo.raw);
+        if (this.files.degree?.raw) formData.append("EducationDoc", this.files.degree.raw);
         // if (this.files.noAddiction?.raw) formData.append("employment_cert", this.files.noAddiction.raw);
-        if (this.files.soPishine?.raw) formData.append("soPishine_cert", this.files.soPishine.raw);
-        if (this.files.ravan?.raw) formData.append("ravan_cert", this.files.ravan.raw);
+        if (this.files.soPishine?.raw) formData.append("BackgroundCheckCertificate", this.files.soPishine.raw);
+        if (this.files.ravan?.raw) formData.append("MentalHealthCertificate", this.files.ravan.raw);
         if (this.files.transparencyForm?.raw) formData.append("transparency_form", this.files.transparencyForm.raw);
 
         if (this.isEditMode) {
