@@ -71,13 +71,11 @@ commit.commit('setProcessing', true)
       }
     })
     .catch(error => {
-        
-      if(error.message==('Network Error') && location.href!='https://election.teacherassisant.ir/' && location.href!='http://localhost:2000/unauthorized'){
+      if(error.message==('Network Error') && location.href!='https://e.sfz.ir/' && location.href!='http://localhost:2000/unauthorized'){
         let err = "خطای ارتباط با سرور!";
         commit.commit('setError', err)
-        
-        // if (location.href == 'https://election.teacherassisant.ir/')
-        // location.replace("/unauthorized");
+      }else if (error.response?.status == 403) {
+        retr= error.response.data;
       }
       else if (!error.response?.status) {
         commit.commit('clearError')
@@ -114,7 +112,9 @@ commit.commit('setProcessing', true)
       setTimeout(() => {
         commit.commit('clearError')
       }, 3000)
-      retr = false
+      
+      
+      // retr = false
 
     });
   return retr

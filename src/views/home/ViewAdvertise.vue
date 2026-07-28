@@ -107,8 +107,8 @@
               :text="ad.description" @click.native="viewAdDetails(ad)">
               <template #img>
                 <div class="carousel-image-wrapper" @click="viewAdDetails(ad)">
-                  <img class="d-block img-fluid w-100 carousel-image" :src="`${apiUrlrtb}/${ad.image}` || '/placeholder-banner.jpg'"
-                    :alt="ad.title" />
+                  <img class="d-block img-fluid w-100 carousel-image"
+                    :src="`${apiUrlrtb}/${ad.image}` || '/placeholder-banner.jpg'" :alt="ad.title" />
                   <div class="carousel-caption-overlay">
                     <h5>{{ ad.title }}</h5>
                     <p>{{ ad.description }}</p>
@@ -643,11 +643,14 @@ export default {
     async loadAds() {
       try {
         this.allAds = await this.getAdvertisements()
-        this.allAds = this.allAds?.filter(x => !x.deleter)
-        this.routeFilteredAds = this.applyRouteCodeFilter(this.allAds);
-        this.filteredAds = [...this.routeFilteredAds];
 
-        this.filterAds();
+        if (!this.allAds?.exception){
+          this.allAds = this.allAds?.filter(x => !x.deleter)
+          this.routeFilteredAds = this.applyRouteCodeFilter(this.allAds);
+          this.filteredAds = [...this.routeFilteredAds];
+
+          this.filterAds();
+        }
       } catch (error) {
         console.error("Error loading ads:", error);
       }
