@@ -264,10 +264,12 @@ export default {
       return response
     }, async getAdvertisements({ commit }, payload) {
       const response = await apiservice({ name: "getAdvertisements", params: payload }, { commit });
-      if (response.succeeded) {
+      
+      if (response?.succeeded) {
         commit('clearError');
+        return response.data;
       }
-      return response.data;
+      else return response;
     }, async getUsers({ commit }, payload) {
           const request = mapSearchUsersRequest(payload);
       const response = await apiservice({ name: "getUsers", params: request }, { commit });

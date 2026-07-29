@@ -33,7 +33,7 @@ const global = {
         url: "/api/v1/election/advertisements/save",
         method: 'POST'
     }, getAdvertisements: {
-        url: "/api/v1/election/advertisements",
+        url: "/api/v1/election/advertisements/public",
         method: 'GET'
     },getUsers: {
         url: "/api/v1/election/users/search",
