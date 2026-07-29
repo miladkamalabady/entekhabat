@@ -636,8 +636,8 @@ ${na}
       const isNumber = (value) => Number.isFinite(value);
       if (!voteData) {
         this.$router.push('/home');
-      } else if (isNumber(voteData)) {
-        this.maxVotes = voteData;
+      } else if (isNumber(voteData.maxVotes)) {
+        this.maxVotes = voteData.maxVotes;
         this.voteStatus = 'not_voted';
         const session = await this.createVoteToken();
         this.voteSessionToken = session.vote_token;
@@ -645,10 +645,10 @@ ${na}
       } else if (voteData) {
         this.voteStatus = 'voted';
         this.currentStep = 3;
-        this.voteTrackingCode = voteData[0]?.tracking_code;
-        this.voteDate = voteData[0]?.date1;
-        this.voteTime = voteData[0]?.Time1;
-        this.selectedCandidate = voteData;
+        this.voteTrackingCode = voteData.votes[0]?.tracking_code;
+        this.voteDate = voteData.votes[0]?.date1;
+        this.voteTime = voteData.votes[0]?.Time1;
+        this.selectedCandidate = voteData.votes[0];
       }
     },
 
