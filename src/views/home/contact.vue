@@ -291,7 +291,6 @@
                   <small class="text-muted">در حال آماده‌سازی فایل‌ها...</small>
                 </div>
 
-                <!-- Uploaded Files Preview -->
                 <div v-if="newTicket.attachments && newTicket.attachments.length > 0" class="mt-3">
                   <div class="file-preview" v-for="(file, index) in newTicket.attachments" :key="index">
                     <div class="file-info">
@@ -371,17 +370,14 @@
             <div class="social-links">
               <h6 class="mb-3">شبکه‌های اجتماعی</h6>
               <div class="social-icons">
-                <b-button variant="outline-primary" class="social-btn" @click="openSocial('telegram')">
-                  <b-icon icon="telegram"></b-icon>
+                <b-button variant="outline-primary" class="" @click="openSocial('bale')">
+                  <img class="agent-avatar" src="/assets/img/shareimg/bale.png" />
                 </b-button>
-                <b-button variant="outline-info" class="social-btn" @click="openSocial('instagram')">
-                  <b-icon icon="instagram"></b-icon>
+                <b-button variant="outline-info" class="" @click="openSocial('eata')">
+                  <img class="agent-avatar" src="/assets/img/shareimg/eata.png " />
                 </b-button>
-                <b-button variant="outline-secondary" class="social-btn" @click="openSocial('twitter')">
-                  <b-icon icon="twitter"></b-icon>
-                </b-button>
-                <b-button variant="outline-success" class="social-btn" @click="openSocial('whatsapp')">
-                  <b-icon icon="whatsapp"></b-icon>
+                <b-button variant="outline-secondary" class="" @click="openSocial('shad')">
+                  <img class="agent-avatar" src="/assets/img/shareimg/shad.png" />
                 </b-button>
               </div>
             </div>
@@ -1159,33 +1155,65 @@ export default {
       this.newTicket.attachments.splice(index, 1);
     },
 
+    // Convert a single File to base64 (without the data: prefix)
+    readFileAsBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result || '';
+          const base64 = String(result).split(',')[1] || '';
+          resolve(base64);
+        };
+        reader.onerror = () => reject(new Error(`خطا در خواندن فایل ${file.name}`));
+        reader.readAsDataURL(file);
+      });
+    },
+
+    // Build a JSON string of all attachments (name, type, size, base64 content) to send to the server
+    async buildAttachmentsJson(files) {
+      if (!files || files.length === 0) return null;
+
+      const list = Array.isArray(files) ? files : [files];
+
+      const attachments = await Promise.all(
+        list.map(async (file) => ({
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          data: await this.readFileAsBase64(file)
+        }))
+      );
+
+      return JSON.stringify(attachments);
+    },
+
     // Priority Methods
     getPriorityIcon(priority) {
       const icons = {
-        low: 'arrow-down',
-        medium: 'dash',
-        high: 'arrow-up',
-        urgent: 'exclamation-triangle'
+        4: 'arrow-down',
+        3: 'dash',
+        2: 'arrow-up',
+        1: 'exclamation-triangle'
       };
       return icons[priority] || 'dash';
     },
 
     getPriorityDescription(priority) {
       const descriptions = {
-        low: 'پاسخ‌دهی در ۴۸ ساعت',
-        medium: 'پاسخ‌دهی در ۲۴ ساعت',
-        high: 'پاسخ‌دهی در ۱۲ ساعت',
-        urgent: 'پاسخ‌دهی در ۲ ساعت'
+        4: 'پاسخ‌دهی در ۴۸ ساعت',
+        3: 'پاسخ‌دهی در ۲۴ ساعت',
+        2: 'پاسخ‌دهی در ۱۲ ساعت',
+        1: 'پاسخ‌دهی در ۲ ساعت'
       };
       return descriptions[priority] || '';
     },
 
     getPriorityText(priority) {
       const texts = {
-        low: 'کم',
-        medium: 'متوسط',
-        high: 'بالا',
-        urgent: 'فوری'
+        4: 'کم',
+        3: 'متوسط',
+        2: 'بالا',
+        1: 'فوری'
       };
       return texts[priority] || priority;
     },
@@ -1487,10 +1515,9 @@ export default {
     // Contact Methods
     openSocial(platform) {
       const urls = {
-        telegram: 'https://t.me/farhangian_support',
-        instagram: 'https://instagram.com/farhangian_election',
-        twitter: 'https://twitter.com/farhangian_vote',
-        whatsapp: 'https://wa.me/989123456789'
+        shad: 'https://shad.ir/szf_iran',
+        bale: 'https://ble.ir/szf_iran',
+        eata: 'https://eitaa.com/szf_iran',
       };
 
       if (urls[platform]) {

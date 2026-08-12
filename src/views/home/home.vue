@@ -27,7 +27,7 @@
 
                   <!-- ========== کارت وضعیت: در حال بررسی ========== -->
                   <div
-                    v-if="currentUser?.roles.includes('CANDIDATE') && (requestStatus === 'SUBMITTED' || requestStatus === 'EXECUTIVE_APPROVED')"
+                    v-if="currentUser?.roles.includes('CANDIDATE')"
                     class="status-card status-pending mb-4">
                     <div class="status-card-icon">
                       <div class="icon-circle-pending">

@@ -208,7 +208,8 @@ export default {
           if (response.succeeded) {
             commit('setUploadUserDocumentsInfo', response.data)
             commit('clearError')
-          }
+          }else 
+            commit.commit('setError', response)
         })
     }, async UpdateUserDocuments({ commit }, payload) {
       await apiservice({ name: "UpdateUserDocuments", params: payload }, { commit })
@@ -413,10 +414,11 @@ async getFinalResultsApprovalStatus({ commit }) {
         commit('clearError');
       return response;
     }, async getLogs({ commit }, payload) {
-      const response = await apiservice({ name: "getLogs", params: payload || {} }, { commit });
-      if (response?.status)
-        commit('clearError');
-      return response?.data || [];
+      // const response = await apiservice({ name: "getLogs", params: payload || {} }, { commit });
+      // if (response?.status)
+      //   commit('clearError');
+      // return response?.data || [];
+      return []
     }, async getAnnouncements({ commit }) {
       const response = await apiservice({ name: "getAnnouncements" }, { commit });
       if (response.succeeded) {
@@ -437,10 +439,11 @@ async getFinalResultsApprovalStatus({ commit }) {
       if (response?.status) commit('clearError');
       return response;
     }, async getRecentLogs({ commit }, payload) {
-      const response = await apiservice({ name: "getRecentLogs", params: payload || {} }, { commit });
-      if (response?.status)
-        commit('clearError');
-      return response?.data || [];
+      // const response = await apiservice({ name: "getRecentLogs", params: payload || {} }, { commit });
+      // if (response?.status)
+      //   commit('clearError');
+      // return response?.data || [];
+      return [];
     }, async searchUserVotes({ commit }, payload) {
       const response = await apiservice({ name: "searchUserVotes", params: payload || {} }, { commit });
       if (response?.status)

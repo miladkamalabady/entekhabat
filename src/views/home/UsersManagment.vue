@@ -195,7 +195,7 @@
               <td>{{ user.yearsOfService || '---' }}</td>
               <td><span class="role-badge">{{ getRoleName(user.roles) }}</span></td>
               <td v-if="currentUserRole === 'ADMIN'">
-                <div v-if="user.executivePass" class="pass-cell">
+                <div v-if="user.executivePass!==true" class="pass-cell">
                   <span v-if="revealedPasswords.has(user.id + '_exec')" class="box-credential">{{ user.executivePass }}</span>
                   <span v-else class="box-credential masked">●●●●●●●</span>
                   <button class="btn-reveal" @click="togglePass(user.id + '_exec')">
@@ -205,7 +205,7 @@
                 <span v-else class="text-muted">---</span>
               </td>
               <td v-if="currentUserRole === 'ADMIN'">
-                <div v-if="user.supervisorPass" class="pass-cell">
+                <div v-if="user.supervisorPass!==true" class="pass-cell">
                   <span v-if="revealedPasswords.has(user.id + '_sup')" class="box-credential box-password">{{ user.supervisorPass }}</span>
                   <span v-else class="box-credential box-password masked">●●●●●●●</span>
                   <button class="btn-reveal" @click="togglePass(user.id + '_sup')">

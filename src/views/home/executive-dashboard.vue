@@ -86,13 +86,13 @@
                 <div class="table-responsive">
                   <b-table :items="filteredDocuments" :fields="candidateFields" striped hover class="text-right">
                     <template #cell(candidate)="data">
-                      <div class="d-flex align-items-center">
-                        <img :src="data.item.user_photo ? `${apiUrlrtb}/${data.item.user_photo}` : '/default-avatar.png'"
+                      <div class="d-flex align-items-center">{{ data }}
+                        <img :src="data.item.userPhotoFileRef ? `${apiUrlrtb}/${data.item.userPhotoFileRef}` : '/default-avatar.png'"
                           class="candidate-avatar mr-2" alt="عکس کاندیدا" />
                         <div>
-                          <div class="font-weight-bold">{{ data.item.first_name }} {{ data.item.last_name }} ({{
-                            data.item.codeentekhabati }})</div>
-                          <small class="text-muted">{{ data.item.org_position_desc || '-' }}</small>
+                          <div class="font-weight-bold">{{ data.item.firstName }} {{ data.item.lastName }} ({{
+                            data.item.candidateId }})</div>
+                          <small class="text-muted">{{ data.item.organizationPositionDescription || '-' }}</small>
 
                         </div>
                       </div>
@@ -134,7 +134,7 @@
                         <b-button variant="outline-info" @click="viewCandidateDetails(data.item)" title="جزئیات کامل">
                           <b-icon icon="info-circle"></b-icon>
                         </b-button>
-                        <b-button v-if="data.item.requestStatus === 'SUBMITTED'" variant="outline-success"
+                        <b-button v-if="data.item.requestStatus === 'PENDING'" variant="outline-success"
                           @click="approveCandidate(data.item)" title="انتقال به کارتابل نظارت">
                           <b-icon icon="arrow-left-right"></b-icon>
                         </b-button>
@@ -359,7 +359,7 @@
 
     <!-- Candidate Details Modal -->
     <b-modal v-model="showCandidateModal"
-      :title="`جزئیات کاندیدا - ${selectedCandidate?.first_name} ${selectedCandidate?.last_name}`" size="lg" hide-footer
+      :title="`جزئیات کاندیدا - ${selectedCandidate?.firstName} ${selectedCandidate?.lastName}`" size="lg" hide-footer
       centered scrollable>
       <div v-if="selectedCandidate" class="candidate-details">
         <!-- Basic Info -->
@@ -370,19 +370,19 @@
                 class="candidate-photo" alt="عکس کاندیدا" />
             </b-col> -->
             <b-col md="12">
-              <h4>{{ selectedCandidate.first_name }} {{ selectedCandidate.last_name }}</h4>
+              <h4>{{ selectedCandidate.firstName }} {{ selectedCandidate.lastName }}</h4>
               <p class="text-muted">{{ getCandidateValue(selectedCandidate, ['constituency', 'electoral_district',
                 'hoze'])
               }}</p>
               <div class="candidate-meta">
                 <div class="meta-item">
                   <strong>نام و نام خانوادگی داوطلب:</strong>
-                  {{ selectedCandidate.first_name }} {{ selectedCandidate.last_name }}
+                  {{ selectedCandidate.firstName }} {{ selectedCandidate.lastName }}
                 </div>
                 <div class="meta-item">
                   <strong>حوزه انتخابیه:</strong>
-                  {{ getCandidateValue(selectedCandidate, ['regname']) }} ({{ getCandidateValue(selectedCandidate,
-                    ['region_id']) }} )
+                  {{ getCandidateValue(selectedCandidate, ['regionName']) }} ({{ getCandidateValue(selectedCandidate,
+                    ['regionId']) }} )
                 </div>
                 <div class="meta-item">
                   <strong>وضعیت اشتغال:</strong>
@@ -390,7 +390,7 @@
                 </div>
                 <div class="meta-item">
                   <strong>پست:</strong>
-                  {{ getCandidateValue(selectedCandidate, ['org_position_desc', 'position', 'post']) }}
+                  {{ getCandidateValue(selectedCandidate, ['organizationPositionDescription', 'position', 'post']) }}
                 </div>
                 <div class="meta-item">
                   <strong>سنوات:</strong>
@@ -398,7 +398,7 @@
                 </div>
                 <div class="meta-item">
                   <strong>سال تولد:</strong>
-                  {{ getCandidateValue(selectedCandidate, ['birth_year', 'persian_birth_date', 'birthDateYear']) }}
+                  {{ getCandidateValue(selectedCandidate, ['persianBirthDate', 'persian_birth_date', 'birthDateYear']) }}
                 </div>
                 <div class="meta-item">
                   <strong>مدرک تحصیلی:</strong>
@@ -432,10 +432,10 @@
         </div>
 
         <!-- View-only Note -->
-        <div v-if="selectedCandidate.requestStatus === 'SUBMITTED' || selectedCandidate.requestStatus === 'EXECUTIVE_REJECTED'" class="final-decision">
+        <div v-if="selectedCandidate.requestStatus === 'PENDING' || selectedCandidate.requestStatus === 'EXECUTIVE_REJECTED'" class="final-decision">
           <b-alert variant="warning" show>
             <h6 class="alert-heading">بررسی مدارک</h6>
-            <p v-if="selectedCandidate.requestStatus === 'SUBMITTED'" class="mb-2">بعد از بررسی مدارک، در صورت تایید کاندید را به کارتابل نظارت منتقل کنید.
+            <p v-if="selectedCandidate.requestStatus === 'PENDING'" class="mb-2">بعد از بررسی مدارک، در صورت تایید کاندید را به کارتابل نظارت منتقل کنید.
             </p>
             <p v-else class="mb-2">شما قبلا مدارک این کاندید را رد کرده اید!</p>
 
@@ -451,7 +451,7 @@
               </b-button>
               <b-button  variant="danger" @click="rejectCandidate(selectedCandidate)" :disabled="!finalComment">
                 <b-icon icon="x-circle" class="ml-1"></b-icon>
-              {{ selectedCandidate.requestStatus === 'SUBMITTED' ? 'رد مدارک' :'تصحیح پیام و رد مدارک'}}
+              {{ selectedCandidate.requestStatus === 'PENDING' ? 'رد مدارک' :'تصحیح پیام و رد مدارک'}}
               </b-button>
             </div>
           </b-alert>
@@ -640,7 +640,7 @@ export default {
       // Options
       docStatusOptions: [
         { value: 'all', text: 'همه وضعیت‌ها' },
-        { value: 'SUBMITTED', text: 'در انتظار' },
+        { value: 'PENDING', text: 'در انتظار' },
         { value: 'EXECUTIVE_APPROVED', text: 'تایید شده اجرایی' },
         { value: 'EXECUTIVE_REJECTED', text: 'رد شده اجرایی' }
       ],genderStatusOptions: [
@@ -659,7 +659,7 @@ export default {
       ],
       adStatusOptions: [
         { value: 'all', text: 'همه وضعیت‌ها' },
-        { value: 'SUBMITTED', text: 'در انتظار' },
+        { value: 'PENDING', text: 'در انتظار' },
         { value: 'EXECUTIVE_APPROVED', text: 'تایید شده اجرایی' },
         { value: 'EXECUTIVE_REJECTED', text: 'رد شده اجرایی' },
         { value: 'active', text: 'فعال' },
@@ -677,7 +677,7 @@ export default {
       candidateFields: [
         { key: 'candidate', label: 'کاندیدا', sortable: false },
         { key: 'status', label: 'وضعیت', sortable: true },
-        { key: 'create_datesh', label: 'تاریخ ثبت', sortable: true },
+        { key: 'submittedAtUtc', label: 'تاریخ ثبت', sortable: true },
         { key: 'documents', label: 'مدارک ارسال‌شده', sortable: false },
         { key: 'actions', label: 'عملیات', sortable: false }
       ],
@@ -744,8 +744,8 @@ export default {
       if (this.docFilters.search) {
         const search = this.docFilters.search.toLowerCase();
         filtered = filtered.filter(candidate =>
-          candidate.first_name.includes(search) || candidate.last_name.includes(search) ||
-          candidate.org_position_desc.includes(search)
+          candidate.firstName.includes(search) || candidate.lastName.includes(search) ||
+          candidate.organizationPositionDescription.includes(search)
         );
       }
 
@@ -792,8 +792,8 @@ export default {
     },
 
     pendingCount() {
-      return this.EXECUTIVEListInfo?.filter(c => c.requestStatus === 'SUBMITTED').length;
-      //  this.advertisements.filter(a => a.status === 'SUBMITTED').length;
+      return this.EXECUTIVEListInfo?.filter(c => c.requestStatus === 'PENDING').length;
+      //  this.advertisements.filter(a => a.status === 'PENDING').length;
     },
 
     approvedCount() {
@@ -812,7 +812,7 @@ export default {
     // Helper Methods
     getStatusVariant(status) {
       const variants = {
-        SUBMITTED: 'warning',
+        PENDING: 'warning',
         EXECUTIVE_APPROVED: 'success',
         EXECUTIVE_REJECTED: 'danger'
       };
@@ -821,11 +821,12 @@ export default {
 
     getStatusText(status) {
       const texts = {
-        SUBMITTED: 'در کارتابل اجرایی',
+        PENDING: 'در کارتابل اجرایی',
+        PENDING: 'در کارتابل اجرایی',
         EXECUTIVE_APPROVED: 'ارسال شده به نظارت',
         SUPERVISION_APPROVED: 'تایید نظارت',
         SUPERVISION_REJECTED: 'رد نظارت',
-        OBJECTION_SUBMITTED: 'اعتراض',
+        OBJECTION_PENDING: 'اعتراض',
         EXECUTIVE_REJECTED: 'رد اجرایی'
       };
       return texts[status] || status;
@@ -833,7 +834,7 @@ export default {
 
     getAdStatusVariant(status) {
       const variants = {
-        SUBMITTED: 'warning',
+        PENDING: 'warning',
         EXECUTIVE_APPROVED: 'success',
         EXECUTIVE_REJECTED: 'danger',
         active: 'info',
@@ -844,14 +845,14 @@ export default {
 
     getAdStatusText(status) {
       const texts = {
-        SUBMITTED: 'در انتظار',
+        PENDING: 'در انتظار',
         pending: 'در انتظار',
         EXECUTIVE_APPROVED: 'تایید اجرایی',
         CANDIDATE: 'حذف کاربر',
         EXECUTIVE_REJECTED: 'رد اجرایی',
         SUPERVISION_APPROVED: 'تایید نظارت',
         SUPERVISION_REJECTED: 'رد نظارت',
-        OBJECTION_SUBMITTED: 'اعتراض',
+        OBJECTION_PENDING: 'اعتراض',
         active: 'فعال',
         expired: 'منقضی'
       };
@@ -882,11 +883,11 @@ export default {
     },
     getCandidateDocuments(candidate) {
       return [
-        { key: 'user_photo', label: 'تصویر کاربر', path: candidate.user_photo },
-        { key: 'education_doc', label: 'مدرک تحصیلی', path: candidate.education_doc },
-        { key: 'ravan_cert', label: 'گواهی سلامت جسمی و روانی', path: candidate.ravan_cert },
+        { key: 'userPhotoFileRef', label: 'تصویر کاربر', path: candidate.userPhotoFileRef },
+        { key: 'educationDocFileRef', label: 'مدرک تحصیلی', path: candidate.educationDocFileRef },
+        { key: 'mentalHealthCertificateFileRef', label: 'گواهی سلامت جسمی و روانی', path: candidate.mentalHealthCertificateFileRef },
         { key: 'soPishine_cert', label: 'عدم سوء پیشینه', path: candidate.soPishine_cert },
-        { key: 'transparency_form', label: 'فرم تعهد شفافیت', path: candidate.transparency_form }
+        { key: 'backgroundCheckCertificateFileRef', label: 'فرم تعهد شفافیت', path: candidate.backgroundCheckCertificateFileRef }
       ].filter(doc => doc.path);
     },
 
@@ -900,7 +901,7 @@ export default {
         type: this.logActionToType(log.action),
         text: log.description || log.action,
         time: log.create_date_shamsi || '',
-        user: log.first_name ? `${log.first_name} ${log.last_name}` : log.nationalId
+        user: log.firstName ? `${log.firstName} ${log.lastName}` : log.nationalId
       }));
     },
     logActionToType(action) {
@@ -932,7 +933,7 @@ export default {
     },
 
     getEmploymentStatusText(candidate) {
-      const status = this.getCandidateValue(candidate, ['user_type']);
+      const status = this.getCandidateValue(candidate, ['userTypeCode']);
 
       if (status === '-') return '-';
       const normalized = `${status}`.toLowerCase();
@@ -1169,11 +1170,11 @@ export default {
     // Statistics
     calculateStats() {
       this.stats.totalCandidates = this.EXECUTIVEListInfo?.length;
-      this.stats.pendingDocuments = this.EXECUTIVEListInfo?.filter(c => c.requestStatus === 'SUBMITTED').length;
+      this.stats.pendingDocuments = this.EXECUTIVEListInfo?.filter(c => c.requestStatus === 'PENDING').length;
       this.stats.approvedCandidates = this.EXECUTIVEListInfo?.filter(c => c.requestStatus === 'EXECUTIVE_APPROVED').length;
       this.stats.rejectedCandidates = this.EXECUTIVEListInfo?.filter(c => c.requestStatus === 'EXECUTIVE_REJECTED').length;
 
-      this.stats.pendingAds = this.advertisements.filter(a => a.status === 'SUBMITTED').length;
+      this.stats.pendingAds = this.advertisements.filter(a => a.status === 'PENDING').length;
       this.stats.approvedAds = this.advertisements.filter(a => a.status === 'EXECUTIVE_APPROVED').length;
       this.stats.rejectedAds = this.advertisements.filter(a => a.status === 'EXECUTIVE_REJECTED').length;
 
