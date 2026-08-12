@@ -102,7 +102,7 @@ export default {
     };
   },
   mounted() {
-    if (this.currentUser?.roles[0] == 'CANDIDATE') {
+    if (this.currentUser?.roles?.[0] == 'CANDIDATE') {
       this.getstateCandid();
     }
     setTimeout(() => {
@@ -128,7 +128,7 @@ export default {
     filteredMenu() {
       return this.profilecontent.filter(item => {
         let roleAllowed = true;
-        if (item?.roles) roleAllowed = item?.roles?.includes(this.currentUser?.roles[0]);
+        if (item?.roles) roleAllowed = item?.roles?.includes(this.currentUser?.roles?.[0]);
         if (item?.provinceSupervisorOnly && this.currentUser?.roles?.[0] !== 'ADMIN') {
           roleAllowed = roleAllowed && String(this.currentUser?.regionId || '').endsWith('00');
         }

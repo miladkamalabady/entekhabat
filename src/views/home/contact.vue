@@ -286,6 +286,10 @@
                 <small class="form-text text-muted">
                   حداکثر ۵ فایل، هر کدام تا ۵ مگابایت (تصویر، PDF، Word، متن)
                 </small>
+                <div v-if="convertingFiles" class="mt-2">
+                  <b-progress :value="fileConversionProgress" max="100" class="mb-1"></b-progress>
+                  <small class="text-muted">در حال آماده‌سازی فایل‌ها...</small>
+                </div>
 
                 <!-- Uploaded Files Preview -->
                 <div v-if="newTicket.attachments && newTicket.attachments.length > 0" class="mt-3">
@@ -596,6 +600,8 @@ export default {
   name: "SupportPage",
   data() {
     return {
+      convertingFiles: false,
+      fileConversionProgress: 0,
       // Support Stats
       supportStats: {
         totalTickets: 1247,
@@ -624,7 +630,7 @@ export default {
       newTicket: {
         subject: '',
         category: null,
-        priority: 'medium',
+        priority: 2,
         description: '',
         attachments: [],
         targetRole: 'EXECUTIVE'
@@ -654,10 +660,10 @@ export default {
       ],
       // Priority Options
       priorityOptions: [
-        { value: 'low', text: 'کم' },
-        { value: 'medium', text: 'متوسط' },
-        { value: 'high', text: 'بالا' },
-        { value: 'urgent', text: 'فوری' }
+        { value: 1, text: 'کم' },
+        { value: 2, text: 'متوسط' },
+        { value: 3, text: 'بالا' },
+        { value: 4, text: 'فوری' }
       ],
 
       // FAQ Data
@@ -842,6 +848,60 @@ export default {
       sendLiveChatMessage: "sendLiveChatMessage",
       closeLiveChatSession: "closeLiveChat"
     }),
+    async convertFilesToJson(files) {
+      if (!files || files.length === 0) return null;
+
+      // محدودیت 5 مگابایت
+      const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+      // حداکثر 5 فایل
+      const MAX_FILES = 5;
+
+      if (files.length > MAX_FILES) {
+        this.$bvToast.toast(`حداکثر ${MAX_FILES} فایل مجاز است`, {
+          title: 'خطا',
+          variant: 'danger',
+          solid: true
+        });
+        return null;
+      }
+
+      const oversizedFiles = files.filter(f => f.size > MAX_FILE_SIZE);
+      if (oversizedFiles.length > 0) {
+        const names = oversizedFiles.map(f => f.name).join('، ');
+        this.$bvToast.toast(`فایل‌های ${names} بزرگتر از ۵ مگابایت هستند`, {
+          title: 'خطا',
+          variant: 'danger',
+          solid: true
+        });
+        return null;
+      }
+
+      const attachments = [];
+
+      for (const file of files) {
+        try {
+          const base64 = await this.fileToBase64(file);
+          attachments.push({
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            content: base64
+          });
+        } catch (error) {
+          console.error('Error converting file:', file.name, error);
+        }
+      }
+
+      return attachments.length > 0 ? JSON.stringify(attachments) : null;
+    }, fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = (error) => reject(error);
+      });
+    },
     async loadSupportTickets() {
       this.loadingTickets = true;
       try {
@@ -1001,29 +1061,36 @@ export default {
       this.submittingTicket = true;
 
       try {
+        // تبدیل فایل‌ها به JSON
+        let attachmentsJson = null;
+        if (this.newTicket.attachments && this.newTicket.attachments.length > 0) {
+          this.convertingFiles = true;
+          attachmentsJson = await this.convertFilesToJson(this.newTicket.attachments);
+          this.convertingFiles = false;
+        }
+
         const response = await this.saveSupportTicket({
           subject: this.newTicket.subject,
           category: this.newTicket.category,
           priority: this.newTicket.priority,
-          description: this.newTicket.description,
-          targetRole: this.newTicket.targetRole
+          messageText: this.newTicket.description,
+          targetRole: this.newTicket.targetRole,
+          attachmentsJson: attachmentsJson
         });
 
         if (!response || !response.status) {
           throw new Error(response?.message || 'خطا در ثبت درخواست');
         }
 
-        // Reset form
         this.resetNewTicketForm();
         await this.loadSupportTickets();
-        // Show success message
+
         this.$bvToast.toast('تیکت شما با موفقیت ثبت شد', {
           title: 'ثبت درخواست',
           variant: 'success',
           solid: true
         });
 
-        // Scroll to tickets section
         this.scrollToSection('tickets');
 
       } catch (error) {
@@ -1035,6 +1102,7 @@ export default {
         });
       } finally {
         this.submittingTicket = false;
+        this.convertingFiles = false;
       }
     },
 
@@ -1042,7 +1110,7 @@ export default {
       this.newTicket = {
         subject: '',
         category: null,
-        priority: 'medium',
+        priority: 2,
         description: '',
         attachments: [],
         targetRole: 'EXECUTIVE'

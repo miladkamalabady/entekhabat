@@ -117,8 +117,8 @@ const global = {
         url: "/api/v1/election/regions/max-votes",
         method: 'POST'
     },getSupportTickets: {
-        url: "/api/v1/election/support-tickets",
-        method: 'GET'
+        url: "/api/v1/election/support-tickets/search",
+        method: 'POST'
     }, saveSupportTicket: {
         url: "/api/v1/election/support-tickets",
         method: 'POST'
