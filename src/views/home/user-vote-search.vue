@@ -4,7 +4,7 @@
       <div>
         <h2>جستجوی کاربران</h2>
         <p>
-          ادمین و اعضای نظارت فقط اطلاعات هویتی کاربران محدوده مجاز خود را مشاهده می‌کنند.
+          ادمین و اعضای نظارت اطلاعات کاربران، زمان ثبت رأی، منطقه ثبت رأی و کد پیگیری را بدون نمایش نامزدهای انتخاب‌شده مشاهده می‌کنند.
         </p>
       </div>
       <button class="btn btn-outline-primary" :disabled="loading || !canSearch" @click="searchVotes">
@@ -62,6 +62,9 @@
               <th>کد پرسنلی</th>
               <th>استان</th>
               <th>منطقه</th>
+              <th>منطقه ثبت رأی</th>
+              <th>زمان ثبت رأی</th>
+              <th>کد پیگیری رأی</th>
             </tr>
           </thead>
           <tbody>
@@ -71,6 +74,9 @@
               <td>{{ user.personnel_code || '---' }}</td>
               <td>{{ user.province_name || '---' }}</td>
               <td>{{ user.region_name || user.region_id || '---' }}</td>
+              <td>{{ user.vote_region_name || '---' }}</td>
+              <td>{{ user.voted_at_shamsi || user.voted_at || 'ثبت نشده' }}</td>
+              <td>{{ user.tracking_code || 'ثبت نشده' }}</td>
             </tr>
           </tbody>
         </table>
