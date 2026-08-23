@@ -356,7 +356,10 @@ public class VoteController : ControllerBase
             vr.Name AS region_name,
             vp.Name AS province_name,
             CASE WHEN ep.national_id IS NOT NULL THEN vr.Name ELSE NULL END AS vote_region_name,
-            ep.created_at AS voted_at,
+            COALESCE(
+                ep.created_at,
+                (SELECT MIN(v.created_at) FROM votes v WHERE v.national_id=vu.national_id)
+            ) AS voted_at,
             ep.tracking_code
           FROM users vu
           LEFT JOIN region vr ON vr.id=vu.region_id
@@ -370,8 +373,9 @@ public class VoteController : ControllerBase
 
         foreach (var row in summary)
         {
-            if (row.GetValueOrDefault("voted_at") is DateTime votedAt)
-                row["voted_at_shamsi"] = _jalali.FormatDateTime(votedAt);
+            var votedAt = _jalali.NormalizeToGregorian(row.GetValueOrDefault("voted_at"));
+            if (votedAt.HasValue)
+                row["voted_at_shamsi"] = _jalali.FormatDateTime(votedAt.Value);
         }
 
         await conn.ExecuteAsync(
