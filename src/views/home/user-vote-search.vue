@@ -75,7 +75,7 @@
               <td>{{ user.province_name || '---' }}</td>
               <td>{{ user.region_name || user.region_id || '---' }}</td>
               <td>{{ user.vote_region_name || '---' }}</td>
-              <td>{{ user.voted_at_shamsi || user.voted_at || 'ثبت نشده' }}</td>
+              <td>{{ formatVoteDateTime(user) }}</td>
               <td>{{ user.tracking_code || 'ثبت نشده' }}</td>
             </tr>
           </tbody>
@@ -124,6 +124,26 @@ export default {
     ...mapActions(['searchUserVotes']),
     fullName(firstName, lastName) {
       return [firstName, lastName].filter(Boolean).join(' ') || '---'
+    },
+    formatVoteDateTime(user) {
+      const shamsiValue = user?.voted_at_shamsi || user?.participant_created_at_shamsi
+      if (shamsiValue) return shamsiValue
+
+      const rawValue = user?.voted_at || user?.participant_created_at
+      if (!rawValue) return 'ثبت نشده'
+
+      const normalizedValue = typeof rawValue === 'string' ? rawValue.replace(' ', 'T') : rawValue
+      const date = new Date(normalizedValue)
+      if (Number.isNaN(date.getTime())) return rawValue
+
+      return new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }).format(date)
     },
     async searchVotes() {
       if (!this.canSearch || this.loading) return
