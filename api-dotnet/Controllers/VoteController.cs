@@ -354,15 +354,25 @@ public class VoteController : ControllerBase
             vu.personnel_code,
             vu.region_id,
             vr.Name AS region_name,
-            vp.Name AS province_name
+            vp.Name AS province_name,
+            CASE WHEN ep.national_id IS NOT NULL THEN vr.Name ELSE NULL END AS vote_region_name,
+            ep.created_at AS voted_at,
+            ep.tracking_code
           FROM users vu
           LEFT JOIN region vr ON vr.id=vu.region_id
           LEFT JOIN region vp ON vp.id=(vr.ProvinceCode*100)
+          LEFT JOIN election_participants ep ON ep.national_id=vu.national_id
           WHERE {string.Join(" AND ", whereParts)}
           ORDER BY vu.id DESC
           LIMIT {limit}";
 
         var summary = (await conn.QueryListDict(sql, new { q = $"%{q}%" })).AsList();
+
+        foreach (var row in summary)
+        {
+            if (row.GetValueOrDefault("voted_at") is DateTime votedAt)
+                row["voted_at_shamsi"] = _jalali.FormatDateTime(votedAt);
+        }
 
         await conn.ExecuteAsync(
             "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'جستجوی کاربران',@desc)",
