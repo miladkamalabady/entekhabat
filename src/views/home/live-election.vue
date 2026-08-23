@@ -287,7 +287,11 @@
         </b-col>
       </b-row>
     </b-container>
-    <b-container fluid class=" py-4" v-else>
+    <b-container fluid class="py-4 text-center" v-else-if="loadingElectionStatus">
+      <b-spinner variant="primary" label="در حال بررسی وضعیت انتخابات"></b-spinner>
+      <div class="mt-3">در حال بررسی وضعیت انتخابات...</div>
+    </b-container>
+    <b-container fluid class="py-4" v-else>
       <b-alert show class="text-center" variant="danger">انتخابات فعال نمی‌باشد!</b-alert>
     </b-container>
     <!-- Region Details Modal -->
@@ -431,6 +435,7 @@ export default {
 
 
       // UI State
+      loadingElectionStatus: true,
       selectedReportType: 'province',
       reportTypeOptions: [
         { value: 'province', text: 'گزارش استانی' },
@@ -659,8 +664,15 @@ export default {
     }
   },
   async mounted() {
-    if (!this.ConfigInfo)
-      await this.getConfig()
+    try {
+      const config = this.ConfigInfo || await this.getConfig();
+      this.syncElectionStatus(config);
+    } finally {
+      this.loadingElectionStatus = false;
+    }
+
+    if (this.electionStatusAll !== 'active') return;
+
     if (this.currentUser?.roles?.includes('ADMIN')) this.selectedReportType = "admin";
     this.startTimer();
     this.startAutoRefresh();
@@ -685,6 +697,26 @@ export default {
   },
   methods: {
     ...mapActions(["getConfig", "getInfoVote", "getRegions"]),
+    ...mapMutations(["SetelectionStatusAll"]),
+
+    syncElectionStatus(config) {
+      if (!config?.startDate || !config?.EndDate) {
+        this.SetelectionStatusAll('inactive');
+        return;
+      }
+
+      const now = Date.now();
+      const startDate = new Date(config.startDate).getTime();
+      const endDate = new Date(config.EndDate).getTime();
+
+      if (!Number.isFinite(startDate) || !Number.isFinite(endDate)) {
+        this.SetelectionStatusAll('inactive');
+        return;
+      }
+
+      const status = now < startDate ? 'upcoming' : now <= endDate ? 'active' : 'ended';
+      this.SetelectionStatusAll(status);
+    },
 
     async loadIranSvg() {
       try {
