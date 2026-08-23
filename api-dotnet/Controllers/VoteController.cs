@@ -348,70 +348,31 @@ public class VoteController : ControllerBase
         }
 
         var sql = $@"SELECT
-            vu.id AS voter_user_id, vu.national_id AS voter_national_id,
-            vu.first_name AS voter_first_name, vu.last_name AS voter_last_name,
-            vu.personnel_code AS voter_personnel_code,
-            vu.region_id AS voter_region_id, vr.Name AS voter_region_name,
-            vr.ProvinceCode AS voter_province_code, vp.Name AS voter_province_name,
-            ep.tracking_code, ep.created_at AS participant_created_at,
-            v.id AS vote_id, v.created_at AS voted_at,
-            f.id AS candidate_submission_id, f.tracking_code AS candidate_tracking_code,
-            cu.national_id AS candidate_national_id,
-            cu.first_name AS candidate_first_name, cu.last_name AS candidate_last_name,
-            cu.org_position_desc AS candidate_position,
-            cu.region_id AS candidate_region_id, cr.Name AS candidate_region_name,
-            cp.Name AS candidate_province_name
+            vu.national_id,
+            vu.first_name,
+            vu.last_name,
+            vu.personnel_code,
+            vu.region_id,
+            vr.Name AS region_name,
+            vp.Name AS province_name
           FROM users vu
           LEFT JOIN region vr ON vr.id=vu.region_id
           LEFT JOIN region vp ON vp.id=(vr.ProvinceCode*100)
-          LEFT JOIN election_participants ep ON ep.national_id=vu.national_id
-          LEFT JOIN votes v ON v.national_id=vu.national_id
-          LEFT JOIN final_submissions f ON f.id=v.candidate_id
-          LEFT JOIN users cu ON cu.national_id=f.nationalId
-          LEFT JOIN region cr ON cr.id=cu.region_id
-          LEFT JOIN region cp ON cp.id=(cr.ProvinceCode*100)
           WHERE {string.Join(" AND ", whereParts)}
-          ORDER BY vu.id DESC, v.created_at DESC
+          ORDER BY vu.id DESC
           LIMIT {limit}";
 
-        var rows = (await conn.QueryListDict(sql, new { q = $"%{q}%" })).AsList();
-
-        foreach (var r in rows)
-        {
-            if (r.GetValueOrDefault("voted_at") is DateTime vt)
-                r["voted_at_shamsi"] = _jalali.FormatShort(vt);
-            if (r.GetValueOrDefault("participant_created_at") is DateTime pct)
-                r["participant_created_at_shamsi"] = _jalali.FormatShort(pct);
-        }
-
-        var summary = new Dictionary<string, object>();
-        foreach (var row in rows)
-        {
-            var voterId = row.Str("voter_national_id");
-            if (!summary.ContainsKey(voterId))
-                summary[voterId] = new
-                {
-                    national_id    = voterId,
-                    first_name     = row.GetValueOrDefault("voter_first_name"),
-                    last_name      = row.GetValueOrDefault("voter_last_name"),
-                    personnel_code = row.GetValueOrDefault("voter_personnel_code"),
-                    region_id      = row.GetValueOrDefault("voter_region_id"),
-                    region_name    = row.GetValueOrDefault("voter_region_name"),
-                    province_name  = row.GetValueOrDefault("voter_province_name"),
-                    tracking_code  = row.GetValueOrDefault("tracking_code"),
-                    vote_count     = rows.Count(x => x.Str("voter_national_id") == voterId && x.GetValueOrDefault("vote_id") != null)
-                };
-        }
+        var summary = (await conn.QueryListDict(sql, new { q = $"%{q}%" })).AsList();
 
         await conn.ExecuteAsync(
-            "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'جستجوی آرای کاربر',@desc)",
-            new { nid = NationalId, desc = $"جستجوی آرای کاربران با عبارت {q}" });
+            "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'جستجوی کاربران',@desc)",
+            new { nid = NationalId, desc = $"جستجوی کاربران با عبارت {q}" });
 
         return Ok(new
         {
             status = true,
-            data = new { scope, items = rows, summary = summary.Values },
-            message = "جستجوی آرای کاربران با موفقیت انجام شد."
+            data = new { scope, items = Array.Empty<object>(), summary },
+            message = "جستجوی کاربران با موفقیت انجام شد."
         });
     }
 
