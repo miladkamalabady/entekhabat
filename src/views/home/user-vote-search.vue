@@ -2,9 +2,9 @@
   <div class="vote-search-page" dir="rtl">
     <div class="page-header">
       <div>
-        <h2>جستجوی آرای کاربران</h2>
+        <h2>جستجوی کاربران</h2>
         <p>
-          ادمین به آرای همه کاربران دسترسی دارد و اعضای نظارت فقط آرای کاربران محدوده استان یا منطقه خود را مشاهده می‌کنند.
+          ادمین و اعضای نظارت فقط اطلاعات هویتی کاربران محدوده مجاز خود را مشاهده می‌کنند.
         </p>
       </div>
       <button class="btn btn-outline-primary" :disabled="loading || !canSearch" @click="searchVotes">
@@ -14,7 +14,7 @@
 
     <div class="search-card">
       <div class="form-group search-box">
-        <label>جستجوی کاربر رأی‌دهنده</label>
+        <label>جستجوی کاربر</label>
         <input
           v-model.trim="filters.q"
           type="text"
@@ -43,14 +43,6 @@
         <span>کاربران پیدا شده</span>
         <strong>{{ voterSummaries.length }}</strong>
       </div>
-      <div class="summary-card">
-        <span>رأی‌های ثبت‌شده</span>
-        <strong>{{ voteRows.length }}</strong>
-      </div>
-      <div class="summary-card">
-        <span>کاربران بدون رأی در نتیجه</span>
-        <strong>{{ votersWithoutVotes }}</strong>
-      </div>
     </div>
 
     <div v-if="searched" class="result-card">
@@ -59,7 +51,7 @@
         <span>{{ voterSummaries.length }} کاربر</span>
       </div>
 
-      <div v-if="loading" class="state-message">در حال دریافت اطلاعات رأی از دیتابیس...</div>
+      <div v-if="loading" class="state-message">در حال دریافت اطلاعات کاربران...</div>
       <div v-else-if="!voterSummaries.length" class="state-message">کاربری در محدوده دسترسی شما یافت نشد.</div>
       <div v-else class="table-responsive">
         <table class="votes-table">
@@ -70,8 +62,6 @@
               <th>کد پرسنلی</th>
               <th>استان</th>
               <th>منطقه</th>
-              <th>کد رهگیری رأی</th>
-              <th>تعداد رأی</th>
             </tr>
           </thead>
           <tbody>
@@ -81,55 +71,12 @@
               <td>{{ user.personnel_code || '---' }}</td>
               <td>{{ user.province_name || '---' }}</td>
               <td>{{ user.region_name || user.region_id || '---' }}</td>
-              <td>{{ user.tracking_code || 'ثبت نشده' }}</td>
-              <td>
-                <span :class="['vote-count', user.vote_count ? 'has-vote' : 'no-vote']">
-                  {{ user.vote_count }}
-                </span>
-              </td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <div v-if="searched" class="result-card">
-      <div class="list-header">
-        <h3>جزئیات رأی‌ها</h3>
-        <span>{{ voteRows.length }} رأی</span>
-      </div>
-
-      <div v-if="loading" class="state-message">در حال دریافت اطلاعات...</div>
-      <div v-else-if="!voteRows.length" class="state-message">برای کاربران پیدا شده رأیی ثبت نشده است.</div>
-      <div v-else class="table-responsive">
-        <table class="votes-table">
-          <thead>
-            <tr>
-              <th>رأی‌دهنده</th>
-              <th>کد ملی رأی‌دهنده</th>
-              <th>نام کاندیدا</th>
-              <th>کد ملی کاندیدا</th>
-              <th>کد انتخاباتی کاندیدا</th>
-              <th>سمت کاندیدا</th>
-              <th>منطقه کاندیدا</th>
-              <th>زمان ثبت رأی</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="vote in voteRows" :key="vote.vote_id">
-              <td>{{ fullName(vote.voter_first_name, vote.voter_last_name) }}</td>
-              <td>{{ vote.voter_national_id }}</td>
-              <td>{{ fullName(vote.candidate_first_name, vote.candidate_last_name) }}</td>
-              <td>{{ vote.candidate_national_id || '---' }}</td>
-              <td>{{ vote.candidate_submission_id || vote.candidate_tracking_code || '---' }}</td>
-              <td>{{ vote.candidate_position || '---' }}</td>
-              <td>{{ vote.candidate_region_name || vote.candidate_region_id || '---' }}</td>
-              <td>{{ vote.voted_at_shamsi || vote.voted_at || '---' }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -148,7 +95,6 @@ export default {
         limit: 200
       },
       result: {
-        items: [],
         summary: []
       }
     }
@@ -160,13 +106,6 @@ export default {
     },
     voterSummaries() {
       return Array.isArray(this.result.summary) ? this.result.summary : []
-    },
-    voteRows() {
-      const items = Array.isArray(this.result.items) ? this.result.items : []
-      return items.filter(item => item.vote_id)
-    },
-    votersWithoutVotes() {
-      return this.voterSummaries.filter(item => !Number(item.vote_count)).length
     },
     scopeLabel() {
       if (this.accessScope === 'province') return 'استان خودتان'
@@ -190,13 +129,12 @@ export default {
           limit: this.filters.limit
         })
         this.result = {
-          items: Array.isArray(data?.items) ? data.items : [],
           summary: Array.isArray(data?.summary) ? data.summary : []
         }
         this.accessScope = data?.scope || 'all'
       } catch (error) {
-        this.result = { items: [], summary: [] }
-        this.$bvToast.toast('خطا در جستجوی آرای کاربران', {
+        this.result = { summary: [] }
+        this.$bvToast.toast('خطا در جستجوی کاربران', {
           title: 'خطا',
           variant: 'danger',
           solid: true
@@ -291,7 +229,7 @@ export default {
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   margin-bottom: 18px;
 }
@@ -348,25 +286,6 @@ export default {
   font-weight: 700;
 }
 
-.vote-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 32px;
-  min-height: 28px;
-  border-radius: 999px;
-  font-weight: 700;
-}
-
-.vote-count.has-vote {
-  background: #e8f5e9;
-  color: #2e7d32;
-}
-
-.vote-count.no-vote {
-  background: #fff3e0;
-  color: #ef6c00;
-}
 
 .state-message {
   padding: 24px;
