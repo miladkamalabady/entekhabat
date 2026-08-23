@@ -302,7 +302,7 @@
       </template>
       <div v-if="previewCandidateData" class="modal-body-custom">
         <div class="modal-candidate-image">
-          <img :src="`${previewCandidateData.user_photo}`" :alt="previewCandidateData.first_name">
+          <img :src="`${apiUrlrtb}/${previewCandidateData.user_photo}`" :alt="previewCandidateData.first_name">
         </div>
         <div class="modal-candidate-info">
           <div class="info-row">

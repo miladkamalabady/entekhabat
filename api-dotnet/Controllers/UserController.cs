@@ -35,31 +35,19 @@ public class UserController : ControllerBase
     {
         await using var conn = _db.CreateConnection();
 
-        bool inFund = false;
-        float yearsOfService = 0f;
-        string education = "";
-        try
-        {
-            var check = await conn.QueryFirstOrDefaultAsync<dynamic>(
-                "SELECT national_id, yearsOfService, education FROM userscheck WHERE national_id=@nid LIMIT 1",
-                new { nid = NationalId });
-            inFund = check != null;
-            yearsOfService = check != null ? Convert.ToSingle(check.yearsOfService ?? 0) : 0f;
-            education = ((string?)check?.education)?.Trim() ?? "";
-        }
-        catch { }
+        var check = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            "SELECT national_id, yearsOfService, education FROM userscheck WHERE national_id=@nid LIMIT 1",
+            new { nid = NationalId });
 
-        bool hasMinYears = yearsOfService >= 1f;
-        bool hasDegree   = ValidDegrees.Contains(education);
+        bool inFund         = check != null;
+        float yearsOfService = check != null ? Convert.ToSingle(check.yearsOfService ?? 0) : 0f;
+        bool hasMinYears    = yearsOfService >= 1f;
+        string education    = ((string?)check?.education)?.Trim() ?? "";
+        bool hasDegree      = ValidDegrees.Contains(education);
 
-        string? reg = null;
-        try
-        {
-            reg = await conn.QueryFirstOrDefaultAsync<string>(
-                "SELECT nationalId FROM final_submissions WHERE nationalId=@nid LIMIT 1",
-                new { nid = NationalId });
-        }
-        catch { }
+        var reg = await conn.QueryFirstOrDefaultAsync<string>(
+            "SELECT nationalId FROM final_submissions WHERE nationalId=@nid LIMIT 1",
+            new { nid = NationalId });
 
         return Ok(new
         {
@@ -90,8 +78,11 @@ public class UserController : ControllerBase
         if (currentUser == null) return Forbid();
 
         bool isAdmin = (string)currentUser.roles == "ADMIN";
+        // region_id می‌تواند NULL باشد (مثلاً SUPERVISOR تازه‌ساز بدون منطقه) - قبل از ToString/EndsWith چک می‌کنیم
+        string? regionIdStr = currentUser.region_id == null ? null : currentUser.region_id.ToString();
         bool isProvinceSupervisor = (string)currentUser.roles == "SUPERVISOR"
-            && ((string)currentUser.region_id?.ToString()).EndsWith("00")
+            && regionIdStr != null
+            && regionIdStr.EndsWith("00")
             && currentUser.ProvinceCode != null;
 
         if (!isAdmin && !isProvinceSupervisor)
@@ -102,14 +93,28 @@ public class UserController : ControllerBase
         int offset = (page - 1) * limit;
 
         var conditions = new List<string>();
+        var sqlParams = new DynamicParameters();
+        sqlParams.Add("limit", limit);
+        sqlParams.Add("offset", offset);
+
         if (isProvinceSupervisor)
-            conditions.Add($"r.ProvinceCode = {(int)currentUser.ProvinceCode}");
+        {
+            conditions.Add("r.ProvinceCode = @provinceCode");
+            sqlParams.Add("provinceCode", (int)currentUser.ProvinceCode);
+        }
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var s = search.Replace("'", "''");
-            conditions.Add($@"(u.national_id LIKE '%{s}%' OR u.first_name LIKE '%{s}%'
-                               OR u.last_name LIKE '%{s}%' OR u.personnel_code LIKE '%{s}%'
-                               OR r.name LIKE '%{s}%')");
+            conditions.Add(@"
+(
+    u.national_id LIKE @search OR
+    u.first_name LIKE @search OR
+    u.last_name LIKE @search OR
+    u.personnel_code LIKE @search OR
+    r.name LIKE @search
+)");
+            // پارامتر جستجو - قبلاً هرگز به Dapper پاس داده نمی‌شد و باعث خطای
+            // "Parameter '@search' not found" در هر جستجوی غیرخالی می‌شد
+            sqlParams.Add("search", $"%{search}%");
         }
         string where = conditions.Count > 0 ? "WHERE " + string.Join(" AND ", conditions) : "";
 
@@ -121,31 +126,44 @@ public class UserController : ControllerBase
             ? "LEFT JOIN final_results_approvals fra ON fra.region_id = u.region_id"
             : "";
 
-        var total = await conn.QueryFirstOrDefaultAsync<int>(
-            $"SELECT COUNT(*) FROM users u JOIN region r ON r.id=u.region_id {where}");
-        int pages = limit > 0 ? (int)Math.Ceiling(total / (double)limit) : 1;
-
+        // COUNT(*) OVER() تعداد کل را در همان کوئری اصلی برمی‌گرداند تا به‌جای دو بار
+        // اسکن کامل جدول users (یک بار برای COUNT و یک بار برای SELECT)، فقط یک بار اسکن شود
         var sql = $@"SELECT u.id, u.national_id, u.first_name, u.last_name,
                     u.personnel_code, u.region_id, u.roles, u.created_at,
                     r.name AS regionName, r.ProvinceCode AS provinceCode,
                     p.Name AS provinceName,
-                    uc.education, uc.yearsOfService{passColumns}
+                    uc.education, uc.yearsOfService{passColumns},
+                    COUNT(*) OVER() AS totalCount
                 FROM users u
                 JOIN region r ON r.id=u.region_id
                 LEFT JOIN region p ON p.id=(r.ProvinceCode * 100)
-                LEFT JOIN userscheck uc ON uc.national_id COLLATE utf8mb4_persian_ci=u.national_id
+                LEFT JOIN userscheck uc ON uc.national_id=u.national_id
                 {passJoin}
                 {where}
-                ORDER BY u.id DESC LIMIT {limit} OFFSET {offset}";
+                ORDER BY u.id DESC LIMIT @limit OFFSET @offset";
 
-        var rows = (await conn.QueryAsync<dynamic>(sql)).AsList();
+        var rows = (await conn.QueryAsync<dynamic>(sql, sqlParams)).AsList();
+
+        int total = 0;
         var list = rows.Select(r =>
         {
             var d = (IDictionary<string, object>)r;
+            if (total == 0 && d.TryGetValue("totalCount", out var tc))
+                total = Convert.ToInt32(tc);
+            d.Remove("totalCount");
             if (d["created_at"] is DateTime dt)
                 d["created_at"] = _jalali.FormatShort(dt);
             return d;
-        });
+        }).ToList();
+
+        // اگر صفحه‌ای خالی برگردد (مثلاً page بیشتر از تعداد صفحات) total را جداگانه محاسبه می‌کنیم
+        if (rows.Count == 0 && offset > 0)
+        {
+            total = await conn.QueryFirstOrDefaultAsync<int>(
+                $"SELECT COUNT(*) FROM users u JOIN region r ON r.id=u.region_id {where}", sqlParams);
+        }
+
+        int pages = limit > 0 ? (int)Math.Ceiling(total / (double)limit) : 1;
 
         return Ok(new
         {

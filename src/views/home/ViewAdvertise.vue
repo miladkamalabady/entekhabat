@@ -229,7 +229,7 @@
           </div>
 
           <div class="candidate-card-body">
-            <div class="candidate-photo">
+            <div v-if="false" class="candidate-photo">
               <img v-if="selectedAd.image" :src="`${apiUrlrtb}/${selectedAd.image}`" alt="عکس کاندید" />
               <div v-else class="photo-placeholder">
                 <b-icon icon="person" font-scale="2"></b-icon>
@@ -246,25 +246,25 @@
                 <div><strong>کد انتخاباتی:</strong> {{ candidateCardInfo.code }}</div>
                 <div><strong>شعار انتخاباتی:</strong> {{ candidateCardInfo.slogan }}</div>
               </div>
-              <b-col md="6">
+              <b-col md="12">
                 <div class="candidate-slogan">
                   <strong>سوابق اجرایی مدیریتی:</strong>
                   <span>{{ selectedAd.managerialRecords }}</span>
                 </div>
               </b-col>
-              <b-col md="6">
+              <b-col md="12">
                 <div class="candidate-slogan">
                   <strong>سوابق علمی / پژوهشی:</strong>
                   <span>{{ selectedAd.academicRecords }}</span>
                 </div>
               </b-col>
-              <b-col md="6">
+              <b-col md="12">
                 <div class="candidate-slogan">
                   <strong>مدارج و افتخارات:</strong>
                   <span>{{ selectedAd.honors }}</span>
                 </div>
               </b-col>
-              <b-col md="6">
+              <b-col md="12">
                 <div class="candidate-slogan">
                   <strong>برنامه ها:</strong>
                   <span>{{ selectedAd.plans }}</span>

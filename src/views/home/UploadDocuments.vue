@@ -112,7 +112,7 @@
                 </a>
               </div>
               <a
-                href="/assets/forms/transparency-conflict-of-interest-form.docx"
+                href="/assets/img/forms/transparency-conflict-of-interest-form.docx"
                 download="فرم-تعهد-شفافیت-و-عدم-تعارض-منافع.docx"
                 class="small d-inline-block mt-1"
               >
