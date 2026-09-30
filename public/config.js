@@ -1,1 +1,0 @@
-"[{\"apiUrlNew\":\"http://localhost/apiEntekhabat\"}]"

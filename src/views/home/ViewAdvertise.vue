@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <template>
   <div class="user-advertisements-page">
     <div class="page-spacer"></div>
@@ -1408,4 +1409,1416 @@ export default {
     text-align: center;
   }
 }
+=======
+<template>
+  <div class="user-advertisements-page">
+    <div class="page-spacer"></div>
+    <!-- Header Section -->
+    <b-container fluid class="ads-header py-4 mb-4">
+      <b-row class="align-items-center">
+        <b-col cols="12" md="8">
+          <h2 class="mb-2">تبلیغات انتخابات</h2>
+          <p class="text-light mb-0">
+            آخرین تبلیغات و اطلاعیه‌های مربوط به انتخابات صندوق ذخیره فرهنگیان
+          </p>
+        </b-col>
+        <b-col cols="12" md="4" class="text-left text-md-right">
+          <b-badge variant="info" class="p-2">
+            <b-icon icon="megaphone" class="ml-1"></b-icon>
+            {{ activeAdsCount }} تبلیغ فعال
+          </b-badge>
+        </b-col>
+        <b-col cols="12" class="text-left text-md-left">
+          <!-- شمارنده کاهشی زمان باقی‌مانده -->
+          <div class="countdown-timer" v-if="adsRemainingTime > 0">
+            <div class="timer-box">
+              <span class="timer-label">⏱️ زمان باقی‌مانده نمایش تبلیغات:</span>
+              <div class="timer-digits">
+                <div class="timer-unit">
+                  <span class="unit-value">{{ formattedRemainingTime.days }}</span>
+                  <span class="unit-label">روز</span>
+                </div>
+                <span class="timer-separator">:</span>
+                <div class="timer-unit">
+                  <span class="unit-value">{{ formattedRemainingTime.hours }}</span>
+                  <span class="unit-label">ساعت</span>
+                </div>
+                <span class="timer-separator">:</span>
+                <div class="timer-unit">
+                  <span class="unit-value">{{ formattedRemainingTime.minutes }}</span>
+                  <span class="unit-label">دقیقه</span>
+                </div>
+                <span class="timer-separator">:</span>
+                <div class="timer-unit">
+                  <span class="unit-value">{{ formattedRemainingTime.seconds }}</span>
+                  <span class="unit-label">ثانیه</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-else-if="adsRemainingTime <= 0 && shouldShowAds" class="expired-warning">
+            <b-icon icon="exclamation-triangle-fill" variant="danger"></b-icon>
+            <span>زمان نمایش تبلیغات به پایان رسیده است</span>
+          </div>
+        </b-col>
+      </b-row>
+    </b-container>
+    <!-- Main Content -->
+    <b-container class="ads-container" v-if="shouldShowAds">
+      <!-- Search and Filter -->
+      <b-card class="mb-4 filter-card">
+        <b-row>
+          <b-col md="6" class="mb-3 mb-md-0">
+            <b-input-group>
+              <template #prepend>
+                <b-input-group-text>
+                  <b-icon icon="search"></b-icon>
+                </b-input-group-text>
+              </template>
+              <b-form-input v-model="searchQuery" placeholder="جستجوی در تبلیغات..." @input="filterAds"></b-form-input>
+              <template #append>
+                <b-button variant="outline-secondary" @click="clearSearch">
+                  پاک کردن
+                </b-button>
+              </template>
+            </b-input-group>
+          </b-col>
+          <b-col md="6">
+            <b-row>
+              <!-- <b-col cols="6">
+                <b-form-select v-model="selectedType" :options="filterTypes" @change="filterAds">
+                  <template #first>
+                    <option value="">همه انواع</option>
+                  </template>
+                </b-form-select>
+              </b-col> -->
+              <b-col cols="6">
+                <b-form-select v-model="sortBy" :options="sortOptions" @change="sortAds"></b-form-select>
+              </b-col>
+            </b-row>
+          </b-col>
+        </b-row>
+      </b-card>
+
+      <!-- Active Ads Section -->
+      <div class="mb-5">
+        <div class="section-header d-flex justify-content-between align-items-center mb-3 flex-wrap">
+          <h4 class="section-title mb-2">
+            <b-icon icon="star-fill" variant="warning" class="ml-2"></b-icon>
+            تبلیغات فعال
+          </h4>
+        </div>
+
+        <!-- Banner Ads Carousel -->
+        <div v-if="bannerAds.length > 0" class="mb-4">
+          <b-carousel id="ads-carousel" v-model="carouselSlide" :interval="5000" controls indicators
+            background="#f8f9fa" img-width="1024" img-height="320" style="text-shadow: 1px 1px 2px #333;"
+            @sliding-start="onSlideStart" @sliding-end="onSlideEnd">
+            <b-carousel-slide v-for="(ad, index) in bannerAds" :key="`banner-${ad.id}`"
+              :img-src="`${apiUrlrtb}/${ad.image}` || '/placeholder-banner.jpg'" :caption="ad.title"
+              :text="ad.description" @click.native="viewAdDetails(ad)">
+              <template #img>
+                <div class="carousel-image-wrapper" @click="viewAdDetails(ad)">
+                  <img class="d-block img-fluid w-100 carousel-image" :src="`${apiUrlrtb}/${ad.image}` || '/placeholder-banner.jpg'"
+                    :alt="ad.title" />
+                  <div class="carousel-caption-overlay">
+                    <h5>{{ ad.title }}</h5>
+                    <p>{{ ad.description }}</p>
+                  </div>
+                </div>
+              </template>
+            </b-carousel-slide>
+          </b-carousel>
+        </div>
+
+        <!-- Other Active Ads -->
+        <b-row v-if="otherActiveAds.length > 0">
+          <b-col v-for="ad in otherActiveAds" :key="`active-${ad.id}`" cols="12" md="6" lg="4" class="mb-4">
+            <b-card class="ad-card h-100" :class="{ 'featured-ad': ad.isFeatured }" @click="viewAdDetails(ad)">
+              <!-- Ad Badges -->
+              <div class="ad-badges">
+                <b-badge v-if="ad.isFeatured" variant="warning" class="ml-1">
+                  ویژه
+                </b-badge>
+                <!-- <b-badge :variant="getTypeBadge(ad.type)" class="ml-1">
+                  {{ getTypeText(ad.type) }}
+                </b-badge> -->
+              </div>
+
+              <!-- Ad Image -->
+              <div class="ad-image-container mb-3">
+                <img v-if="ad.image" :src="`${apiUrlrtb}/${ad.image}`" class="ad-image" :alt="ad.title" />
+                <div v-else class="ad-image-placeholder">
+                  <b-icon icon="image" font-scale="3"></b-icon>
+                </div>
+              </div>
+
+              <!-- Ad Content -->
+              <h5 class="ad-title">{{ ad.title }}</h5>
+              <p class="ad-description">{{ ad.first_name }} {{ ad.last_name }} ({{ ad.codeentekhabati }})</p>
+              <p class="ad-description text-muted">
+                {{ truncateText(ad.description, 100) }}
+              </p>
+              <!-- Ad Footer -->
+              <div class="ad-footer">
+                <b-button size="sm" variant="outline-primary" @click.stop="viewAdDetails(ad)">
+                  مشاهده جزئیات
+                </b-button>
+              </div>
+            </b-card>
+          </b-col>
+        </b-row>
+
+        <!-- No Active Ads -->
+        <div v-if="filteredAds.length === 0" class="text-center py-5">
+          <b-icon icon="info-circle" font-scale="4" variant="secondary"></b-icon>
+          <h5 class="mt-3">هیچ تبلیغ فعالی یافت نشد</h5>
+          <p class="text-muted">در حال حاضر تبلیغ فعالی برای نمایش وجود ندارد.</p>
+        </div>
+      </div>
+
+    </b-container>
+    <b-container class="ads-container" v-else>
+      <!-- Search and Filter -->
+      <b-card class="mb-4 filter-card">
+        <b-alert variant="danger" class="text-center" show>{{ adsWindowMessage }}</b-alert>
+      </b-card>
+    </b-container>
+    <!-- Ad Details Modal -->
+    <b-modal v-model="showAdModal" :title="selectedAd ? selectedAd.title : ''" size="lg" hide-footer centered scrollable
+      @hidden="resetSelectedAd">
+      <div v-if="selectedAd" class="ad-details">
+        <!-- Ad Header -->
+        <div class="ad-details-header mb-4">
+          <b-row class="align-items-center">
+            <b-col cols="8">
+              <div class="ad-meta">
+                <!-- <b-badge :variant="getTypeBadge(selectedAd.type)" class="ml-2">
+                  {{ getTypeText(selectedAd.type) }}
+                </b-badge> -->
+                <b-badge v-if="selectedAd.isFeatured" variant="warning" class="ml-2">
+                  ویژه
+                </b-badge>
+                <span class="text-muted ml-2">
+                  <b-icon icon="eye" class="ml-1"></b-icon>
+                  {{ selectedAd.views || 0 }} بازدید
+                </span>
+              </div>
+            </b-col>
+            <b-col cols="4" class="text-left">
+              <b-button v-if="selectedAd.targetLink" variant="outline-primary" size="sm" :href="selectedAd.targetLink"
+                target="_blank">
+                مشاهده لینک
+                <b-icon icon="box-arrow-up-right" class="mr-1"></b-icon>
+              </b-button>
+            </b-col>
+          </b-row>
+        </div>
+
+        <div v-if="selectedAd.first_name" class="detail-item mb-3">
+          <strong>منتشر کننده:</strong>
+          <span class="mr-2">{{ selectedAd.first_name }} {{ selectedAd.last_name }}(کد {{ selectedAd.codeentekhabati
+          }})</span>
+        </div>
+
+        <!-- Ad Image -->
+        <div v-if="selectedAd.image" class="ad-details-image mb-4">
+          <img :src="`${apiUrlrtb}/${selectedAd.image}`" style="height:200px;object-fit:contain"
+            class="img-fluid rounded" :alt="selectedAd.title" />
+        </div>
+
+        <!-- Ad Content -->
+        <div class="ad-details-content mb-4">
+          <h6 class="mb-3">توضیحات کامل:</h6>
+          <p class="ad-description-full">{{ selectedAd.description }}</p>
+        </div>
+
+        <!-- Share Options -->
+        <div class="candidate-card-wrapper mt-4" id="candidate-share-card" ref="candidateCard">
+          <div class="candidate-card-header">
+            <h6 class="mb-1">کارت تبلیغاتی کاندید</h6>
+            <small>قابل مشاهده، دانلود و انتشار در پیام‌رسان‌های داخلی</small>
+          </div>
+
+          <div class="candidate-card-body">
+            <div v-if="false" class="candidate-photo">
+              <img v-if="selectedAd.image" :src="`${apiUrlrtb}/${selectedAd.image}`" alt="عکس کاندید" />
+              <div v-else class="photo-placeholder">
+                <b-icon icon="person" font-scale="2"></b-icon>
+              </div>
+            </div>
+
+            <div class="candidate-card-content">
+              <h5 class="candidate-name">{{ candidateCardInfo.name }}</h5>
+              <div class="card-meta-list">
+                <div><strong>حوزه انتخابیه:</strong> {{ candidateCardInfo.constituency }}</div>
+                <div><strong>مدرک تحصیلی:</strong> {{ candidateCardInfo.education }}</div>
+                <div><strong>وضعیت شغلی:</strong> {{ candidateCardInfo.employmentStatus }}</div>
+                <div><strong>سنوات:</strong> {{ candidateCardInfo.yearsOfService }} سال</div>
+                <div><strong>کد انتخاباتی:</strong> {{ candidateCardInfo.code }}</div>
+                <div><strong>شعار انتخاباتی:</strong> {{ candidateCardInfo.slogan }}</div>
+              </div>
+              <b-col md="12">
+                <div class="candidate-slogan">
+                  <strong>سوابق اجرایی مدیریتی:</strong>
+                  <span>{{ selectedAd.managerialRecords }}</span>
+                </div>
+              </b-col>
+              <b-col md="12">
+                <div class="candidate-slogan">
+                  <strong>سوابق علمی / پژوهشی:</strong>
+                  <span>{{ selectedAd.academicRecords }}</span>
+                </div>
+              </b-col>
+              <b-col md="12">
+                <div class="candidate-slogan">
+                  <strong>مدارج و افتخارات:</strong>
+                  <span>{{ selectedAd.honors }}</span>
+                </div>
+              </b-col>
+              <b-col md="12">
+                <div class="candidate-slogan">
+                  <strong>برنامه ها:</strong>
+                  <span>{{ selectedAd.plans }}</span>
+                </div>
+              </b-col>
+              <!-- <b-button variant="outline-primary" size="sm" class="mt-2" @click="scrollToRecords">
+                مشاهده سوابق / کلیک
+              </b-button> -->
+              <div class="countdown-box mt-2">
+                <b-icon icon="calendar-event" class="ml-1"></b-icon>
+                {{ daysUntilElectionText }}
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Share Options -->
+        <div class="share-section mt-4">
+          <h6 class="mb-3">اشتراک‌گذاری:</h6>
+          <div class="d-flex flex-wrap">
+            <b-button variant="outline-secondary" size="sm" class="ml-2 mb-2" @click="copyShareText">
+              <b-icon icon="link"></b-icon>
+              کپی متن کارت
+            </b-button>
+            <b-button variant="outline-success" size="sm" class="ml-2 mb-2" @click="downloadCardAsHtml">
+              <b-icon icon="download"></b-icon>
+              دانلود کارت
+            </b-button>
+            <b-button variant="outline-primary" size="sm" class="ml-2 mb-2" @click="shareToMessenger('bale')">
+              بله
+            </b-button>
+            <b-button variant="outline-info" size="sm" class="ml-2 mb-2" @click="shareToMessenger('eitaa')">
+              ایتا
+            </b-button>
+            <b-button variant="outline-dark" size="sm" class="ml-2 mb-2" @click="shareToMessenger('rubika')">
+              روبیکا
+            </b-button>
+          </div>
+        </div>
+      </div>
+    </b-modal>
+
+    <!-- Floating Action Button for Important Ads -->
+    <b-button v-if="importantAds.length > 0" variant="warning" class="floating-action-btn" @click="showImportantAds">
+      <b-icon icon="exclamation-triangle-fill"></b-icon>
+      <span class="badge-count">{{ importantAds.length }}</span>
+    </b-button>
+
+    <!-- Important Ads Modal -->
+    <b-modal v-model="showImportantModal" title="تبلیغات مهم و فوری" hide-footer centered>
+      <div v-for="ad in importantAds" :key="`important-${ad.id}`" class="mb-3">
+        <b-alert variant="warning" show>
+          <h6>{{ ad.title }}</h6>
+          <p class="mb-2">{{ ad.description }}</p>
+        </b-alert>
+      </div>
+    </b-modal>
+  </div>
+</template>
+
+<script>
+import { mapGetters, mapActions, mapMutations } from "vuex";
+import { apiUrlrtb } from '../../constants/config';
+export default {
+  name: "UserAdvertisements",
+  data() {
+    return {
+      apiUrlrtb,
+      adsRemainingTime: 0,
+      countdownInterval: null,
+      nowTime: Date.now(),
+      scheduleRows: [],
+      allAds: [],
+      routeFilteredAds: [],
+      filteredAds: [],
+      searchQuery: "",
+      selectedType: "",
+      sortBy: "newest",
+      carouselSlide: 0,
+      sliding: null,
+      timeRemaining: 0,
+      // Modals
+      showAdModal: false,
+      showImportantModal: false,
+      selectedAd: null,
+
+      // Filter Options
+      filterTypes: [
+        { value: "banner", text: "بنر" },
+        { value: "video", text: "ویدیو" },
+        { value: "text", text: "متنی" },
+        { value: "popup", text: "پاپ‌آپ" },
+        { value: "announcement", text: "اطلاعیه" }
+      ],
+
+      // Sort Options
+      sortOptions: [
+        { value: "newest", text: "جدیدترین" },
+        { value: "oldest", text: "قدیمی‌ترین" },
+        { value: "most_viewed", text: "پربازدیدترین" }
+      ]
+    };
+  },
+  computed: {
+    ...mapGetters(["sidebarVisible", "electionStatusAll", "ConfigInfo", "SystemScheduleInfo"]),
+    // زمان باقی‌مانده فرمت شده برای نمایش
+    formattedRemainingTime() {
+      const totalSeconds = Math.floor(this.adsRemainingTime / 1000);
+      const days = Math.floor(totalSeconds / 86400);
+      const hours = Math.floor((totalSeconds % 86400) / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+
+      return {
+        days: this.padNumber(days),
+        hours: this.padNumber(hours),
+        minutes: this.padNumber(minutes),
+        seconds: this.padNumber(seconds)
+      };
+    }, // زمان پایان نمایش تبلیغات
+    adsEndDate() {
+      const campaignEvent = (this.scheduleRows || []).find(e => e.event_key === 'campaign_start');
+      const votingEvent = (this.scheduleRows || []).find(e => e.event_key === 'voting');
+
+      if (!campaignEvent?.start_date || !votingEvent?.start_date) return null;
+
+      const campaignStart = this.$moment(campaignEvent.start_date, 'jYYYY-jMM-jDD HH:mm:ss');
+      const votingStart = this.$moment(votingEvent.start_date, 'jYYYY-jMM-jDD HH:mm:ss');
+
+      // زمان پایان = زودترین زمان (۷ روز بعد از شروع کمپین یا ۲۴ ساعت قبل از رأی‌گیری)
+      const sevenDaysAfterCampaign = campaignStart.clone().add(7, 'days');
+      const twentyFourHoursBeforeVoting = votingStart.clone().subtract(24, 'hours');
+
+      return this.$moment.min(sevenDaysAfterCampaign, twentyFourHoursBeforeVoting);
+    },
+    // Active Ads
+    activeAds() {
+      return this.filteredAds.filter(ad => ad.status === "active");
+    },
+    campaignStartDate() {
+      const campaignEvent = (this.scheduleRows || []).find(item => item?.event_key === 'campaign_start');
+      if (campaignEvent?.start_date) {
+        return new Date(campaignEvent.start_date);
+      }
+
+      if (this.ConfigInfo?.campaignStartDate) {
+        return new Date(this.ConfigInfo.campaignStartDate);
+      }
+
+      return null;
+    },
+    votingStartDate() {
+      const votingEvent = (this.scheduleRows || []).find(item => item?.event_key === 'voting');
+      if (votingEvent?.start_date) {
+        return new Date(votingEvent.start_date);
+      }
+
+      if (this.ConfigInfo?.startDate) {
+        return new Date(this.ConfigInfo.startDate);
+      }
+
+      return null;
+    },
+    shouldShowAds() {
+      const campaignEvent = (this.scheduleRows || []).find(e => e.event_key === 'campaign_start');
+      const votingEvent = (this.scheduleRows || []).find(e => e.event_key === 'voting');
+
+      if (!campaignEvent?.start_date || !votingEvent?.start_date) return false;
+
+      // زمان شروع کمپین و رأی گیری
+      const campaignStart = this.$moment(campaignEvent.start_date, 'jYYYY-jMM-jDD HH:mm:ss');
+      const votingStart = this.$moment(votingEvent.start_date, 'jYYYY-jMM-jDD HH:mm:ss');
+
+      // ۷ روز بعد از شروع کمپین
+      const legalWindowEnd = campaignStart.clone().add(7, 'days');
+
+      // ۲۴ ساعت قبل از رأی گیری
+      const votingCutoff = votingStart.clone().subtract(24, 'hours');
+
+      // نمایش تبلیغات تا زودترین زمان
+      const displayEnd = this.$moment.min(legalWindowEnd, votingCutoff);
+
+      const now = this.$moment(); // زمان فعلی
+      // return true;
+      return now.isSameOrAfter(campaignStart) && now.isBefore(displayEnd);
+    },
+
+    adsWindowMessage() {
+      const campaignEvent = (this.scheduleRows || []).find(e => e.event_key === 'campaign_start');
+      const votingEvent = (this.scheduleRows || []).find(e => e.event_key === 'voting');
+
+
+      if (!campaignEvent?.start_date || !votingEvent?.start_date) {
+        return 'بازه قانونی تبلیغات هنوز تنظیم نشده است.';
+      }
+
+      const campaignStart = this.$moment(campaignEvent.start_date, 'jYYYY-jMM-jDD HH:mm:ss');
+      const votingStart = this.$moment(votingEvent.start_date, 'jYYYY-jMM-jDD HH:mm:ss');
+      const displayEnd = this.$moment.min(campaignStart.clone().add(7, 'days'), votingStart.clone().subtract(24, 'hours'));
+
+      const now = this.$moment();
+
+      if (now.isBefore(campaignStart)) return 'نمایش تبلیغات هنوز آغاز نشده است.';
+      return 'زمان مجاز نمایش تبلیغات به اتمام رسیده است.';
+    },
+    // Banner Ads for Carousel
+    bannerAds() {
+      return this.activeAds.filter(ad => ad.type === "banner" && ad.isCarousel);
+    },
+
+    // Other Active Ads (non-banner)
+    otherActiveAds() {
+      return this.activeAds.filter(ad => ad.type !== "banner" || !ad.isCarousel);
+    },
+
+    // Upcoming Ads
+    upcomingAds() {
+      const today = new Date().toISOString().split("T")[0];
+      return this.allAds.filter(ad =>
+        ad.status === "upcoming" && ad.startDate > today
+      );
+    },
+
+    // Important Ads
+    importantAds() {
+      return this.activeAds.filter(ad => ad.isImportant);
+    },
+
+    // Statistics
+    totalAds() {
+      return this.allAds.length;
+    },
+
+    activeAdsCount() {
+      return this.activeAds.length;
+    },
+    candidateCardInfo() {
+      if (!this.selectedAd) {
+        return {
+          name: "-",
+          slogan: "-",
+          codeentekhabati: "-",
+          constituency: "-",
+          education: "-",
+          employmentStatus: "-",
+          yearsOfService: "-",
+        };
+      }
+
+      return {
+        name: `${this.selectedAd.first_name || ""} ${this.selectedAd.last_name || ""}`.trim() || this.selectedAd.title || "نامشخص",
+        slogan: this.selectedAd.slogan || this.selectedAd.description || "برای آینده‌ای بهتر",
+        code: this.selectedAd.electionCode || (this.selectedAd.id ? String(this.selectedAd.codeentekhabati) : "-"),
+        constituency: this.selectedAd.constituency || this.selectedAd?.regionName || "اعلام نشده",
+        education: this.selectedAd.education || this.selectedAd.degree || "اعلام نشده",
+        employmentStatus: this.selectedAd.user_type == 4 ? "بازنشسته" : "شاغل",
+        yearsOfService: this.selectedAd.yearsOfService || this.selectedAd.seniority || "اعلام نشده",
+        managerialRecords: this.selectedAd.managerialRecords || "اعلام نشده",
+        academicRecords: this.selectedAd.academicRecords || "اعلام نشده",
+        honors: this.selectedAd.honors || "اعلام نشده",
+        plans: this.selectedAd.plans || "اعلام نشده",
+      };
+    },
+
+    daysUntilElectionText() {
+      if (!this.ConfigInfo?.startDate) {
+        return "تاریخ انتخابات مشخص نشده است";
+      }
+      if (this.timeRemaining <= 0) return '00:00:00';
+
+      const hours = Math.floor(this.timeRemaining / (1000 * 60 * 60));
+      const minutes = Math.floor((this.timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((this.timeRemaining % (1000 * 60)) / 1000);
+
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')} تا انتخابات باقی مانده است`;
+
+      const start = new Date(this.ConfigInfo.startDate);
+      const now = new Date();
+      const diffMs = start.getTime() - now.getTime();
+      const days = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+      return `${this.timeRemaining} روز تا انتخابات باقی مانده است`;
+    },
+  },
+  async created() {
+    // فرضی از API زمان‌ها
+
+    this.loadAds();
+    this.trackView();
+    this.loadSchedule();
+    this.startCountdown(); // شروع شمارنده
+    this.timer = setInterval(() => {
+      this.refreshClock();
+    }, 1000);
+  }, beforeDestroy() {
+    if (this.timer) {
+      clearInterval(this.timer);
+    }
+  },
+  methods: {
+    ...mapMutations(["SetelectionStatusAll"]),
+    ...mapActions(["getAdvertisements", "increaseViewAdd", "getSystemSchedule"]),
+    // تکمیل اعداد (۰ جلو آنها)
+    padNumber(num) {
+      return String(num).padStart(2, '0');
+    },
+
+    // محاسبه زمان باقی‌مانده
+    calculateRemainingTime() {
+      if (!this.adsEndDate) {
+        this.adsRemainingTime = 0;
+        return;
+      }
+
+      const now = this.$moment();
+      const end = this.adsEndDate;
+
+      if (now.isAfter(end)) {
+        this.adsRemainingTime = 0;
+        this.stopCountdown();
+      } else {
+        this.adsRemainingTime = end.diff(now);
+      }
+    }, // شروع شمارنده
+    startCountdown() {
+      this.calculateRemainingTime();
+
+      if (this.countdownInterval) {
+        clearInterval(this.countdownInterval);
+      }
+
+      this.countdownInterval = setInterval(() => {
+        this.calculateRemainingTime();
+      }, 1000);
+    },
+
+    // توقف شمارنده
+    stopCountdown() {
+      if (this.countdownInterval) {
+        clearInterval(this.countdownInterval);
+        this.countdownInterval = null;
+      }
+    },
+    refreshClock() {
+      this.nowTime = Date.now();
+      if (this.ConfigInfo?.startDate) {
+        const startDate = new Date(this.ConfigInfo.startDate);
+        const now = new Date(this.nowTime);
+        this.timeRemaining = Math.max(0, startDate - now);
+      }
+    }, async loadSchedule() {
+      if (Array.isArray(this.SystemScheduleInfo) && this.SystemScheduleInfo.length > 0) {
+        this.scheduleRows = this.SystemScheduleInfo;
+        return;
+      }
+      const rows = await this.getSystemSchedule();
+      if (Array.isArray(rows)) {
+        this.scheduleRows = rows;
+      }
+    },
+
+    applyRouteCodeFilter(ads) {
+      const candidateCode = String(this.$route.query.code || this.$route.query.candidateCode || "").trim();
+      if (!candidateCode) {
+        return [...ads];
+      }
+
+      return ads.filter(ad => {
+
+        const rawCode = String(ad.codeentekhabati || "").trim();
+        const scaledCode = rawCode && !Number.isNaN(Number(rawCode)) ? String(Number(rawCode)) : "";
+        return rawCode === candidateCode || scaledCode === candidateCode;
+      });
+    },
+    // Load Ads Data
+    async loadAds() {
+      try {
+        this.allAds = await this.getAdvertisements()
+        this.allAds = this.allAds?.filter(x => !x.deleter)
+        this.routeFilteredAds = this.applyRouteCodeFilter(this.allAds);
+        this.filteredAds = [...this.routeFilteredAds];
+
+        this.filterAds();
+      } catch (error) {
+        console.error("Error loading ads:", error);
+      }
+    },
+
+    // Filter Ads
+    filterAds() {
+      let filtered = [...this.routeFilteredAds];
+
+      // Filter by search query
+      if (this.searchQuery) {
+        const query = this.searchQuery.toLowerCase();
+        filtered = filtered.filter(ad =>
+          ad.title.toLowerCase().includes(query) ||
+          ad.description.toLowerCase().includes(query)
+        );
+      }
+
+      // Filter by type
+      if (this.selectedType) {
+        filtered = filtered.filter(ad => ad.type === this.selectedType);
+      }
+
+      // Apply sorting
+      this.sortAdsList(filtered);
+    },
+
+    // Sort Ads
+    sortAds() {
+      this.sortAdsList(this.filteredAds);
+    },
+
+    sortAdsList(list) {
+      const sorted = [...list];
+
+      switch (this.sortBy) {
+        case "newest":
+          sorted.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+          break;
+        case "oldest":
+          sorted.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+          break;
+        case "most_viewed":
+          sorted.sort((a, b) => (b.views || 0) - (a.views || 0));
+          break;
+      }
+
+      this.filteredAds = sorted;
+    },
+
+    // Clear Search
+    clearSearch() {
+      this.searchQuery = "";
+      this.filterAds();
+    },
+
+    // View Ad Details
+    viewAdDetails(ad) {
+
+      this.selectedAd = ad;
+      this.showAdModal = true;
+
+      // Increment view count
+      this.incrementViewCount(ad.id);
+    },
+
+    // Increment View Count
+    incrementViewCount(adId) {
+      const adIndex = this.allAds.findIndex(ad => ad.id === adId);
+      if (adIndex !== -1) {
+        this.allAds[adIndex].views = Number((this.allAds[adIndex].views || 0)) + 1;
+        this.increaseViewAdd({ id: adId })
+      }
+    },
+
+    // Show Important Ads
+    showImportantAds() {
+      this.showImportantModal = true;
+    },
+
+    // Carousel Events
+    onSlideStart(slide) {
+      this.sliding = true;
+    },
+
+    onSlideEnd(slide) {
+      this.sliding = false;
+    },
+
+    // Reset Selected Ad
+    resetSelectedAd() {
+      this.selectedAd = null;
+    },
+
+    // Utility Functions
+    truncateText(text, length) {
+      if (text.length <= length) return text;
+      return text.substring(0, length) + "...";
+    },
+
+    getTypeBadge(type) {
+      const variants = {
+        banner: "primary",
+        video: "success",
+        text: "info",
+        popup: "warning",
+        announcement: "danger"
+      };
+      return variants[type] || "secondary";
+    },
+
+    getStatusBadge(status) {
+      const variants = {
+        active: "success",
+        inactive: "secondary",
+        upcoming: "info",
+        expired: "danger"
+      };
+      return variants[status] || "secondary";
+    },
+
+    getTypeText(type) {
+      const typeMap = {
+        banner: "بنر",
+        video: "ویدیو",
+        text: "متنی",
+        popup: "پاپ‌آپ",
+        announcement: "اطلاعیه"
+      };
+      return typeMap[type] || type;
+    },
+
+    getStatusText(status) {
+      const statusMap = {
+        active: "فعال",
+        inactive: "غیرفعال",
+        upcoming: "آتی",
+        expired: "منقضی"
+      };
+      return statusMap[status] || status;
+    },
+
+    getDay(date) {
+      // Extract day from date
+      return date.split("/")[2];
+    },
+
+    getMonth(date) {
+      const months = [
+        "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
+        "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"
+      ];
+      const monthIndex = parseInt(date.split("/")[1]) - 1;
+      return months[monthIndex] || "";
+    },
+
+    // Track Page View
+    trackView() {
+      // Send analytics or track page view
+      // console.log("Advertisements page viewed");
+    },
+    buildShareText() {
+      if (!this.selectedAd) return "";
+      return `کارت تبلیغاتی کاندید\nنام: ${this.candidateCardInfo.name}\nحوزه انتخابیه: ${this.candidateCardInfo.constituency}\nکد انتخاباتی: ${this.candidateCardInfo.code}\nشعار انتخاباتی: ${this.candidateCardInfo.slogan}\nمشاهده سوابق: با کلیک روی گزینه «مشاهده سوابق / کلیک»\n${this.daysUntilElectionText}`;
+    },
+
+    async copyShareText() {
+      const shareText = this.buildShareText();
+      try {
+        await navigator.clipboard.writeText(shareText);
+        this.$bvToast.toast("متن کارت تبلیغاتی کپی شد", {
+          title: "موفق",
+          variant: "success",
+          solid: true
+        });
+      } catch (error) {
+        this.$bvToast.toast("امکان کپی خودکار وجود ندارد", {
+          title: "هشدار",
+          variant: "warning",
+          solid: true
+        });
+      }
+    },
+    downloadCardAsHtml() {
+      if (!this.selectedAd) return;
+
+      const cardHtml = this.$refs.candidateCard?.outerHTML || "";
+      const htmlContent = `<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><title>candidate-card</title><style>body{font-family:tahoma;padding:16px;background:#f5f6f8}.candidate-card-wrapper{max-width:720px;margin:auto;border:1px solid #e4e7eb;border-radius:16px;background:#fff;padding:16px}.candidate-card-header{background:linear-gradient(120deg,#1f4ba5,#3f88ff);color:#fff;padding:12px;border-radius:12px;margin-bottom:12px}.candidate-card-body{display:flex;gap:16px}.candidate-photo img{width:160px;height:180px;object-fit:cover;border-radius:12px}.card-grid{display:grid;grid-template-columns:repeat(2,minmax(160px,1fr));gap:8px;margin-top:8px}.countdown-box{background:#ecf8f0;color:#1f7a44;padding:8px;border-radius:8px}.site-path{color:#2b3648}@media(max-width:600px){.candidate-card-body{flex-direction:column}.card-grid{grid-template-columns:1fr}}</style></head><body>${cardHtml}</body></html>`;
+
+      const blob = new Blob([htmlContent], { type: "text/html;charset=utf-8" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `candidate-card-${this.selectedAd.id || "item"}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    },
+
+    shareToMessenger(messenger) {
+      const text = encodeURIComponent(this.buildShareText());
+
+      const urls = {
+        bale: `https://ble.ir/share?text=${text}&url=${location.href}?code=${this.candidateCardInfo.code}`,
+        eitaa: `https://eitaa.com/share/url?text=${text}`,
+        rubika: `https://rubika.ir/share?text=${text}`
+      };
+
+      if (urls[messenger]) {
+        window.open(urls[messenger], "_blank");
+      }
+    },
+    scrollToRecords() {
+      const recordsSection = this.$el.querySelector('.details-card');
+      if (recordsSection) {
+        recordsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  },
+  watch: {
+    '$route.query': {
+      deep: true,
+      handler() {
+        this.routeFilteredAds = this.applyRouteCodeFilter(this.allAds);
+        this.filterAds();
+      }
+    }
+  }
+};
+</script>
+
+<style scoped>
+/* ========== فاصله از topbar و طراحی مدرن ========== */
+.user-advertisements-page {
+  background: linear-gradient(135deg, #f5f7ff 0%, #eef2fa 100%);
+  min-height: 100vh;
+}
+
+/* هدر مدرن */
+.ads-header {
+  background: linear-gradient(135deg, #1e2a6e, #2b3b8a, #1e2a6e);
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px !important;
+}
+
+.ads-header h2 {
+  font-weight: 700;
+  font-size: 1.5rem;
+}
+
+/* کانتینر اصلی */
+.ads-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px 50px;
+}
+
+/* کارت فیلتر */
+.filter-card {
+  border-radius: 20px;
+  border: none;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  margin-bottom: 24px !important;
+}
+
+.filter-card .card-body {
+  padding: 20px;
+}
+
+/* عنوان بخش */
+.section-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1e293b;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px !important;
+}
+
+/* کارت تبلیغات */
+.ad-card {
+  border-radius: 20px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: 1px solid #e2e8f0;
+  background: white;
+  position: relative;
+}
+
+.ad-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+  border-color: #3f51b5;
+}
+
+.ad-card.featured-ad {
+  border: 2px solid #f59e0b;
+}
+
+.ad-badges {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1;
+  display: flex;
+  gap: 6px;
+}
+
+.ad-image-container {
+  height: 180px;
+  overflow: hidden;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  margin: 16px;
+}
+
+.ad-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.ad-image-placeholder {
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ad-title {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 16px 8px;
+  color: #1e293b;
+}
+
+.ad-description {
+  font-size: 0.85rem;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0 16px 12px;
+}
+
+.ad-footer {
+  padding: 12px 16px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* کاروسل */
+.carousel-image-wrapper {
+  position: relative;
+  cursor: pointer;
+  height: 320px;
+  overflow: hidden;
+  border-radius: 20px;
+}
+
+.carousel-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.carousel-caption-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85), transparent);
+  color: white;
+  padding: 30px 20px 20px;
+  text-align: right;
+}
+
+.carousel-caption-overlay h5 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.carousel-caption-overlay p {
+  font-size: 0.85rem;
+  opacity: 0.9;
+  margin: 0;
+}
+
+/* کارت تبلیغاتی کاندید */
+.candidate-card-wrapper {
+  border: 1px solid #e2e8f0;
+  border-radius: 24px;
+  overflow: hidden;
+  background: white;
+  margin-top: 20px;
+}
+
+.candidate-card-header {
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #1e2a6e, #2b3b8a);
+  color: white;
+}
+
+.candidate-card-header h6 {
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.candidate-card-header small {
+  opacity: 0.8;
+  font-size: 0.7rem;
+}
+
+.candidate-card-body {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  flex-wrap: wrap;
+}
+
+.candidate-photo img,
+.photo-placeholder {
+  width: 150px;
+  height: 180px;
+  border-radius: 16px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  object-fit: cover;
+}
+
+.candidate-card-content {
+  flex: 1;
+  min-width: 250px;
+}
+
+.candidate-name {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 12px;
+}
+
+.card-meta-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 16px;
+  margin-bottom: 12px;
+}
+
+.card-meta-list div {
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+.card-meta-list strong {
+  color: #1e293b;
+}
+
+.candidate-slogan {
+  font-size: 0.8rem;
+  margin-bottom: 8px;
+  padding: 8px;
+  background: #f8fafc;
+  border-radius: 12px;
+}
+
+.countdown-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 40px;
+  background: #eef2ff;
+  color: #3f51b5;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-top: 12px;
+}
+
+/* مودال */
+.ad-details {
+  padding: 10px;
+}
+
+.ad-details-header {
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.ad-details-image {
+  border-radius: 16px;
+  overflow: hidden;
+  text-align: center;
+}
+
+.ad-details-image img {
+  max-height: 200px;
+  object-fit: contain;
+}
+
+.ad-description-full {
+  line-height: 1.8;
+  color: #475569;
+  text-align: justify;
+}
+
+.detail-item {
+  display: flex;
+  gap: 8px;
+  font-size: 0.85rem;
+}
+
+/* دکمه شناور */
+.floating-action-btn {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  background: #f59e0b;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+  z-index: 1050;
+}
+
+.floating-action-btn:hover {
+  background: #d97706;
+  transform: scale(1.05);
+}
+
+.badge-count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #ef4444;
+  color: white;
+  border-radius: 20px;
+  width: 20px;
+  height: 20px;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* بخش اشتراک‌گذاری */
+.share-section {
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+  margin-top: 16px;
+}
+
+/* وضعیت خالی */
+.text-center.py-5 {
+  background: white;
+  border-radius: 20px;
+  padding: 40px !important;
+}
+
+/* موبایل */
+@media (max-width: 768px) {
+  .user-advertisements-page {
+    margin-top: 60px;
+  }
+
+  .candidate-card-body {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .candidate-photo img {
+    width: 120px;
+    height: 140px;
+  }
+
+  .card-meta-list {
+    grid-template-columns: 1fr;
+  }
+
+  .carousel-image-wrapper {
+    height: 200px;
+  }
+
+  .carousel-caption-overlay {
+    padding: 15px;
+  }
+
+  .carousel-caption-overlay h5 {
+    font-size: 1rem;
+  }
+
+  .ad-image-container {
+    height: 140px;
+  }
+
+  .floating-action-btn {
+    width: 48px;
+    height: 48px;
+    bottom: 15px;
+    left: 15px;
+  }
+}
+
+@media (max-width: 576px) {
+  .ads-container {
+    padding: 0 12px 30px;
+  }
+
+  .filter-card .card-body {
+    padding: 15px;
+  }
+
+  .section-title {
+    font-size: 1rem;
+  }
+}
+
+.page-spacer {
+  display: none;
+}
+
+/* ========== شمارنده زمان تبلیغات ========== */
+.section-header {
+  margin-bottom: 20px;
+}
+
+.countdown-timer {
+  background: linear-gradient(135deg, #1e2a6e, #2b3b8a);
+  border-radius: 60px;
+  padding: 6px 20px;
+  display: inline-flex;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.timer-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.timer-label {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.timer-digits {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  direction: ltr;
+}
+
+.timer-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 6px 12px;
+  min-width: 65px;
+}
+
+.unit-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  line-height: 1;
+  font-family: monospace;
+}
+
+.unit-label {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 4px;
+}
+
+.timer-separator {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0 2px;
+}
+
+.expired-warning {
+  background: #fee2e2;
+  border-radius: 40px;
+  padding: 8px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #dc2626;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* موبایل */
+@media (max-width: 768px) {
+  .countdown-timer {
+    width: 100%;
+    justify-content: center;
+    margin-top: 10px;
+    border-radius: 20px;
+    padding: 12px;
+  }
+
+  .timer-box {
+    justify-content: center;
+  }
+
+  .timer-unit {
+    min-width: 50px;
+    padding: 4px 8px;
+  }
+
+  .unit-value {
+    font-size: 1.1rem;
+  }
+
+  .timer-label {
+    font-size: 0.75rem;
+  }
+
+  .timer-separator {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .timer-unit {
+    min-width: 40px;
+  }
+
+  .unit-value {
+    font-size: 0.9rem;
+  }
+
+  .timer-label {
+    width: 100%;
+    text-align: center;
+  }
+}
+>>>>>>> 05d298d74769afefd5cc6715896310332872071d
 </style>
