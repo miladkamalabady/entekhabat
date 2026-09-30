@@ -190,14 +190,14 @@
             <input type="url" v-model="form.targetLink" class="input-modern" placeholder="https://example.com">
           </div>
 
-          <div v-if="!isEditing && hasExistingAdvertisements" class="alert-payment-modern">
+          <div v-if="false && !isEditing && hasExistingAdvertisements" class="alert-payment-modern">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path d="M12 8V12M12 16H12.01M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z" stroke-width="1.5"/>
             </svg>
             <span>ثبت تبلیغ دوم به بعد نیازمند پرداخت است.</span>
           </div>
 
-          <div v-if="!isEditing && hasExistingAdvertisements" class="checkbox-modern">
+          <div v-if="false && !isEditing && hasExistingAdvertisements" class="checkbox-modern">
             <input type="checkbox" v-model="form.isPaid" id="isPaid">
             <label for="isPaid">پرداخت تبلیغ دوم انجام شده است</label>
           </div>

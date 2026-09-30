@@ -8,7 +8,7 @@ export default {
     announcements: [],
     userstatusInfo: null,
     UploadUserDocumentsInfo: null,
-    UpdateUserDocumentsInfo: null,
+    UpdateUserDocumentsInfo:null,
     confirmRegisterInfo: null,
     ChangeStateInfo: null,
     stateCandidInfo: null,
@@ -112,7 +112,7 @@ export default {
     }, setUpdateUserDocumentsInfo(state, payload) {
       state.UpdateUserDocumentsInfo = payload
       state.loginError = null
-    }, setconfirmRegisterInfo(state, payload) {
+    },setconfirmRegisterInfo(state, payload) {
       state.confirmRegisterInfo = payload
       state.loginError = null
     }, setChangeStateInfo(state, payload) {
@@ -146,19 +146,15 @@ export default {
           if (!payload.role)
             apiservice({ name: "AccountLogin", params: payload }, { commit })
               .then(response => {
-                if (response.succeeded) {
-                  response = response.data
-                  response.user.roles = response.user.roles.map(role => role.toUpperCase());
+                if (response.status) {
                   commit('setUser', { ...response.user, token: response.token })
                   commit('setHasActiveRequest', response.hasActiveRequest)
                   commit('clearError')
                 }
               })
-          else apiservice({ name: "AccountLoginTest", params: {nationalId:payload.code} }, { commit })
+          else apiservice({ name: "AccountLoginTest", params: payload }, { commit })
             .then(response => {
-              if (response.succeeded) {
-              response = response.data
-              response.user.roles = response.user.roles.map(role => role.toUpperCase());
+              if (response.status) {
                 commit('setUser', { ...response.user, token: response.token })
                 commit('setHasActiveRequest', response.hasActiveRequest)
                 commit('clearError')
@@ -175,7 +171,7 @@ export default {
     userstatus({ commit }, payload) {
       apiservice({ name: "userstatus", params: payload }, { commit })
         .then(response => {
-          if (response.succeeded) {
+          if (response.status) {
             commit('setuserstatusInfo', response.data)
             commit('clearError')
           }
@@ -187,30 +183,30 @@ export default {
     }, async UploadUserDocuments({ commit }, payload) {
       await apiservice({ name: "UploadUserDocuments", params: payload }, { commit })
         .then(response => {
-          if (response.succeeded) {
+          if (response.status) {
             commit('setUploadUserDocumentsInfo', response.data)
             commit('clearError')
           }
         })
-    }, async UpdateUserDocuments({ commit }, payload) {
+    },  async UpdateUserDocuments ({ commit }, payload) {
       await apiservice({ name: "UpdateUserDocuments", params: payload }, { commit })
         .then(response => {
-          if (response.succeeded) {
+          if (response.status) {
             commit('setUpdateUserDocumentsInfo', response.data)
             commit('clearError')
           }
         })
-    }, confirmRegister({ commit }, payload) {
+    },confirmRegister({ commit }, payload) {
       apiservice({ name: "confirmRegister", params: payload }, { commit })
         .then(response => {
-          if (response.succeeded) {
+          if (response.status) {
             commit('setconfirmRegisterInfo', response.data)
             commit('clearError')
           }
         })
     }, async ChangeState({ commit }, payload) {
       const response = await apiservice({ name: "ChangeState", params: payload }, { commit });
-      if (response.succeeded) {
+      if (response.status) {
         commit('setChangeStateInfo', response.data);
         commit('clearError');
       }
@@ -224,7 +220,7 @@ export default {
     }, getstateCandid({ commit }, payload) {
       apiservice({ name: "getstateCandid", params: payload }, { commit })
         .then(response => {
-          if (response.succeeded) {
+          if (response.status) {
             commit('setstateCandidInfo', response.data)
             commit('clearError')
           }
@@ -233,7 +229,7 @@ export default {
     }, getEXECUTIVEList({ commit }, payload) {
       apiservice({ name: "getEXECUTIVEList", params: payload }, { commit })
         .then(response => {
-          if (response.succeeded) {
+          if (response.status) {
             commit('setEXECUTIVEListInfo', response.data)
             commit('clearError')
           }
@@ -290,7 +286,7 @@ export default {
       }
       return response.data;
     }, async getCandidateDocuments({ commit }) {
-      const response = await apiservice({ name: "getCandidateDocuments" }, { commit });
+      const response = await apiservice({ name:"getCandidateDocuments"} ,{commit});
       if (response.succeeded)
         commit('clearError');
       return response?.data || null;

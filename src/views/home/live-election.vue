@@ -143,22 +143,10 @@
           <b-card class="ranking-card">
             <div class="d-flex justify-content-between align-items-center mb-4">
               <h5 class="mb-0">رتبه‌بندی زنده کاندیداها</h5>
-              <div class="ranking-actions">
-                <b-button-group size="sm">
-                  <b-button :variant="rankingView === 'table' ? 'primary' : 'outline-primary'"
-                    @click="rankingView = 'table'">
-                    <b-icon icon="table"></b-icon>
-                  </b-button>
-                  <b-button :variant="rankingView === 'chart' ? 'primary' : 'outline-primary'"
-                    @click="rankingView = 'chart'">
-                    <b-icon icon="bar-chart-fill"></b-icon>
-                  </b-button>
-                </b-button-group>
-              </div>
             </div>
 
             <!-- Table View -->
-            <div v-if="rankingView === 'table'" class="table-responsive">
+            <div class="table-responsive">
               <b-table :items="sortedCandidates" :fields="candidateFields" striped hover class="text-right">
                 <template #cell(rank)="data">
                   <div class="rank-badge" :class="`rank-${data.index + 1}`">
@@ -180,25 +168,9 @@
                   </div>
                 </template>
 
-                <template #cell(vote_count)="data">
-                  <div class="votes-info">
-                    <div class="votes-count">{{ formatNumber(data.item.vote_count) }}</div>
-                    <div class="votes-percentage">
-                      <b-progress :value="data.item.vote_count" :max="maxVotes" height="4px"
-                        class="votes-progress"></b-progress>
-                      <small>{{ getVotePercentage(data.item.vote_count) }}%</small>
-                    </div>
-                  </div>
-                </template>
               </b-table>
             </div>
 
-            <!-- Chart View -->
-            <div v-else class="chart-container">
-              <div class="chart-wrapper">
-                <canvas ref="votesChart"></canvas>
-              </div>
-            </div>
           </b-card>
         </b-col>
 
@@ -315,7 +287,11 @@
         </b-col>
       </b-row>
     </b-container>
-    <b-container fluid class=" py-4" v-else>
+    <b-container fluid class="py-4 text-center" v-else-if="loadingElectionStatus">
+      <b-spinner variant="primary" label="در حال بررسی وضعیت انتخابات"></b-spinner>
+      <div class="mt-3">در حال بررسی وضعیت انتخابات...</div>
+    </b-container>
+    <b-container fluid class="py-4" v-else>
       <b-alert show class="text-center" variant="danger">انتخابات فعال نمی‌باشد!</b-alert>
     </b-container>
     <!-- Region Details Modal -->
@@ -363,9 +339,6 @@
                   <template #cell(candidate)="data">
                     {{ data.item.first_name }} {{ data.item.last_name }}
                   </template>
-                  <template #cell(vote_count)="data">
-                    {{ formatNumber(data.item.vote_count) }}
-                  </template>
                 </b-table>
               </div>
               <p v-else class="text-muted mb-0">برای {{ area.name }} هنوز آماری از کاندیداها ثبت نشده است.</p>
@@ -392,7 +365,6 @@
 </template>
 
 <script>
-import Chart from "chart.js";
 import { apiUrlrtb } from '../../constants/config'
 import { mapGetters, mapActions, mapMutations } from "vuex";
 
@@ -463,6 +435,7 @@ export default {
 
 
       // UI State
+      loadingElectionStatus: true,
       selectedReportType: 'province',
       reportTypeOptions: [
         { value: 'province', text: 'گزارش استانی' },
@@ -472,7 +445,6 @@ export default {
         { value: 'heatmap', text: 'نقشه حرارتی' },
         { value: 'admin', text: 'گزارش ادمین' }
       ],
-      rankingView: 'table',
       showRegionModal: false,
       selectedRegion: null,
       autoRefresh: true,
@@ -480,19 +452,16 @@ export default {
       hoveredProvince: null,
 
       // Chart Instances
-      votesChart: null,
       realTimeChart: null,
 
       // Table Fields
       candidateFields: [
         { key: 'rank', label: 'رتبه', sortable: false },
         { key: 'candidate', label: 'کاندیدا', sortable: false },
-        { key: 'vote_count', label: 'آرا', sortable: true },
       ],
       regionCandidateFields: [
         { key: 'codeentekhabati', label: 'کدکاندید', sortable: false },
-        { key: 'candidate', label: 'کاندیدا', sortable: false },
-        { key: 'vote_count', label: 'تعداد رأی', sortable: true }
+        { key: 'candidate', label: 'کاندیدا', sortable: false }
       ], areaReportFields: [
         { key: 'provinceName', label: 'استان', sortable: true },
         { key: 'name', label: 'منطقه', sortable: true },
@@ -562,10 +531,6 @@ export default {
       return [...this.candidates].sort((a, b) => b.vote_count - a.vote_count);
     },
 
-    maxVotes() {
-      if (!this.candidates.length) return 1;
-      return Math.max(...this.candidates.map(c => c.vote_count));
-    },
     availableReportTypes() {
       if (this.currentUser?.roles?.includes('ADMIN')) return this.reportTypeOptions;
       return this.reportTypeOptions.filter(opt => opt.value !== 'admin');
@@ -677,7 +642,7 @@ export default {
         candidate: [
           { label: 'کاندیداهای فعال', value: this.formatNumber(this.infoVote?.activeCandidates || this.candidates.length), icon: 'person-badge-fill', variant: 'primary' },
           { label: 'پیشتاز فعلی', value: topCandidate ? `${topCandidate.first_name} ${topCandidate.last_name}` : '-', icon: 'award-fill', variant: 'success' },
-          { label: 'آرای پیشتاز', value: this.formatNumber(topCandidate?.vote_count || 0), icon: 'bar-chart-fill', variant: 'info' }
+          { label: 'کل آرای ثبت‌شده', value: this.formatNumber(this.safeTotalVotes), icon: 'bar-chart-fill', variant: 'info' }
         ],
         participation: [
           { label: 'مشارکت کل', value: `${this.safeParticipation}%`, icon: 'people-fill', variant: 'primary' },
@@ -699,8 +664,15 @@ export default {
     }
   },
   async mounted() {
-    if (!this.ConfigInfo)
-      await this.getConfig()
+    try {
+      const config = this.ConfigInfo || await this.getConfig();
+      this.syncElectionStatus(config);
+    } finally {
+      this.loadingElectionStatus = false;
+    }
+
+    if (this.electionStatusAll !== 'active') return;
+
     if (this.currentUser?.roles?.includes('ADMIN')) this.selectedReportType = "admin";
     this.startTimer();
     this.startAutoRefresh();
@@ -711,38 +683,40 @@ export default {
     this.candidates = this.infoVote?.listCan || []
     this.updateRegionLiveStats();
 
-    this.$nextTick(() => {
-      if (this.rankingView === 'chart') {
-        this.createVotesChart();
-      }
-    });
   },
   beforeDestroy() {
     clearInterval(this.timerInterval);
     clearInterval(this.refreshInterval);
-    if (this.votesChart) this.votesChart.destroy();
     if (this.realTimeChart) this.realTimeChart.destroy();
   }, watch: {
-    rankingView(val) {
-      if (val === 'chart') {
-        this.$nextTick(() => {
-          this.createVotesChart();
-        });
-      }
-    },
     availableReportTypes(options) {
       if (!options.some(opt => opt.value === this.selectedReportType)) {
         this.selectedReportType = 'province';
-      }
-    },
-    selectedReportType(val) {
-      if (['candidate', 'admin'].includes(val) && this.rankingView === 'chart') {
-        this.$nextTick(() => this.createVotesChart());
       }
     }
   },
   methods: {
     ...mapActions(["getConfig", "getInfoVote", "getRegions"]),
+    ...mapMutations(["SetelectionStatusAll"]),
+
+    syncElectionStatus(config) {
+      if (!config?.startDate || !config?.EndDate) {
+        this.SetelectionStatusAll('inactive');
+        return;
+      }
+
+      const now = Date.now();
+      const startDate = new Date(config.startDate).getTime();
+      const endDate = new Date(config.EndDate).getTime();
+
+      if (!Number.isFinite(startDate) || !Number.isFinite(endDate)) {
+        this.SetelectionStatusAll('inactive');
+        return;
+      }
+
+      const status = now < startDate ? 'upcoming' : now <= endDate ? 'active' : 'ended';
+      this.SetelectionStatusAll(status);
+    },
 
     async loadIranSvg() {
       try {
@@ -874,74 +848,12 @@ export default {
         seconds: seconds.toString().padStart(2, '0')
       };
     },
-    createVotesChart() {
-      if (!this.$refs.votesChart) return;
-
-      const ctx = this.$refs.votesChart.getContext('2d');
-
-      if (!ctx || !this.sortedCandidates.length) return;
-
-      if (this.votesChart) {
-        this.votesChart.destroy();
-        this.votesChart = null;
-      }
-
-      const labels = this.sortedCandidates.map(c => c.first_name + ' ' + c.last_name);
-      const data = this.sortedCandidates.map(c => Number(c.vote_count));
-
-      const colors = this.sortedCandidates.map(() =>
-        `hsl(${Math.random() * 360},70%,60%)`
-      );
-
-      this.votesChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels,
-          datasets: [{
-            label: 'تعداد آرا',
-            data,
-            backgroundColor: colors,
-            borderWidth: 0,
-            borderRadius: 8,
-            barThickness: 28
-          }]
-        },
-        options: {
-          animation: {
-            duration: 700
-          },
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false }
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: {
-                precision: 0
-              }
-            },
-            x: {
-              ticks: {
-                autoSkip: false,
-                maxRotation: 45,
-                minRotation: 45
-              }
-            }
-          }
-        }
-      });
-    },
 
     // Data Functions
     formatNumber(num) {
       return new Intl.NumberFormat('fa-IR').format(Number(num || 0));
     },
 
-    getVotePercentage(votes) {
-      return this.safeTotalVotes ? ((Number(votes || 0) / this.safeTotalVotes) * 100).toFixed(1) : '0.0';
-    },
 
     getReportSectionTitle() {
       const titles = {
@@ -1028,9 +940,6 @@ export default {
 
         this.lastUpdate = new Date().toLocaleTimeString('fa-IR');
 
-        if (this.rankingView === 'chart') {
-          this.$nextTick(() => this.createVotesChart());
-        }
       }, 30000);
     },
     async manualRefresh() {
@@ -1043,9 +952,6 @@ export default {
 
       this.lastUpdate = new Date().toLocaleTimeString('fa-IR');
 
-      if (this.rankingView === 'chart') {
-        this.$nextTick(() => this.createVotesChart());
-      }
 
       this.refreshing = false;
     },
