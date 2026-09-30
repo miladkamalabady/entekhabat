@@ -41,7 +41,7 @@ public class VoteController : ControllerBase
 
             var rawToken  = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
             var tokenHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rawToken))).ToLower();
-            var expires   = DateTime.Now.AddMinutes(2).ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
+            var expires   = DateTime.Now.AddMinutes(2);
 
             await conn.ExecuteAsync(
                 "INSERT INTO voting_tokens (user_id, token_hash, expires_at) VALUES (@nid, @hash, @exp)",
@@ -68,7 +68,7 @@ public class VoteController : ControllerBase
             {
                 trackingCode = Convert.ToHexString(RandomNumberGenerator.GetBytes(6)).ToUpper();
                 var exists = await conn.QueryFirstOrDefaultAsync<int?>(
-                    "SELECT TOP (1) id FROM election_participants WHERE tracking_code=@tc ",
+                    "SELECT id FROM election_participants WHERE tracking_code=@tc",
                     new { tc = trackingCode }, tx);
                 if (!exists.HasValue) break;
             } while (true);
@@ -76,7 +76,7 @@ public class VoteController : ControllerBase
             // اعتبارسنجی توکن
             var tokenHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(req.vote_token))).ToLower();
             var token = await conn.QueryRowDict(
-                "SELECT TOP (1) * FROM voting_tokens WITH (UPDLOCK, HOLDLOCK) WHERE token_hash=@hash AND user_id=@nid ",
+                "SELECT TOP (1) * FROM dbo.voting_tokens WITH (UPDLOCK, ROWLOCK) WHERE token_hash=@hash AND user_id=@nid",
                 new { hash = tokenHash, nid = NationalId }, tx);
 
             if (token == null)
@@ -97,7 +97,7 @@ public class VoteController : ControllerBase
 
             // ثبت شرکت‌کننده
             var participant = await conn.QueryFirstOrDefaultAsync<int?>(
-                "SELECT TOP (1) id FROM election_participants WHERE national_id=@nid ", new { nid = NationalId }, tx);
+                "SELECT id FROM election_participants WHERE national_id=@nid", new { nid = NationalId }, tx);
             if (!participant.HasValue)
                 await conn.ExecuteAsync(
                     "INSERT INTO election_participants (national_id, tracking_code) VALUES (@nid,@tc)",
@@ -107,7 +107,7 @@ public class VoteController : ControllerBase
             foreach (var candidateId in req.candidateIds)
             {
                 var dup = await conn.QueryFirstOrDefaultAsync<int?>(
-                    "SELECT TOP (1) id FROM votes WHERE national_id=@nid AND candidate_id=@cid ",
+                    "SELECT id FROM votes WHERE national_id=@nid AND candidate_id=@cid",
                     new { nid = NationalId, cid = candidateId }, tx);
                 if (dup.HasValue) continue;
 
@@ -115,18 +115,18 @@ public class VoteController : ControllerBase
                     "INSERT INTO votes (national_id, candidate_id) VALUES (@nid, @cid)",
                     new { nid = NationalId, cid = candidateId }, tx);
                 await conn.ExecuteAsync(
-                    "INSERT INTO logs (nationalId, action, description) VALUES (@nid,N'ثبت رای',@desc)",
+                    "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'ثبت رای',@desc)",
                     new { nid = NationalId, desc = $"کد {NationalId} به {candidateId} رای داد" }, tx);
             }
 
             // مصرف توکن
             int tokenId = Convert.ToInt32(token.GetValueOrDefault("id") ?? 0);
             await conn.ExecuteAsync(
-                "UPDATE voting_tokens SET used=1, used_at=SYSDATETIME() WHERE id=@id",
+                "UPDATE voting_tokens SET used=1, used_at=GETDATE() WHERE id=@id",
                 new { id = tokenId }, tx);
 
             var mobile = await conn.QueryFirstOrDefaultAsync<string>(
-                "SELECT TOP (1) mobile FROM users WHERE national_id=@nid ", new { nid = NationalId }, tx);
+                "SELECT mobile FROM users WHERE national_id=@nid", new { nid = NationalId }, tx);
             if (!string.IsNullOrWhiteSpace(mobile))
                 _bale.SendAsync(mobile, $"رأی شما با موفقیت ثبت شد. کد رهگیری: {trackingCode}");
 
@@ -313,9 +313,9 @@ public class VoteController : ControllerBase
         await using var conn = _db.CreateConnection();
 
         var currentUser = await conn.QueryRowDict(
-            @"SELECT TOP (1) u.roles, u.region_id, r.ProvinceCode
+            @"SELECT u.roles, u.region_id, r.ProvinceCode
               FROM users u LEFT JOIN region r ON r.id=u.region_id
-              WHERE u.national_id=@nid ", new { nid = NationalId });
+              WHERE u.national_id=@nid", new { nid = NationalId });
 
         if (currentUser == null) return Forbid();
 
@@ -333,7 +333,15 @@ public class VoteController : ControllerBase
 
         var whereParts = new List<string>
         {
-            "(vu.national_id LIKE @q OR vu.personnel_code LIKE @q OR vu.first_name LIKE @q OR vu.last_name LIKE @q OR CONCAT(COALESCE(vu.first_name,''),' ',COALESCE(vu.last_name,'')) LIKE @q)"
+            @"(vu.national_id LIKE @q
+               OR vu.personnel_code LIKE @q
+               OR REPLACE(REPLACE(REPLACE(COALESCE(vu.first_name, N''), N'ي', N'ی'), N'ى', N'ی'), N'ك', N'ک') LIKE @q
+               OR REPLACE(REPLACE(REPLACE(COALESCE(vu.last_name, N''), N'ي', N'ی'), N'ى', N'ی'), N'ك', N'ک') LIKE @q
+               OR CONCAT(
+                    REPLACE(REPLACE(REPLACE(COALESCE(vu.first_name, N''), N'ي', N'ی'), N'ى', N'ی'), N'ك', N'ک'),
+                    N' ',
+                    REPLACE(REPLACE(REPLACE(COALESCE(vu.last_name, N''), N'ي', N'ی'), N'ى', N'ی'), N'ك', N'ک')
+                  ) LIKE @q)"
         };
 
         string scope = "all";
@@ -347,46 +355,72 @@ public class VoteController : ControllerBase
             { whereParts.Add($"vu.region_id={regionId}"); scope = "region"; }
         }
 
-        var sql = $@"SELECT TOP ({limit})
-            vu.national_id,
-            vu.first_name,
-            vu.last_name,
-            vu.personnel_code,
-            vu.region_id,
-            vr.Name AS region_name,
-            vp.Name AS province_name,
-            CASE WHEN ep.national_id IS NOT NULL THEN vr.Name ELSE NULL END AS vote_region_name,
-            COALESCE(
-                ep.created_at,
-                (SELECT MIN(v.created_at) FROM votes v WHERE v.national_id=vu.national_id)
-            ) AS voted_at,
-            ep.tracking_code
+        var sql = $@"SELECT
+            vu.id AS voter_user_id, vu.national_id AS voter_national_id,
+            vu.first_name AS voter_first_name, vu.last_name AS voter_last_name,
+            vu.personnel_code AS voter_personnel_code,
+            vu.region_id AS voter_region_id, vr.Name AS voter_region_name,
+            vr.ProvinceCode AS voter_province_code, vp.Name AS voter_province_name,
+            ep.tracking_code, ep.created_at AS participant_created_at,
+            v.id AS vote_id, v.created_at AS voted_at,
+            f.id AS candidate_submission_id, f.tracking_code AS candidate_tracking_code,
+            cu.national_id AS candidate_national_id,
+            cu.first_name AS candidate_first_name, cu.last_name AS candidate_last_name,
+            cu.org_position_desc AS candidate_position,
+            cu.region_id AS candidate_region_id, cr.Name AS candidate_region_name,
+            cp.Name AS candidate_province_name
           FROM users vu
           LEFT JOIN region vr ON vr.id=vu.region_id
           LEFT JOIN region vp ON vp.id=(vr.ProvinceCode*100)
           LEFT JOIN election_participants ep ON ep.national_id=vu.national_id
+          LEFT JOIN votes v ON v.national_id=vu.national_id
+          LEFT JOIN final_submissions f ON f.id=v.candidate_id
+          LEFT JOIN users cu ON cu.national_id=f.nationalId
+          LEFT JOIN region cr ON cr.id=cu.region_id
+          LEFT JOIN region cp ON cp.id=(cr.ProvinceCode*100)
           WHERE {string.Join(" AND ", whereParts)}
-          ORDER BY vu.id DESC
-";
+          ORDER BY vu.id DESC, v.created_at DESC
+          OFFSET 0 ROWS FETCH NEXT {limit} ROWS ONLY";
 
-        var summary = (await conn.QueryListDict(sql, new { q = $"%{q}%" })).AsList();
+        var normalizedQ = PersianText.NormalizeForSearch(q);
+        var rows = (await conn.QueryListDict(sql, new { q = $"%{normalizedQ}%" })).AsList();
 
-        foreach (var row in summary)
+        foreach (var r in rows)
         {
-            var votedAt = _jalali.NormalizeToGregorian(row.GetValueOrDefault("voted_at"));
-            if (votedAt.HasValue)
-                row["voted_at_shamsi"] = _jalali.FormatDateTime(votedAt.Value);
+            if (r.GetValueOrDefault("voted_at") is DateTime vt)
+                r["voted_at_shamsi"] = _jalali.FormatShort(vt);
+            if (r.GetValueOrDefault("participant_created_at") is DateTime pct)
+                r["participant_created_at_shamsi"] = _jalali.FormatShort(pct);
+        }
+
+        var summary = new Dictionary<string, object>();
+        foreach (var row in rows)
+        {
+            var voterId = row.Str("voter_national_id");
+            if (!summary.ContainsKey(voterId))
+                summary[voterId] = new
+                {
+                    national_id    = voterId,
+                    first_name     = row.GetValueOrDefault("voter_first_name"),
+                    last_name      = row.GetValueOrDefault("voter_last_name"),
+                    personnel_code = row.GetValueOrDefault("voter_personnel_code"),
+                    region_id      = row.GetValueOrDefault("voter_region_id"),
+                    region_name    = row.GetValueOrDefault("voter_region_name"),
+                    province_name  = row.GetValueOrDefault("voter_province_name"),
+                    tracking_code  = row.GetValueOrDefault("tracking_code"),
+                    vote_count     = rows.Count(x => x.Str("voter_national_id") == voterId && x.GetValueOrDefault("vote_id") != null)
+                };
         }
 
         await conn.ExecuteAsync(
-            "INSERT INTO logs (nationalId, action, description) VALUES (@nid,N'جستجوی کاربران',@desc)",
-            new { nid = NationalId, desc = $"جستجوی کاربران با عبارت {q}" });
+            "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'جستجوی آرای کاربر',@desc)",
+            new { nid = NationalId, desc = $"جستجوی آرای کاربران با عبارت {q}" });
 
         return Ok(new
         {
             status = true,
-            data = new { scope, items = Array.Empty<object>(), summary },
-            message = "جستجوی کاربران با موفقیت انجام شد."
+            data = new { scope, items = rows, summary = summary.Values },
+            message = "جستجوی آرای کاربران با موفقیت انجام شد."
         });
     }
 
@@ -397,7 +431,7 @@ public class VoteController : ControllerBase
         await using var conn = _db.CreateConnection();
 
         var me = await conn.QueryRowDict(
-            "SELECT TOP (1) roles FROM users WHERE national_id=@nid ", new { nid = NationalId });
+            "SELECT roles FROM users WHERE national_id=@nid", new { nid = NationalId });
         if (me == null) return Unauthorized();
 
         if (me.Str("roles") != "ADMIN")
@@ -468,7 +502,7 @@ public class VoteController : ControllerBase
         }
 
         await conn.ExecuteAsync(
-            "INSERT INTO logs (nationalId, action, description) VALUES (@nid,N'دریافت خروجی اکسل نتایج',@desc)",
+            "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'دریافت خروجی اکسل نتایج',@desc)",
             new { nid = NationalId, desc = $"خروجی نتایج - منطقه:{region} استان:{province}" });
 
         // UTF-8 BOM برای نمایش صحیح فارسی در اکسل
@@ -492,5 +526,4 @@ public class VoteController : ControllerBase
 }
 
 public record InsertVoteRequest(int[] candidateIds, string vote_token);
-
 

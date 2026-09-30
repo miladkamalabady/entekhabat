@@ -8,8 +8,7 @@ public class DatabaseService
 
     public DatabaseService(IConfiguration config)
     {
-        _connectionString = config.GetConnectionString("DefaultConnection")
-            ?? throw new InvalidOperationException("DefaultConnection is required.");
+        _connectionString = config.GetConnectionString("DefaultConnection")!;
     }
 
     // یک connection جدید بدون باز کردن
@@ -19,16 +18,7 @@ public class DatabaseService
     public async Task<SqlConnection> OpenConnectionAsync()
     {
         var conn = new SqlConnection(_connectionString);
-        try
-        {
-            await conn.OpenAsync();
-            return conn;
-        }
-        catch
-        {
-            await conn.DisposeAsync();
-            throw;
-        }
+        await conn.OpenAsync();
+        return conn;
     }
 }
-

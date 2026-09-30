@@ -35,19 +35,31 @@ public class UserController : ControllerBase
     {
         await using var conn = _db.CreateConnection();
 
-        var check = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT TOP (1) national_id, yearsOfService, education FROM userscheck WHERE national_id=@nid ",
-            new { nid = NationalId });
+        bool inFund = false;
+        float yearsOfService = 0f;
+        string education = "";
+        try
+        {
+            var check = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                "SELECT TOP (1) national_id, yearsOfService, education FROM dbo.userscheck WHERE national_id=@nid",
+                new { nid = NationalId });
+            inFund = check != null;
+            yearsOfService = check != null ? Convert.ToSingle(check.yearsOfService ?? 0) : 0f;
+            education = ((string?)check?.education)?.Trim() ?? "";
+        }
+        catch { }
 
-        bool inFund         = check != null;
-        float yearsOfService = check != null ? Convert.ToSingle(check.yearsOfService ?? 0) : 0f;
-        bool hasMinYears    = yearsOfService >= 1f;
-        string education    = ((string?)check?.education)?.Trim() ?? "";
-        bool hasDegree      = ValidDegrees.Contains(education);
+        bool hasMinYears = yearsOfService >= 1f;
+        bool hasDegree   = ValidDegrees.Contains(education);
 
-        var reg = await conn.QueryFirstOrDefaultAsync<string>(
-            "SELECT TOP (1) nationalId FROM final_submissions WHERE nationalId=@nid ",
-            new { nid = NationalId });
+        string? reg = null;
+        try
+        {
+            reg = await conn.QueryFirstOrDefaultAsync<string>(
+                "SELECT TOP (1) nationalId FROM dbo.final_submissions WHERE nationalId=@nid",
+                new { nid = NationalId });
+        }
+        catch { }
 
         return Ok(new
         {
@@ -72,18 +84,19 @@ public class UserController : ControllerBase
 
         var currentUser = await conn.QueryFirstOrDefaultAsync<dynamic>(
             @"SELECT TOP (1) u.roles, u.region_id, r.ProvinceCode
-              FROM users u LEFT JOIN region r ON r.id=u.region_id
-              WHERE u.national_id=@nid ", new { nid = NationalId });
+              FROM dbo.users u LEFT JOIN dbo.region r ON r.id=u.region_id
+              WHERE u.national_id=@nid", new { nid = NationalId });
 
         if (currentUser == null) return Forbid();
 
-        bool isAdmin = (string)currentUser.roles == "ADMIN";
-        // region_id می‌تواند NULL باشد (مثلاً SUPERVISOR تازه‌ساز بدون منطقه) - قبل از ToString/EndsWith چک می‌کنیم
-        string? regionIdStr = currentUser.region_id == null ? null : currentUser.region_id.ToString();
-        bool isProvinceSupervisor = (string)currentUser.roles == "SUPERVISOR"
-            && regionIdStr != null
-            && regionIdStr.EndsWith("00")
-            && currentUser.ProvinceCode != null;
+        string currentRole = Convert.ToString(currentUser.roles) ?? "";
+        int currentRegionId = Convert.ToInt32(currentUser.region_id ?? 0);
+        int? currentProvinceCode = currentUser.ProvinceCode == null ? null : Convert.ToInt32(currentUser.ProvinceCode);
+
+        bool isAdmin = currentRole == "ADMIN";
+        bool isProvinceSupervisor = currentRole == "SUPERVISOR"
+            && currentRegionId > 0 && currentRegionId % 100 == 0
+            && currentProvinceCode.HasValue;
 
         if (!isAdmin && !isProvinceSupervisor)
             return StatusCode(403, new { status = false, message = "شما دسترسی لازم را ندارید" });
@@ -93,77 +106,57 @@ public class UserController : ControllerBase
         int offset = (page - 1) * limit;
 
         var conditions = new List<string>();
-        var sqlParams = new DynamicParameters();
-        sqlParams.Add("limit", limit);
-        sqlParams.Add("offset", offset);
-
         if (isProvinceSupervisor)
-        {
             conditions.Add("r.ProvinceCode = @provinceCode");
-            sqlParams.Add("provinceCode", (int)currentUser.ProvinceCode);
-        }
         if (!string.IsNullOrWhiteSpace(search))
-        {
-            conditions.Add(@"
-(
-    u.national_id LIKE @search OR
-    u.first_name LIKE @search OR
-    u.last_name LIKE @search OR
-    u.personnel_code LIKE @search OR
-    r.name LIKE @search
-)");
-            // پارامتر جستجو - قبلاً هرگز به Dapper پاس داده نمی‌شد و باعث خطای
-            // "Parameter '@search' not found" در هر جستجوی غیرخالی می‌شد
-            sqlParams.Add("search", $"%{search}%");
-        }
+            conditions.Add(@"(u.national_id LIKE @search
+                               OR REPLACE(REPLACE(REPLACE(COALESCE(u.first_name, N''), N'ي', N'ی'), N'ى', N'ی'), N'ك', N'ک') LIKE @search
+                               OR REPLACE(REPLACE(REPLACE(COALESCE(u.last_name, N''), N'ي', N'ی'), N'ى', N'ی'), N'ك', N'ک') LIKE @search
+                               OR CONVERT(nvarchar(50), u.personnel_code) LIKE @search
+                               OR REPLACE(REPLACE(REPLACE(COALESCE(r.Name, N''), N'ي', N'ی'), N'ى', N'ی'), N'ك', N'ک') LIKE @search)");
+
         string where = conditions.Count > 0 ? "WHERE " + string.Join(" AND ", conditions) : "";
+        var queryParams = new
+        {
+            provinceCode = currentProvinceCode,
+            search = string.IsNullOrWhiteSpace(search) ? null : $"%{PersianText.NormalizeForSearch(search)}%",
+            offset,
+            limit
+        };
 
         string passColumns = isAdmin
             ? @", CASE WHEN u.roles='EXECUTIVE' AND (u.region_id % 100) != 0 THEN fra.EXECUTIVEPass ELSE NULL END AS executivePass,
                  CASE WHEN u.roles='SUPERVISOR' AND (u.region_id % 100) != 0 THEN fra.SUPERVISORPass ELSE NULL END AS supervisorPass"
             : "";
         string passJoin = isAdmin
-            ? "LEFT JOIN final_results_approvals fra ON fra.region_id = u.region_id"
+            ? "LEFT JOIN dbo.final_results_approvals fra ON fra.region_id = u.region_id"
             : "";
 
-        // COUNT(*) OVER() تعداد کل را در همان کوئری اصلی برمی‌گرداند تا به‌جای دو بار
-        // اسکن کامل جدول users (یک بار برای COUNT و یک بار برای SELECT)، فقط یک بار اسکن شود
+        var total = await conn.QueryFirstOrDefaultAsync<int>(
+            $"SELECT COUNT(*) FROM dbo.users u JOIN dbo.region r ON r.id=u.region_id {where}", queryParams);
+        int pages = limit > 0 ? (int)Math.Ceiling(total / (double)limit) : 1;
+
         var sql = $@"SELECT u.id, u.national_id, u.first_name, u.last_name,
                     u.personnel_code, u.region_id, u.roles, u.created_at,
                     r.name AS regionName, r.ProvinceCode AS provinceCode,
                     p.Name AS provinceName,
-                    uc.education, uc.yearsOfService{passColumns},
-                    COUNT(*) OVER() AS totalCount
-                FROM users u
-                JOIN region r ON r.id=u.region_id
-                LEFT JOIN region p ON p.id=(r.ProvinceCode * 100)
-                LEFT JOIN userscheck uc ON uc.national_id=u.national_id
+                    uc.education, uc.yearsOfService{passColumns}
+                FROM dbo.users u
+                JOIN dbo.region r ON r.id=u.region_id
+                LEFT JOIN dbo.region p ON p.id=(r.ProvinceCode * 100)
+                LEFT JOIN dbo.userscheck uc ON uc.national_id=u.national_id
                 {passJoin}
                 {where}
                 ORDER BY u.id DESC OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY";
 
-        var rows = (await conn.QueryAsync<dynamic>(sql, sqlParams)).AsList();
-
-        int total = 0;
+        var rows = (await conn.QueryAsync<dynamic>(sql, queryParams)).AsList();
         var list = rows.Select(r =>
         {
             var d = (IDictionary<string, object>)r;
-            if (total == 0 && d.TryGetValue("totalCount", out var tc))
-                total = Convert.ToInt32(tc);
-            d.Remove("totalCount");
             if (d["created_at"] is DateTime dt)
                 d["created_at"] = _jalali.FormatShort(dt);
             return d;
-        }).ToList();
-
-        // اگر صفحه‌ای خالی برگردد (مثلاً page بیشتر از تعداد صفحات) total را جداگانه محاسبه می‌کنیم
-        if (rows.Count == 0 && offset > 0)
-        {
-            total = await conn.QueryFirstOrDefaultAsync<int>(
-                $"SELECT COUNT(*) FROM users u JOIN region r ON r.id=u.region_id {where}", sqlParams);
-        }
-
-        int pages = limit > 0 ? (int)Math.Ceiling(total / (double)limit) : 1;
+        });
 
         return Ok(new
         {
@@ -185,39 +178,41 @@ public class UserController : ControllerBase
 
         var currentUser = await conn.QueryFirstOrDefaultAsync<dynamic>(
             @"SELECT TOP (1) u.roles, u.region_id, r.ProvinceCode
-              FROM users u LEFT JOIN region r ON r.id=u.region_id
-              WHERE u.national_id=@nid ", new { nid = NationalId });
+              FROM dbo.users u LEFT JOIN dbo.region r ON r.id=u.region_id
+              WHERE u.national_id=@nid", new { nid = NationalId });
 
-        bool isAdmin = currentUser != null && (string)currentUser.roles == "ADMIN";
-        bool isProvinceSupervisor = currentUser != null
-            && (string)currentUser.roles == "SUPERVISOR"
-            && ((string)currentUser.region_id?.ToString()).EndsWith("00");
+        string currentRole = currentUser == null ? "" : (Convert.ToString(currentUser.roles) ?? "");
+        int currentRegionId = currentUser == null ? 0 : Convert.ToInt32(currentUser.region_id ?? 0);
+        int? currentProvinceCode = currentUser?.ProvinceCode == null ? null : Convert.ToInt32(currentUser.ProvinceCode);
+
+        bool isAdmin = currentRole == "ADMIN";
+        bool isProvinceSupervisor = currentRole == "SUPERVISOR" && currentRegionId > 0 && currentRegionId % 100 == 0;
 
         if (!isAdmin && !isProvinceSupervisor)
             return StatusCode(403, new { status = false, message = "شما دسترسی لازم را ندارید" });
 
         var newRegion = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT TOP (1) id, ProvinceCode, Name FROM region WHERE id=@id ", new { id = req.region_id });
+            "SELECT TOP (1) id, ProvinceCode, Name FROM dbo.region WHERE id=@id", new { id = req.region_id });
         if (newRegion == null)
             return BadRequest(new { status = false, message = "منطقه انتخاب شده معتبر نیست." });
 
         if (isProvinceSupervisor)
         {
-            int provincecode = (int)currentUser.ProvinceCode;
+            int provincecode = currentProvinceCode ?? 0;
             var target = await conn.QueryFirstOrDefaultAsync<dynamic>(
-                @"SELECT TOP (1) u.national_id, r.ProvinceCode FROM users u
-                  JOIN region r ON r.id=u.region_id WHERE u.national_id=@nid ",
+                @"SELECT TOP (1) u.national_id, r.ProvinceCode FROM dbo.users u
+                  JOIN dbo.region r ON r.id=u.region_id WHERE u.national_id=@nid",
                 new { nid = req.national_id });
 
             if (target == null
-                || (int)target.ProvinceCode != provincecode
-                || (int)newRegion.ProvinceCode != provincecode)
+                || Convert.ToInt32(target.ProvinceCode) != provincecode
+                || Convert.ToInt32(newRegion.ProvinceCode) != provincecode)
                 return StatusCode(403, new { status = false, message = "امکان ویرایش کاربران خارج از استان شما وجود ندارد." });
         }
 
         await conn.ExecuteAsync(
-            "UPDATE users SET region_id=@rid, regionName=@rname, roles=@roles WHERE national_id=@nid",
-            new { rid = req.region_id, rname = (string)newRegion.Name, roles = req.roles, nid = req.national_id });
+            "UPDATE dbo.users SET region_id=@rid, regionName=@rname, roles=@roles WHERE national_id=@nid",
+            new { rid = req.region_id, rname = Convert.ToString(newRegion.Name) ?? "", roles = req.roles, nid = req.national_id });
 
         return Ok(new { status = true, message = "ویرایش با موفقیت انجام شد.", data = true });
     }
@@ -229,12 +224,13 @@ public class UserController : ControllerBase
         await using var conn = _db.CreateConnection();
 
         var me = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT roles, region_id FROM users WHERE national_id=@nid", new { nid = NationalId });
+            "SELECT TOP (1) roles, region_id FROM dbo.users WHERE national_id=@nid", new { nid = NationalId });
 
-        if (me == null || ((string)me.roles != "EXECUTIVE" && (string)me.roles != "SUPERVISOR"))
+        var myListRole = me == null ? "" : (Convert.ToString(me.roles) ?? "");
+        if (me == null || (myListRole != "EXECUTIVE" && myListRole != "SUPERVISOR"))
             return StatusCode(403, new { status = false, message = "شما دسترسی لازم را ندارید" });
 
-        int regionId = (int)me.region_id;
+        int regionId = Convert.ToInt32(me.region_id);
 
         var rows = (await conn.QueryAsync<dynamic>(
             @"SELECT f.id AS codeentekhabati, tracking_code, requestStatus, f.create_date,
@@ -246,12 +242,12 @@ public class UserController : ControllerBase
                      ud.soPishine_cert, ud.ravan_cert, ud.document_reviews,
                      ud.updated_at AS datepic,
                      ua.post_code, ua.address, f.reson
-              FROM final_submissions f
-              JOIN users u ON u.national_id=f.nationalId
-              LEFT JOIN region re ON re.id=u.region_id
-              JOIN user_documents ud ON ud.nationalId=f.nationalId
-              LEFT JOIN user_addresses ua ON ua.user_id=u.id
-              LEFT JOIN userscheck uc ON uc.national_id=u.national_id
+              FROM dbo.final_submissions f
+              JOIN dbo.users u ON u.national_id=f.nationalId
+              LEFT JOIN dbo.region re ON re.id=u.region_id
+              JOIN dbo.user_documents ud ON ud.nationalId=f.nationalId
+              LEFT JOIN dbo.user_addresses ua ON ua.user_id=u.id
+              LEFT JOIN dbo.userscheck uc ON uc.national_id=u.national_id
               WHERE u.region_id=@rid ORDER BY create_date DESC",
             new { rid = regionId })).AsList();
 
@@ -279,8 +275,8 @@ public class UserController : ControllerBase
         await conn.OpenAsync();
 
         var me = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT roles FROM users WHERE national_id=@nid", new { nid = NationalId });
-        string myRole = (string?)me?.roles ?? "";
+            "SELECT TOP (1) roles FROM dbo.users WHERE national_id=@nid", new { nid = NationalId });
+        string myRole = me == null ? "" : (Convert.ToString(me.roles) ?? "");
 
         if (myRole != "EXECUTIVE" && myRole != "SUPERVISOR")
             return StatusCode(403, new { status = false, message = "شما دسترسی لازم را ندارید" });
@@ -290,22 +286,22 @@ public class UserController : ControllerBase
         try
         {
             await conn.ExecuteAsync(
-                @"UPDATE final_submissions SET requestStatus=@s, reson=@r, edited_at=SYSDATETIME()
+                @"UPDATE dbo.final_submissions SET requestStatus=@s, reson=@r, edited_at=GETDATE()
                   WHERE nationalId=@nid",
                 new { s = req.requestStatus, r = req.reason ?? "", nid = req.national_Id }, tx);
 
             if (myRole == "SUPERVISOR" && (req.requestStatus == "SUPERVISION_APPROVED" || req.requestStatus == "SUPERVISION_REJECTED"))
             {
                 await conn.ExecuteAsync(
-                    @"UPDATE user_documents
+                    @"UPDATE dbo.user_documents
                       SET supervision_status=@s, supervision_reason=@r,
-                          supervision_reviewed_by=@by, supervision_reviewed_at=SYSDATETIME()
+                          supervision_reviewed_by=@by, supervision_reviewed_at=GETDATE()
                       WHERE nationalId=@nid",
                     new { s = req.requestStatus, r = req.reason ?? "", by = NationalId, nid = req.national_Id }, tx);
             }
 
             await conn.ExecuteAsync(
-                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,N'تغییر وضعیت',@desc)",
+                "INSERT INTO dbo.logs (nationalId, action, description) VALUES (@nid,'تغییر وضعیت',@desc)",
                 new { nid = NationalId, desc = $"تغییر کدملی {req.national_Id} به {req.requestStatus}" }, tx);
 
             await tx.CommitAsync();
@@ -321,7 +317,7 @@ public class UserController : ControllerBase
             if (statusMessages.TryGetValue(req.requestStatus, out var smsText))
             {
                 var mobile = await conn.QueryFirstOrDefaultAsync<string>(
-                    "SELECT TOP (1) mobile FROM users WHERE national_id=@nid ", new { nid = req.national_Id });
+                    "SELECT TOP (1) mobile FROM dbo.users WHERE national_id=@nid", new { nid = req.national_Id });
                 if (!string.IsNullOrWhiteSpace(mobile))
                     _bale.SendAsync(mobile, $"سامانه انتخابات: {smsText}");
             }
@@ -343,4 +339,3 @@ public class UserController : ControllerBase
 
 public record UpdateUserRequest(string national_id, int region_id, string roles);
 public record ChangeStateRequest(string national_Id, string requestStatus, string? reason);
-

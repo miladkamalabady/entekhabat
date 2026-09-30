@@ -24,36 +24,14 @@ public class SupportTicketController : ControllerBase
 
     private async Task EnsureTables(Microsoft.Data.SqlClient.SqlConnection conn)
     {
-        await conn.ExecuteAsync(@"IF OBJECT_ID(N'dbo.support_tickets', N'U') IS NULL CREATE TABLE dbo.support_tickets (
-            id INT NOT NULL IDENTITY(1,1),
-            ticket_code NVARCHAR(30) NOT NULL,
-            requester_national_id NVARCHAR(20) NOT NULL,
-            requester_name NVARCHAR(120) DEFAULT NULL,
-            requester_region_id INT DEFAULT NULL,
-            requester_region_name NVARCHAR(120) DEFAULT NULL,
-            requester_province_code INT DEFAULT NULL,
-            target_role NVARCHAR(20) NOT NULL DEFAULT 'EXECUTIVE',
-            support_level NVARCHAR(20) NOT NULL DEFAULT 'region',
-            subject NVARCHAR(255) NOT NULL,
-            category NVARCHAR(60) NOT NULL,
-            priority NVARCHAR(20) NOT NULL DEFAULT 'medium',
-            status NVARCHAR(20) NOT NULL DEFAULT 'open',
-            created_at DATETIME2 NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME2 NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            closed_at DATETIME2 DEFAULT NULL,
-            closed_by NVARCHAR(20) DEFAULT NULL,
-            PRIMARY KEY (id), CONSTRAINT support_tickets_code_idx UNIQUE (ticket_code))");
-
-        await conn.ExecuteAsync(@"IF OBJECT_ID(N'dbo.support_ticket_messages', N'U') IS NULL CREATE TABLE dbo.support_ticket_messages (
-            id INT NOT NULL IDENTITY(1,1),
-            ticket_id INT NOT NULL,
-            sender_national_id NVARCHAR(20) NOT NULL,
-            sender_name NVARCHAR(120) DEFAULT NULL,
-            sender_role NVARCHAR(20) NOT NULL DEFAULT 'USER',
-            message NVARCHAR(MAX) NOT NULL,
-            attachments NVARCHAR(MAX) DEFAULT NULL,
-            created_at DATETIME2 NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (id))");
+        await conn.ExecuteAsync(@"IF OBJECT_ID(N'dbo.support_tickets', N'U') IS NULL
+BEGIN
+ CREATE TABLE dbo.support_tickets (id INT IDENTITY(1,1) PRIMARY KEY, ticket_code NVARCHAR(30) NOT NULL UNIQUE, requester_national_id NVARCHAR(20) NOT NULL, requester_name NVARCHAR(120) NULL, requester_region_id INT NULL, requester_region_name NVARCHAR(120) NULL, requester_province_code INT NULL, target_role NVARCHAR(20) NOT NULL DEFAULT N'EXECUTIVE', support_level NVARCHAR(20) NOT NULL DEFAULT N'region', subject NVARCHAR(255) NOT NULL, category NVARCHAR(60) NOT NULL, priority NVARCHAR(20) NOT NULL DEFAULT N'medium', status NVARCHAR(20) NOT NULL DEFAULT N'open', created_at DATETIME2 NOT NULL DEFAULT GETDATE(), updated_at DATETIME2 NOT NULL DEFAULT GETDATE(), closed_at DATETIME2 NULL, closed_by NVARCHAR(20) NULL);
+END;
+IF OBJECT_ID(N'dbo.support_ticket_messages', N'U') IS NULL
+BEGIN
+ CREATE TABLE dbo.support_ticket_messages (id INT IDENTITY(1,1) PRIMARY KEY, ticket_id INT NOT NULL, sender_national_id NVARCHAR(20) NOT NULL, sender_name NVARCHAR(120) NULL, sender_role NVARCHAR(20) NOT NULL DEFAULT N'USER', message NVARCHAR(MAX) NOT NULL, attachments NVARCHAR(MAX) NULL, created_at DATETIME2 NOT NULL DEFAULT GETDATE());
+END");
     }
 
     private static string NormalizeRole(string role)
@@ -145,9 +123,9 @@ public class SupportTicketController : ControllerBase
         await EnsureTables(conn);
 
         var user = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            @"SELECT TOP (1) u.national_id, u.first_name, u.last_name, u.roles, u.region_id,
+            @"SELECT u.national_id, u.first_name, u.last_name, u.roles, u.region_id,
                      r.Name AS regionName, r.ProvinceCode AS provinceCode
-              FROM users u LEFT JOIN region r ON r.id=u.region_id WHERE u.national_id=@nid ",
+              FROM users u LEFT JOIN region r ON r.id=u.region_id WHERE u.national_id=@nid",
             new { nid = NationalId });
         if (user == null) return NotFound(new { status = false, message = "کاربر یافت نشد" });
 
@@ -156,7 +134,7 @@ public class SupportTicketController : ControllerBase
             where += $" AND t.status='{status}'";
 
         var tickets = (await conn.QueryAsync<dynamic>(
-            $"SELECT TOP (300) t.* FROM support_tickets t WHERE {where} ORDER BY t.updated_at DESC, t.id DESC ")).AsList();
+            $"SELECT t.* FROM support_tickets t WHERE {where} ORDER BY t.updated_at DESC, t.id DESC OFFSET 0 ROWS FETCH NEXT 300 ROWS ONLY")).AsList();
 
         var ids = tickets.Select(t => (int)t.id).ToList();
         var allMessages = new List<dynamic>();
@@ -237,9 +215,9 @@ public class SupportTicketController : ControllerBase
         await EnsureTables(conn);
 
         var user = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            @"SELECT TOP (1) u.national_id, u.first_name, u.last_name, u.roles, u.region_id,
+            @"SELECT u.national_id, u.first_name, u.last_name, u.roles, u.region_id,
                      r.Name AS regionName, r.ProvinceCode AS provinceCode
-              FROM users u LEFT JOIN region r ON r.id=u.region_id WHERE u.national_id=@nid ",
+              FROM users u LEFT JOIN region r ON r.id=u.region_id WHERE u.national_id=@nid",
             new { nid = NationalId });
         if (user == null) return NotFound(new { status = false, message = "کاربر یافت نشد" });
 
@@ -250,14 +228,10 @@ public class SupportTicketController : ControllerBase
         string ticketCode = "T" + DateTime.Now.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture) + Random.Shared.Next(100, 999);
 
         int ticketId = await conn.QuerySingleAsync<int>(
-            @"INSERT INTO support_tickets
-                (ticket_code, requester_national_id, requester_name, requester_region_id,
-                 requester_region_name, requester_province_code, target_role, support_level,
-                 subject, category, priority, status) OUTPUT INSERTED.id
+            @"INSERT INTO dbo.support_tickets (ticket_code, requester_national_id, requester_name, requester_region_id, requester_region_name, requester_province_code, target_role, support_level, subject, category, priority, status)
+              OUTPUT INSERTED.id
               VALUES (@code,@nid,@name,@rid,@rname,@pc,@trole,@level,@subj,@cat,@pri,'open')",
             new { code = ticketCode, nid = NationalId, name = requesterName, rid = regionId, rname = (string)(user.regionName ?? ""), pc = provinceCode, trole = targetRole, level = supportLevel, subj = req.subject, cat = req.category, pri = priority });
-
-        
 
         await conn.ExecuteAsync(
             "INSERT INTO support_ticket_messages (ticket_id, sender_national_id, sender_name, sender_role, message, attachments) VALUES (@tid,@nid,@name,'USER',@msg,'[]')",
@@ -277,14 +251,14 @@ public class SupportTicketController : ControllerBase
         await EnsureTables(conn);
 
         var user = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            @"SELECT TOP (1) u.national_id, u.first_name, u.last_name, u.roles, u.region_id,
+            @"SELECT u.national_id, u.first_name, u.last_name, u.roles, u.region_id,
                      r.Name AS regionName, r.ProvinceCode AS provinceCode
-              FROM users u LEFT JOIN region r ON r.id=u.region_id WHERE u.national_id=@nid ",
+              FROM users u LEFT JOIN region r ON r.id=u.region_id WHERE u.national_id=@nid",
             new { nid = NationalId });
         if (user == null) return NotFound(new { status = false, message = "کاربر یافت نشد" });
 
         var ticket = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT TOP (1) * FROM support_tickets WHERE id=@id ", new { id = req.ticketId });
+            "SELECT * FROM support_tickets WHERE id=@id", new { id = req.ticketId });
         if (ticket == null || !CanAccess(ticket, user))
             return StatusCode(403, new { status = false, message = "شما دسترسی پاسخ به این تیکت را ندارید." });
         if ((string)ticket.status == "closed")
@@ -302,8 +276,8 @@ public class SupportTicketController : ControllerBase
                 new { tid = req.ticketId, nid = NationalId, name = senderName, role = senderRole, msg = req.message });
 
         string updateSql = req.closeTicket
-            ? "UPDATE support_tickets SET updated_at=SYSDATETIME(), status='closed', closed_at=SYSDATETIME(), closed_by=@by WHERE id=@id"
-            : "UPDATE support_tickets SET updated_at=SYSDATETIME(), status='open' WHERE id=@id";
+            ? "UPDATE support_tickets SET updated_at=GETDATE(), status='closed', closed_at=GETDATE(), closed_by=@by WHERE id=@id"
+            : "UPDATE support_tickets SET updated_at=GETDATE(), status='open' WHERE id=@id";
         await conn.ExecuteAsync(updateSql, new { by = NationalId, id = req.ticketId });
 
         return Ok(new { status = true, message = "پاسخ تیکت ثبت شد." });
@@ -312,4 +286,3 @@ public class SupportTicketController : ControllerBase
 
 public record SaveTicketRequest(string? subject, string? category, string? priority, string? description, string? targetRole);
 public record ReplyTicketRequest(int ticketId, string? message, bool closeTicket = false);
-

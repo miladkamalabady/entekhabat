@@ -28,7 +28,7 @@ public class LogFeedbackController : ControllerBase
         await using var conn = _db.CreateConnection();
 
         var user = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT TOP (1) roles FROM users WHERE national_id=@nid ", new { nid = NationalId });
+            "SELECT roles FROM users WHERE national_id=@nid", new { nid = NationalId });
 
         if (user == null || (string)user.roles != "ADMIN")
             return StatusCode(403, new { status = false, message = "شما دسترسی لازم را ندارید" });
@@ -36,7 +36,7 @@ public class LogFeedbackController : ControllerBase
         limit = Math.Clamp(limit <= 0 ? 200 : limit, 1, 1000);
 
         var rows = (await conn.QueryAsync<dynamic>(
-            $"SELECT TOP ({limit}) id, nationalId, action, description, create_date FROM logs ORDER BY id DESC ")).AsList();
+            $"SELECT id, nationalId, action, description, create_date FROM logs ORDER BY id DESC OFFSET 0 ROWS FETCH NEXT {limit} ROWS ONLY")).AsList();
 
         var list = rows.Select(r =>
         {
@@ -56,9 +56,9 @@ public class LogFeedbackController : ControllerBase
         await using var conn = _db.CreateConnection();
 
         var me = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            @"SELECT TOP (1) u.roles, u.region_id, u.first_name, u.last_name, r.ProvinceCode
+            @"SELECT u.roles, u.region_id, u.first_name, u.last_name, r.ProvinceCode
               FROM users u LEFT JOIN region r ON r.id=u.region_id
-              WHERE u.national_id=@nid ", new { nid = NationalId });
+              WHERE u.national_id=@nid", new { nid = NationalId });
 
         if (me == null) return Unauthorized();
 
@@ -77,11 +77,11 @@ public class LogFeedbackController : ControllerBase
 
         if (isAdmin)
         {
-            sql = $@"SELECT TOP ({limit}) l.id, l.nationalId, l.action, l.description, l.create_date,
+            sql = $@"SELECT l.id, l.nationalId, l.action, l.description, l.create_date,
                             u.first_name, u.last_name
                      FROM logs l
                      LEFT JOIN users u ON u.national_id=l.nationalId
-                     ORDER BY l.id DESC ";
+                     ORDER BY l.id DESC OFFSET 0 ROWS FETCH NEXT {limit} ROWS ONLY";
             param = new { };
         }
         else
@@ -92,23 +92,23 @@ public class LogFeedbackController : ControllerBase
 
             if (isProvinceSupervisor)
             {
-                sql = $@"SELECT TOP ({limit}) l.id, l.nationalId, l.action, l.description, l.create_date,
+                sql = $@"SELECT l.id, l.nationalId, l.action, l.description, l.create_date,
                                 u.first_name, u.last_name
                          FROM logs l
                          LEFT JOIN users u ON u.national_id=l.nationalId
                          LEFT JOIN region r ON r.id=u.region_id
                          WHERE r.ProvinceCode=@pcode OR l.nationalId=@nid
-                         ORDER BY l.id DESC ";
+                         ORDER BY l.id DESC OFFSET 0 ROWS FETCH NEXT {limit} ROWS ONLY";
                 param = new { pcode = myProvince, nid = NationalId };
             }
             else
             {
-                sql = $@"SELECT TOP ({limit}) l.id, l.nationalId, l.action, l.description, l.create_date,
+                sql = $@"SELECT l.id, l.nationalId, l.action, l.description, l.create_date,
                                 u.first_name, u.last_name
                          FROM logs l
                          LEFT JOIN users u ON u.national_id=l.nationalId
                          WHERE u.region_id=@rid OR l.nationalId=@nid
-                         ORDER BY l.id DESC ";
+                         ORDER BY l.id DESC OFFSET 0 ROWS FETCH NEXT {limit} ROWS ONLY";
                 param = new { rid = myRegion, nid = NationalId };
             }
         }
@@ -139,7 +139,7 @@ public class LogFeedbackController : ControllerBase
         try
         {
             var existing = await conn.QueryFirstOrDefaultAsync<int?>(
-                "SELECT TOP (1) id FROM feedback WHERE national_id=@nid ", new { nid = NationalId }, tx);
+                "SELECT id FROM feedback WHERE national_id=@nid", new { nid = NationalId }, tx);
 
             string message;
             if (!existing.HasValue)
@@ -169,4 +169,3 @@ public class LogFeedbackController : ControllerBase
 }
 
 public record FeedbackRequest(int rating, string? comment);
-

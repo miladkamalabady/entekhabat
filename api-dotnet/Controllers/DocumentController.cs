@@ -57,6 +57,14 @@ public class DocumentController : ControllerBase
         if (string.IsNullOrWhiteSpace(NationalId))
             return BadRequest(new { status = false, message = "پارامتر nationalId الزامی است." });
 
+        var fieldNames = new Dictionary<string, string>
+        {
+            ["user_photo"]     = "عکس پرسنلی",
+            ["soPishine_cert"] = "گواهی عدم سوپیشینه",
+            ["ravan_cert"]     = "گواهی سلامت جسمی و روانی",
+            ["education_doc"]  = "مدرک تحصیلی"
+        };
+
         var required = new[]
         {
             ("user_photo", user_photo, AllowedImages),
@@ -64,17 +72,17 @@ public class DocumentController : ControllerBase
             ("ravan_cert", ravan_cert, AllowedDocs)
         };
 
-        // Validate required files (Content-Type + magic bytes)
         foreach (var (field, file, allowed) in required)
         {
+            var label = fieldNames.GetValueOrDefault(field, field);
             if (file == null || file.Length == 0)
-                return BadRequest(new { status = false, message = $"فایل {field} ارسال نشده." });
+                return BadRequest(new { status = false, message = $"فایل {label} ارسال نشده." });
             if (file.Length > MaxSize)
-                return BadRequest(new { status = false, message = $"فایل {field} نباید بیشتر از 1 مگابایت باشد." });
+                return BadRequest(new { status = false, message = $"فایل {label} نباید بیشتر از ۱ مگابایت باشد." });
             if (!allowed.Contains(file.ContentType))
-                return BadRequest(new { status = false, message = $"فرمت فایل {field} مجاز نیست." });
+                return BadRequest(new { status = false, message = $"فرمت فایل {label} مجاز نیست. فقط JPG، PNG و PDF قابل قبول است." });
             if (!IsValidMagicBytes(file))
-                return BadRequest(new { status = false, message = $"محتوای فایل {field} معتبر نیست." });
+                return BadRequest(new { status = false, message = $"محتوای فایل {label} معتبر نیست." });
         }
 
         var baseDir = Path.Combine(_env.WebRootPath ?? _env.ContentRootPath, "uploads", "user_documents");
@@ -111,13 +119,15 @@ public class DocumentController : ControllerBase
 
         if (paths.ContainsKey("education_doc"))
             await conn.ExecuteAsync(
-                @"UPDATE user_documents WITH (UPDLOCK, SERIALIZABLE) SET  user_photo=@up, education_doc=@ed,
-                  soPishine_cert=@sp, ravan_cert=@rc, updated_at=SYSDATETIME() WHERE nationalId=@nid; IF @@ROWCOUNT=0 INSERT INTO user_documents (nationalId, user_photo, education_doc, employment_cert, soPishine_cert, ravan_cert) VALUES (@nid,@up,@ed,'',@sp,@rc)",
+                @"IF EXISTS (SELECT 1 FROM dbo.user_documents WHERE nationalId=@nid)
+                  UPDATE dbo.user_documents SET user_photo=@up, education_doc=@ed, soPishine_cert=@sp, ravan_cert=@rc, updated_at=GETDATE() WHERE nationalId=@nid
+                  ELSE INSERT INTO dbo.user_documents (nationalId,user_photo,education_doc,employment_cert,soPishine_cert,ravan_cert) VALUES (@nid,@up,@ed,'',@sp,@rc)",
                 new { nid = NationalId, up = paths["user_photo"], ed = paths["education_doc"], sp = paths["soPishine_cert"], rc = paths["ravan_cert"] }, tx);
         else
             await conn.ExecuteAsync(
-                @"UPDATE user_documents WITH (UPDLOCK, SERIALIZABLE) SET  user_photo=@up,
-                  soPishine_cert=@sp, ravan_cert=@rc, updated_at=SYSDATETIME() WHERE nationalId=@nid; IF @@ROWCOUNT=0 INSERT INTO user_documents (nationalId, user_photo, employment_cert, soPishine_cert, ravan_cert) VALUES (@nid,@up,'',@sp,@rc)",
+                @"IF EXISTS (SELECT 1 FROM dbo.user_documents WHERE nationalId=@nid)
+                  UPDATE dbo.user_documents SET user_photo=@up, soPishine_cert=@sp, ravan_cert=@rc, updated_at=GETDATE() WHERE nationalId=@nid
+                  ELSE INSERT INTO dbo.user_documents (nationalId,user_photo,employment_cert,soPishine_cert,ravan_cert) VALUES (@nid,@up,'',@sp,@rc)",
                 new { nid = NationalId, up = paths["user_photo"], sp = paths["soPishine_cert"], rc = paths["ravan_cert"] }, tx);
 
         await tx.CommitAsync();
@@ -158,15 +168,14 @@ public class DocumentController : ControllerBase
         try
         {
             await conn.ExecuteAsync(
-                @"UPDATE user_documents
-                  SET document_reviews = JSON_MODIFY(COALESCE(document_reviews, '{}'),
-                    CONCAT('$.', @key), JSON_QUERY((SELECT @status AS status, @by AS reviewed_by,
-                    CONVERT(varchar(19), SYSDATETIME(), 120) AS reviewed_at FOR JSON PATH, WITHOUT_ARRAY_WRAPPER)))
+                @"UPDATE dbo.user_documents
+                  SET document_reviews = JSON_MODIFY(COALESCE(NULLIF(document_reviews,''),'{}'), CONCAT('$.', @key),
+                      JSON_QUERY((SELECT @status AS [status], @by AS reviewed_by, CONVERT(varchar(19),GETDATE(),120) AS reviewed_at FOR JSON PATH, WITHOUT_ARRAY_WRAPPER)))
                   WHERE nationalId=@nid",
                 new { key = req.documentKey, status = req.reviewStatus, by = NationalId, nid = req.national_Id }, tx);
 
             await conn.ExecuteAsync(
-                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,N'بررسی مدرک',@desc)",
+                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'بررسی مدرک',@desc)",
                 new { nid = NationalId, desc = $"بررسی {req.documentKey} برای {req.national_Id} با وضعیت {req.reviewStatus}" }, tx);
 
             await tx.CommitAsync();
@@ -186,4 +195,3 @@ public class DocumentController : ControllerBase
 }
 
 public record DocumentReviewRequest(string national_Id, string documentKey, string reviewStatus);
-

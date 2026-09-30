@@ -15,8 +15,4 @@
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Remove="Controllers/UserController copy.cs" />
-  </ItemGroup>
 </Project>
-

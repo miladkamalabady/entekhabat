@@ -17,7 +17,7 @@ public static class DbHelper
         if (conn.State != System.Data.ConnectionState.Open)
             await conn.OpenAsync();
 
-        var tx = (SqlTransaction)await conn.BeginTransactionAsync();
+        await using var tx = (SqlTransaction)await conn.BeginTransactionAsync();
         try
         {
             var result = await callback(tx);
@@ -29,10 +29,6 @@ public static class DbHelper
             await tx.RollbackAsync();
             throw;
         }
-        finally
-        {
-            await tx.DisposeAsync();
-        }
     }
 
     public static async Task WithTransaction(
@@ -42,7 +38,7 @@ public static class DbHelper
         if (conn.State != System.Data.ConnectionState.Open)
             await conn.OpenAsync();
 
-        var tx = (SqlTransaction)await conn.BeginTransactionAsync();
+        await using var tx = (SqlTransaction)await conn.BeginTransactionAsync();
         try
         {
             await callback(tx);
@@ -52,10 +48,6 @@ public static class DbHelper
         {
             await tx.RollbackAsync();
             throw;
-        }
-        finally
-        {
-            await tx.DisposeAsync();
         }
     }
 
@@ -102,4 +94,3 @@ public static class DbHelper
     public static int Int(this IDictionary<string, object> d, string key)
         => Convert.ToInt32(d.GetValueOrDefault(key) ?? 0);
 }
-

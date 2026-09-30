@@ -31,7 +31,7 @@ public class SendBaleSchoolController : ControllerBase
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
-    private SqlConnection OpenDatabase()
+    private SqlConnection OpenSchoolDb()
     {
         var cs = _config.GetConnectionString("BaleSchoolConnection")!;
         var conn = new SqlConnection(cs);
@@ -64,26 +64,16 @@ public class SendBaleSchoolController : ControllerBase
     private void EnsureTables(SqlConnection conn)
     {
         using var cmd = conn.CreateCommand();
-        cmd.CommandText = @"
-IF OBJECT_ID(N'dbo.history', N'U') IS NULL CREATE TABLE dbo.history (
-    id INT IDENTITY(1,1) PRIMARY KEY,
-    school_code NVARCHAR(20) NOT NULL,
-    school_name NVARCHAR(100) NOT NULL,
-    year INT NOT NULL DEFAULT 1404,
-    class_name  NVARCHAR(50)
-);
-
-IF OBJECT_ID(N'dbo.student', N'U') IS NULL CREATE TABLE dbo.student (
-    id INT IDENTITY(1,1) PRIMARY KEY,
-    student_code NVARCHAR(15),
-    first_name NVARCHAR(50) NOT NULL,
-    last_name  NVARCHAR(50) NOT NULL,
-    school_code NVARCHAR(20) NOT NULL,
-    class_name  NVARCHAR(50),
-    student_phone NVARCHAR(15),
-    father_phone  NVARCHAR(15),
-    mother_phone  NVARCHAR(15)
-);";
+        cmd.CommandText = @"IF OBJECT_ID(N'dbo.history', N'U') IS NULL
+BEGIN
+ CREATE TABLE dbo.history (id INT IDENTITY(1,1) PRIMARY KEY, school_code NVARCHAR(20) NOT NULL, school_name NVARCHAR(100) NOT NULL, [year] INT NOT NULL DEFAULT 1404, class_name NVARCHAR(50) NULL);
+ CREATE INDEX IX_history_year_school ON dbo.history([year], school_code);
+END;
+IF OBJECT_ID(N'dbo.student', N'U') IS NULL
+BEGIN
+ CREATE TABLE dbo.student (id INT IDENTITY(1,1) PRIMARY KEY, student_code NVARCHAR(15) NULL, first_name NVARCHAR(50) NOT NULL, last_name NVARCHAR(50) NOT NULL, school_code NVARCHAR(20) NOT NULL, class_name NVARCHAR(50) NULL, student_phone NVARCHAR(15) NULL, father_phone NVARCHAR(15) NULL, mother_phone NVARCHAR(15) NULL);
+ CREATE INDEX IX_student_school ON dbo.student(school_code);
+END;";
         cmd.ExecuteNonQuery();
     }
 
@@ -163,7 +153,7 @@ IF OBJECT_ID(N'dbo.student', N'U') IS NULL CREATE TABLE dbo.student (
 
     private Task<IActionResult> Reseed()
     {
-        using var conn = OpenDatabase();
+        using var conn = OpenSchoolDb();
         EnsureTables(conn);
         RunSeed(conn);
         return Task.FromResult<IActionResult>(Ok(new { ok = true }));
@@ -253,7 +243,7 @@ WHERE h.TimeYearType_Id = 1404 AND h.StudentStateType_Id IN (1,3) AND h.School_I
 
     private Task<IActionResult> GetSchools()
     {
-        using var conn = OpenDatabase();
+        using var conn = OpenSchoolDb();
         EnsureTables(conn);
 
         using var cmd = conn.CreateCommand();
@@ -272,7 +262,7 @@ WHERE h.TimeYearType_Id = 1404 AND h.StudentStateType_Id IN (1,3) AND h.School_I
     private Task<IActionResult> GetStudents()
     {
         var sc = Request.Form["school_code"].ToString();
-        using var conn = OpenDatabase();
+        using var conn = OpenSchoolDb();
         EnsureTables(conn);
 
         // auto-seed if empty
@@ -445,4 +435,3 @@ WHERE h.TimeYearType_Id = 1404 AND h.StudentStateType_Id IN (1,3) AND h.School_I
         return newDict;
     }
 }
-

@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "E:\\oldwin\\entekhabat\\api-dotnet\\EntekhabatApi.csproj": {}
+    "C:\\Users\\Administrator\\Documents\\entekhabat\\api-dotnet\\EntekhabatApi.csproj": {}
   },
   "projects": {
-    "E:\\oldwin\\entekhabat\\api-dotnet\\EntekhabatApi.csproj": {
+    "C:\\Users\\Administrator\\Documents\\entekhabat\\api-dotnet\\EntekhabatApi.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\oldwin\\entekhabat\\api-dotnet\\EntekhabatApi.csproj",
+        "projectUniqueName": "C:\\Users\\Administrator\\Documents\\entekhabat\\api-dotnet\\EntekhabatApi.csproj",
         "projectName": "EntekhabatApi",
-        "projectPath": "E:\\oldwin\\entekhabat\\api-dotnet\\EntekhabatApi.csproj",
-        "packagesPath": "C:\\Users\\aftab\\.nuget\\packages\\",
-        "outputPath": "E:\\oldwin\\entekhabat\\api-dotnet\\obj\\",
+        "projectPath": "C:\\Users\\Administrator\\Documents\\entekhabat\\api-dotnet\\EntekhabatApi.csproj",
+        "packagesPath": "C:\\Users\\Administrator\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Administrator\\Documents\\entekhabat\\api-dotnet\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\aftab\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\Administrator\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
@@ -51,13 +51,13 @@
               "target": "Package",
               "version": "[8.0.0, )"
             },
+            "Microsoft.Data.SqlClient": {
+              "target": "Package",
+              "version": "[5.2.2, )"
+            },
             "Microsoft.IdentityModel.Tokens": {
               "target": "Package",
               "version": "[7.0.3, )"
-            },
-            "MySqlConnector": {
-              "target": "Package",
-              "version": "[2.3.5, )"
             },
             "System.IdentityModel.Tokens.Jwt": {
               "target": "Package",
@@ -83,7 +83,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.421/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.424/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

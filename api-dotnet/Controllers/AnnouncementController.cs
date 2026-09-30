@@ -22,18 +22,13 @@ public class AnnouncementController : ControllerBase
 
     private string NationalId => User.Claims.FirstOrDefault(c => c.Type == "national_id")?.Value ?? "";
 
-    private const string CreateTable = @"IF OBJECT_ID(N'dbo.announcements', N'U') IS NULL CREATE TABLE dbo.announcements (
-        id INT NOT NULL IDENTITY(1,1),
-        title NVARCHAR(255) NOT NULL,
-        content NVARCHAR(MAX) NOT NULL,
-        target_scope NVARCHAR(20) NOT NULL DEFAULT 'region',
-        target_ids NVARCHAR(MAX) NULL,
-        created_by NVARCHAR(20) NOT NULL,
-        is_active BIT NOT NULL DEFAULT 1,
-        created_at DATETIME2 DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME2 DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (id)
-    )";
+    private const string CreateTable = @"IF OBJECT_ID(N'dbo.announcements', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.announcements (
+        id INT IDENTITY(1,1) NOT NULL PRIMARY KEY, title NVARCHAR(255) NOT NULL, content NVARCHAR(MAX) NOT NULL,
+        target_scope NVARCHAR(30) NOT NULL, target_ids NVARCHAR(MAX) NULL, created_by NVARCHAR(20) NOT NULL,
+        created_at DATETIME2 NOT NULL DEFAULT GETDATE(), is_active BIT NOT NULL DEFAULT 1);
+END";
 
     // GET /api/getPublicAnnouncements — بدون نیاز به لاگین (فقط سراسری)
     [AllowAnonymous]
@@ -44,11 +39,10 @@ public class AnnouncementController : ControllerBase
         await conn.ExecuteAsync(CreateTable);
 
         var rows = (await conn.QueryAsync<dynamic>(@"
-            SELECT TOP (10) a.id, a.title, a.content, a.target_scope, a.created_at
-            FROM announcements a
+            SELECT TOP (20) a.id, a.title, a.content, a.target_scope, a.created_at
+            FROM dbo.announcements a
             WHERE a.is_active = 1 AND a.target_scope = 'country'
-            ORDER BY a.created_at DESC
-            ")).AsList();
+            ORDER BY a.created_at DESC")).AsList();
 
         var list = rows.Select(r =>
         {
@@ -69,9 +63,9 @@ public class AnnouncementController : ControllerBase
         await conn.ExecuteAsync(CreateTable);
 
         var me = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            @"SELECT TOP (1) u.region_id, r.ProvinceCode FROM users u
+            @"SELECT u.region_id, r.ProvinceCode FROM users u
               LEFT JOIN region r ON r.id=u.region_id
-              WHERE u.national_id=@nid ", new { nid = NationalId });
+              WHERE u.national_id=@nid", new { nid = NationalId });
 
         if (me == null) return Unauthorized();
 
@@ -83,12 +77,12 @@ public class AnnouncementController : ControllerBase
                    a.created_by, a.is_active, a.created_at,
                    u.first_name, u.last_name
             FROM announcements a
-            LEFT JOIN users u ON u.national_id = a.created_by COLLATE utf8mb4_persian_ci
+            LEFT JOIN users u ON u.national_id = a.created_by
             WHERE a.is_active = 1
               AND (
                   a.target_scope = 'country'
-                  OR (a.target_scope = 'province' AND EXISTS (SELECT 1 FROM OPENJSON(a.target_ids) j WHERE TRY_CONVERT(int, j.value)=@pcode))
-                  OR (a.target_scope = 'region'   AND EXISTS (SELECT 1 FROM OPENJSON(a.target_ids) j WHERE TRY_CONVERT(int, j.value)=@rid))
+                  OR (a.target_scope = 'province' AND EXISTS (SELECT 1 FROM OPENJSON(a.target_ids) j WHERE TRY_CONVERT(int,j.[value])=@pcode))
+                  OR (a.target_scope = 'region' AND EXISTS (SELECT 1 FROM OPENJSON(a.target_ids) j WHERE TRY_CONVERT(int,j.[value])=@rid))
               )
             ORDER BY a.created_at DESC",
             new { pcode = myProvince, rid = myRegion })).AsList();
@@ -118,7 +112,7 @@ public class AnnouncementController : ControllerBase
         await conn.ExecuteAsync(CreateTable);
 
         var me = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT TOP (1) roles FROM users WHERE national_id=@nid ", new { nid = NationalId });
+            "SELECT roles FROM users WHERE national_id=@nid", new { nid = NationalId });
         if (me == null) return Unauthorized();
 
         string myRole = (string)me.roles;
@@ -128,11 +122,11 @@ public class AnnouncementController : ControllerBase
         string sql = myRole == "ADMIN"
             ? @"SELECT a.*, u.first_name, u.last_name
                 FROM announcements a
-                LEFT JOIN users u ON u.national_id=a.created_by COLLATE utf8mb4_persian_ci
+                LEFT JOIN users u ON u.national_id=a.created_by
                 ORDER BY a.created_at DESC"
             : @"SELECT a.*, u.first_name, u.last_name
                 FROM announcements a
-                LEFT JOIN users u ON u.national_id=a.created_by COLLATE utf8mb4_persian_ci
+                LEFT JOIN users u ON u.national_id=a.created_by
                 WHERE a.created_by=@nid
                 ORDER BY a.created_at DESC";
 
@@ -166,9 +160,9 @@ public class AnnouncementController : ControllerBase
         await conn.ExecuteAsync(CreateTable);
 
         var me = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            @"SELECT TOP (1) u.roles, u.region_id, r.ProvinceCode FROM users u
+            @"SELECT u.roles, u.region_id, r.ProvinceCode FROM users u
               LEFT JOIN region r ON r.id=u.region_id
-              WHERE u.national_id=@nid ", new { nid = NationalId });
+              WHERE u.national_id=@nid", new { nid = NationalId });
 
         if (me == null) return Unauthorized();
 
@@ -250,7 +244,7 @@ public class AnnouncementController : ControllerBase
             if (id > 0)
             {
                 var existing = await conn.QueryFirstOrDefaultAsync<dynamic>(
-                    "SELECT TOP (1) created_by FROM announcements WHERE id=@id ", new { id }, tx);
+                    "SELECT created_by FROM announcements WHERE id=@id", new { id }, tx);
                 if (existing == null)
                     return NotFound(new { status = false, message = "اطلاعیه یافت نشد." });
                 if (!isAdmin && (string)existing.created_by != NationalId)
@@ -263,13 +257,12 @@ public class AnnouncementController : ControllerBase
             else
             {
                 id = await conn.QuerySingleAsync<int>(
-                    "INSERT INTO announcements (title, content, target_scope, target_ids, created_by) OUTPUT INSERTED.id VALUES (@t,@c,@s,@ids,@by)",
+                    "INSERT INTO dbo.announcements (title,content,target_scope,target_ids,created_by) OUTPUT INSERTED.id VALUES (@t,@c,@s,@ids,@by)",
                     new { t = req.title, c = req.content, s = req.target_scope, ids = targetIdsJson, by = NationalId }, tx);
-                
             }
 
             await conn.ExecuteAsync(
-                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,N'ذخیره اطلاعیه',@desc)",
+                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'ذخیره اطلاعیه',@desc)",
                 new { nid = NationalId, desc = $"اطلاعیه '{req.title}' — محدوده: {req.target_scope}" }, tx);
 
             return Ok(new { status = true, message = "اطلاعیه با موفقیت ذخیره شد.", data = new { id } });
@@ -287,13 +280,13 @@ public class AnnouncementController : ControllerBase
         await conn.OpenAsync();
 
         var me = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT TOP (1) roles FROM users WHERE national_id=@nid ", new { nid = NationalId });
+            "SELECT roles FROM users WHERE national_id=@nid", new { nid = NationalId });
         if (me == null) return Unauthorized();
 
         bool isAdmin = (string)me.roles == "ADMIN";
 
         var ann = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT TOP (1) id, created_by, title FROM announcements WHERE id=@id AND is_active=1 ", new { id = req.id });
+            "SELECT id, created_by, title FROM announcements WHERE id=@id AND is_active=1", new { id = req.id });
         if (ann == null)
             return NotFound(new { status = false, message = "اطلاعیه یافت نشد." });
 
@@ -302,7 +295,7 @@ public class AnnouncementController : ControllerBase
 
         await conn.ExecuteAsync("UPDATE announcements SET is_active=0 WHERE id=@id", new { id = req.id });
         await conn.ExecuteAsync(
-            "INSERT INTO logs (nationalId, action, description) VALUES (@nid,N'حذف اطلاعیه',@desc)",
+            "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'حذف اطلاعیه',@desc)",
             new { nid = NationalId, desc = $"اطلاعیه '{ann.title}' حذف شد" });
 
         return Ok(new { status = true, message = "اطلاعیه با موفقیت حذف شد." });
@@ -311,4 +304,3 @@ public class AnnouncementController : ControllerBase
 
 public record SaveAnnouncementRequest(int? id, string? title, string? content, string? target_scope, int[]? target_ids);
 public record DeleteAnnouncementRequest(int id);
-

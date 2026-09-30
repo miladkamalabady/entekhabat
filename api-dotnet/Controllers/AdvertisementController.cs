@@ -43,9 +43,9 @@ public class AdvertisementController : ControllerBase
 
         // Check advertising schedule
         var adsStartRow = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT TOP (1) start_date FROM election_schedule_events WHERE event_key='ads_upload_start' ");
+            "SELECT start_date FROM election_schedule_events WHERE event_key='ads_upload_start'");
         var votingRow = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT TOP (1) start_date FROM election_schedule_events WHERE event_key='voting' ");
+            "SELECT start_date FROM election_schedule_events WHERE event_key='voting'");
 
         if (adsStartRow != null && votingRow != null)
         {
@@ -98,26 +98,17 @@ public class AdvertisementController : ControllerBase
         await using var tx = await conn.BeginTransactionAsync();
         try
         {
-            long insertId = await conn.QuerySingleAsync<long>(
-                @"IF @id > 0
-                  BEGIN
-                    UPDATE advertisements SET title=@title, description=@desc, type=@type,
-                      image=COALESCE(NULLIF(@img,''),image), target_link=@link,
-                      managerialRecords=@mgr, academicRecords=@acad, honors=@hon,
-                      plans=@plans, slogan=@slogan, status='pending'
-                    WHERE id=@id AND nationalId=@nid;
-                    IF @@ROWCOUNT=0 THROW 50001, 'Advertisement not found or access denied', 1;
-                    SELECT CAST(@id AS bigint);
-                  END
-                  ELSE
-                    INSERT INTO advertisements (nationalId,title,description,type,image,target_link,status,
-                      managerialRecords,academicRecords,honors,plans,slogan)
-                    OUTPUT CAST(INSERTED.id AS bigint)
-                    VALUES (@nid,@title,@desc,@type,@img,@link,'pending',@mgr,@acad,@hon,@plans,@slogan)",
-                new { id, nid = NationalId, title = req.title, desc = req.description,
-                    type = req.type, img = storedImagePath ?? "", link = req.targetLink ?? "",
-                    mgr = req.managerialRecords ?? "", acad = req.academicRecords ?? "",
-                    hon = req.honors ?? "", plans = req.plans ?? "", slogan = req.slogan ?? "" }, tx);
+            long insertId;
+            var adParam = new { id, nid = NationalId, title = req.title, desc = req.description, type = req.type, img = storedImagePath, link = req.targetLink ?? "", mgr = req.managerialRecords ?? "", acad = req.academicRecords ?? "", hon = req.honors ?? "", plans = req.plans ?? "", slogan = req.slogan ?? "" };
+            if (id > 0)
+            {
+                await conn.ExecuteAsync(@"UPDATE dbo.advertisements SET title=@title, description=@desc, type=@type, image=COALESCE(@img,image), target_link=@link, managerialRecords=@mgr, academicRecords=@acad, honors=@hon, plans=@plans, slogan=@slogan, status='pending' WHERE id=@id AND nationalId=@nid", adParam, tx);
+                insertId = id;
+            }
+            else
+            {
+                insertId = await conn.QuerySingleAsync<long>(@"INSERT INTO dbo.advertisements (nationalId,title,description,type,image,target_link,status,managerialRecords,academicRecords,honors,plans,slogan) OUTPUT INSERTED.id VALUES (@nid,@title,@desc,@type,COALESCE(@img,''),@link,'pending',@mgr,@acad,@hon,@plans,@slogan)", adParam, tx);
+            }
             await tx.CommitAsync();
 
             return Ok(new { status = true, message = "تبلیغ با موفقیت ذخیره شد.", data = new { id = insertId, image = storedImagePath } });
@@ -158,7 +149,7 @@ public class AdvertisementController : ControllerBase
                 LEFT JOIN final_submissions f ON ad.nationalId=f.nationalId
                 LEFT JOIN region re ON re.id=u.region_id
                 LEFT JOIN userscheck uc ON uc.national_id=u.national_id
-                WHERE region_id=@rid ORDER BY create_date DESC";
+                WHERE u.region_id=@rid ORDER BY ad.create_date DESC";
 
         var param = roles == "CANDIDATE"
             ? (object)new { nid = NationalId }
@@ -214,7 +205,7 @@ public class AdvertisementController : ControllerBase
 
             await conn.ExecuteAsync(updateSql, new { id = req.code, d = newDeleter, r = req.reson ?? "" }, tx);
             await conn.ExecuteAsync(
-                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,N'تغییر وضعیت تبلیغ',@desc)",
+                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'تغییر وضعیت تبلیغ',@desc)",
                 new { nid = NationalId, desc = $"تغییر کد {req.code} به {newDeleter}" }, tx);
 
             await tx.CommitAsync();
@@ -250,7 +241,7 @@ public class AdvertisementController : ControllerBase
             return StatusCode(403, new { status = false, message = "شما دسترسی لازم را ندارید." });
 
         var ad = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT TOP (1) id, nationalId, status FROM advertisements WHERE id=@id ", new { id = req.id });
+            "SELECT id, nationalId, status FROM advertisements WHERE id=@id", new { id = req.id });
         if (ad == null)
             return NotFound(new { status = false, message = "تبلیغ یافت نشد." });
 
@@ -267,7 +258,7 @@ public class AdvertisementController : ControllerBase
                     new { id = req.id, role = myRole, reason = req.reason ?? "" }, tx);
 
             await conn.ExecuteAsync(
-                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,N'بررسی تبلیغ',@desc)",
+                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'بررسی تبلیغ',@desc)",
                 new { nid = NationalId, desc = $"تبلیغ {req.id} به وضعیت {req.status} تغییر کرد - دلیل: {req.reason}" }, tx);
 
             await tx.CommitAsync();
@@ -294,7 +285,7 @@ public class AdvertisementController : ControllerBase
 
         // بررسی بازه نمایش: از ۲۴ ساعت قبل انتخابات تا پایان آن
         var votingRow = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT TOP (1) start_date, end_date FROM election_schedule_events WHERE event_key='voting' ");
+            "SELECT start_date, end_date FROM election_schedule_events WHERE event_key='voting'");
 
         if (votingRow != null)
         {
@@ -371,4 +362,3 @@ public class DeleteAdvRequest
 }
 public class IncreaseViewRequest { public long? id { get; set; } }
 public record ApproveAdvRequest(long id, string? status, string? reason);
-

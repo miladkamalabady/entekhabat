@@ -28,7 +28,7 @@ public class ElectionController : ControllerBase
         await using var conn = _db.CreateConnection();
 
         var row = await conn.QueryRowDict(
-            "SELECT TOP (1) start_date, end_date FROM election_schedule_events WHERE event_key='voting' ");
+            "SELECT start_date, end_date FROM election_schedule_events WHERE event_key='voting'");
 
         if (row == null)
             return BadRequest(new { status = false, message = "زمان‌بندی انتخابات تنظیم نشده است" });
@@ -68,18 +68,17 @@ public class ElectionController : ControllerBase
     {
         await using var conn = _db.CreateConnection();
 
-        await conn.ExecuteAsync(@"IF OBJECT_ID(N'dbo.election_schedule_events', N'U') IS NULL CREATE TABLE dbo.election_schedule_events (
-            id INT NOT NULL IDENTITY(1,1),
-            event_key NVARCHAR(100) NOT NULL,
-            event_name NVARCHAR(255) NOT NULL,
-            start_date DATETIME2 NULL,
-            end_date DATETIME2 NULL,
-            sort_order INT NOT NULL DEFAULT 0,
-            updated_by NVARCHAR(20) DEFAULT NULL,
-            created_at DATETIME2 DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME2 DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            CONSTRAINT uniq_event_key UNIQUE (event_key))");
+        await conn.ExecuteAsync(@"IF OBJECT_ID(N'dbo.election_schedule_events', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.election_schedule_events (
+        id INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        event_key NVARCHAR(100) NOT NULL UNIQUE,
+        event_name NVARCHAR(255) NOT NULL,
+        start_date DATETIME2 NULL, end_date DATETIME2 NULL,
+        sort_order INT NOT NULL DEFAULT 0, updated_by NVARCHAR(20) NULL,
+        created_at DATETIME2 NOT NULL DEFAULT GETDATE(), updated_at DATETIME2 NOT NULL DEFAULT GETDATE()
+    );
+END");
 
         var data = await conn.QueryAsync<dynamic>(
             "SELECT event_key, event_name, start_date, end_date, sort_order FROM election_schedule_events ORDER BY sort_order ASC, id ASC");
@@ -97,18 +96,17 @@ public class ElectionController : ControllerBase
         await using var conn = _db.CreateConnection();
         await conn.OpenAsync();
 
-        await conn.ExecuteAsync(@"IF OBJECT_ID(N'dbo.election_schedule_events', N'U') IS NULL CREATE TABLE dbo.election_schedule_events (
-            id INT NOT NULL IDENTITY(1,1),
-            event_key NVARCHAR(100) NOT NULL,
-            event_name NVARCHAR(255) NOT NULL,
-            start_date DATETIME2 NULL,
-            end_date DATETIME2 NULL,
-            sort_order INT NOT NULL DEFAULT 0,
-            updated_by NVARCHAR(20) DEFAULT NULL,
-            created_at DATETIME2 DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME2 DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            CONSTRAINT uniq_event_key UNIQUE (event_key))");
+        await conn.ExecuteAsync(@"IF OBJECT_ID(N'dbo.election_schedule_events', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.election_schedule_events (
+        id INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        event_key NVARCHAR(100) NOT NULL UNIQUE,
+        event_name NVARCHAR(255) NOT NULL,
+        start_date DATETIME2 NULL, end_date DATETIME2 NULL,
+        sort_order INT NOT NULL DEFAULT 0, updated_by NVARCHAR(20) NULL,
+        created_at DATETIME2 NOT NULL DEFAULT GETDATE(), updated_at DATETIME2 NOT NULL DEFAULT GETDATE()
+    );
+END");
 
         var sorted = req.events.OrderBy(e => e.id ?? 0).ToList();
 
@@ -119,12 +117,13 @@ public class ElectionController : ControllerBase
                 if (string.IsNullOrWhiteSpace(ev.key) || string.IsNullOrWhiteSpace(ev.name)) continue;
 
                 await conn.ExecuteAsync(
-                    @"UPDATE election_schedule_events WITH (UPDLOCK, SERIALIZABLE) SET 
-                        event_name=@name,
-                        start_date=@sd,
-                        end_date=@ed,
-                        sort_order=@so,
-                        updated_by=@by WHERE event_key=@key; IF @@ROWCOUNT=0 INSERT INTO election_schedule_events (event_key, event_name, start_date, end_date, sort_order, updated_by) VALUES (@key, @name, @sd, @ed, @so, @by)",
+                    @"IF EXISTS (SELECT 1 FROM dbo.election_schedule_events WHERE event_key=@key)
+                      UPDATE dbo.election_schedule_events
+                      SET event_name=@name,start_date=@sd,end_date=@ed,sort_order=@so,updated_by=@by,updated_at=GETDATE()
+                      WHERE event_key=@key;
+                      ELSE
+                      INSERT INTO dbo.election_schedule_events (event_key,event_name,start_date,end_date,sort_order,updated_by)
+                      VALUES (@key,@name,@sd,@ed,@so,@by);",
                     new { key = ev.key, name = ev.name, sd = ev.startDate, ed = ev.endDate, so = ev.id ?? 0, by = NationalId }, tx);
             }
             return Ok(new { status = true, message = "زمان‌بندی با موفقیت ذخیره شد." });
@@ -179,9 +178,9 @@ public class ElectionController : ControllerBase
         await using var conn = _db.CreateConnection();
 
         var currentUser = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            @"SELECT TOP (1) u.roles, u.region_id, r.ProvinceCode
+            @"SELECT u.roles, u.region_id, r.ProvinceCode
               FROM users u LEFT JOIN region r ON r.id=u.region_id
-              WHERE u.national_id=@nid ", new { nid = NationalId });
+              WHERE u.national_id=@nid", new { nid = NationalId });
 
         bool isAdmin = currentUser != null && (string)currentUser.roles == "ADMIN";
         bool isProvinceSupervisor = currentUser != null
@@ -193,7 +192,7 @@ public class ElectionController : ControllerBase
             return StatusCode(403, new { status = false, message = "شما دسترسی لازم را ندارید." });
 
         var region = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT TOP (1) id, ProvinceCode, Name FROM region WHERE id=@id ", new { id = req.region_id });
+            "SELECT id, ProvinceCode, Name FROM region WHERE id=@id", new { id = req.region_id });
         if (region == null)
             return BadRequest(new { status = false, message = "منطقه انتخاب شده معتبر نیست." });
 
@@ -201,7 +200,7 @@ public class ElectionController : ControllerBase
             return StatusCode(403, new { status = false, message = "امکان ویرایش مناطق خارج از استان شما وجود ندارد." });
 
         var existing = await conn.QueryFirstOrDefaultAsync<int?>(
-            "SELECT TOP (1) id FROM maxvotes WHERE region_id=@rid ", new { rid = req.region_id });
+            "SELECT id FROM maxvotes WHERE region_id=@rid", new { rid = req.region_id });
 
         if (existing.HasValue)
             await conn.ExecuteAsync("UPDATE maxvotes SET maxVotes=@mv WHERE region_id=@rid",
@@ -211,7 +210,7 @@ public class ElectionController : ControllerBase
                 new { mv = req.maxVotes, rid = req.region_id });
 
         await conn.ExecuteAsync(
-            "INSERT INTO logs (nationalId, action, description) VALUES (@nid, N'تنظیم تعداد رأی منطقه', @desc)",
+            "INSERT INTO logs (nationalId, action, description) VALUES (@nid, 'تنظیم تعداد رأی منطقه', @desc)",
             new { nid = NationalId, desc = $"تعداد رأی مجاز منطقه {region.Name} ({req.region_id}) به {req.maxVotes} تغییر کرد" });
 
         return Ok(new
@@ -222,13 +221,12 @@ public class ElectionController : ControllerBase
         });
     }
 
-    private const string CreateInvalidationsTable = @"IF OBJECT_ID(N'dbo.election_invalidations', N'U') IS NULL CREATE TABLE dbo.election_invalidations (
-        id INT NOT NULL IDENTITY(1,1),
-        region_id INT NULL,
-        reason NVARCHAR(MAX) NOT NULL,
-        invalidated_by NVARCHAR(20) NOT NULL,
-        created_at DATETIME2 DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (id))";
+    private const string CreateInvalidationsTable = @"IF OBJECT_ID(N'dbo.election_invalidations', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.election_invalidations (
+        id INT IDENTITY(1,1) NOT NULL PRIMARY KEY, region_id INT NULL, reason NVARCHAR(MAX) NOT NULL,
+        invalidated_by NVARCHAR(20) NOT NULL, created_at DATETIME2 NOT NULL DEFAULT GETDATE());
+END";
 
     // POST /api/invalidateElection  {region_id?, reason}
     [HttpPost("invalidateElection")]
@@ -241,9 +239,9 @@ public class ElectionController : ControllerBase
         await conn.OpenAsync();
 
         var me = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            @"SELECT TOP (1) u.roles, u.region_id, r.ProvinceCode
+            @"SELECT u.roles, u.region_id, r.ProvinceCode
               FROM users u LEFT JOIN region r ON r.id=u.region_id
-              WHERE u.national_id=@nid ", new { nid = NationalId });
+              WHERE u.national_id=@nid", new { nid = NationalId });
 
         if (me == null) return Unauthorized();
 
@@ -272,7 +270,7 @@ public class ElectionController : ControllerBase
             else
             {
                 var targetReg = await conn.QueryFirstOrDefaultAsync<dynamic>(
-                    "SELECT TOP (1) ProvinceCode FROM region WHERE id=@id ", new { id = targetRegion });
+                    "SELECT ProvinceCode FROM region WHERE id=@id", new { id = targetRegion });
                 if (targetReg == null || (int)targetReg.ProvinceCode != myProvince)
                     return StatusCode(403, new { status = false, message = "امکان ابطال مناطق خارج از استان شما وجود ندارد." });
             }
@@ -285,7 +283,7 @@ public class ElectionController : ControllerBase
                 new { rid = targetRegion == 0 ? (object)DBNull.Value : targetRegion, reason = req.reason, by = NationalId }, tx);
 
             await conn.ExecuteAsync(
-                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,N'ابطال انتخابات',@desc)",
+                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'ابطال انتخابات',@desc)",
                 new { nid = NationalId, desc = $"انتخابات منطقه {targetRegion} باطل شد - دلیل: {req.reason}" }, tx);
 
             return Ok(new { status = true, message = "انتخابات با موفقیت باطل اعلام شد.", data = new { region_id = targetRegion, reason = req.reason } });
@@ -315,4 +313,3 @@ public record SaveScheduleRequest(ScheduleEvent[]? events);
 public record ScheduleEvent(string? key, string? name, string? startDate, string? endDate, int? id);
 public record SaveMaxVotesRequest(int region_id, int maxVotes);
 public record InvalidateElectionRequest(int? region_id, string? reason);
-
