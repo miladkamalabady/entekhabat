@@ -58,9 +58,6 @@ builder.Services.AddCors(opts =>
 
 var app = builder.Build();
 
-// پورت پیش‌فرض
-app.Urls.Add("http://localhost:5050");
-
 // نمایش جزئیات خطا در response (برای debug)
 app.UseExceptionHandler(errApp => errApp.Run(async ctx =>
 {
