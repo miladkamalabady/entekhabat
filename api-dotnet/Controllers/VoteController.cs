@@ -68,7 +68,7 @@ public class VoteController : ControllerBase
             {
                 trackingCode = Convert.ToHexString(RandomNumberGenerator.GetBytes(6)).ToUpper();
                 var exists = await conn.QueryFirstOrDefaultAsync<int?>(
-                    "SELECT id FROM election_participants WHERE tracking_code=@tc LIMIT 1",
+                    "SELECT TOP (1) id FROM election_participants WHERE tracking_code=@tc ",
                     new { tc = trackingCode }, tx);
                 if (!exists.HasValue) break;
             } while (true);
@@ -76,7 +76,7 @@ public class VoteController : ControllerBase
             // اعتبارسنجی توکن
             var tokenHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(req.vote_token))).ToLower();
             var token = await conn.QueryRowDict(
-                "SELECT * FROM voting_tokens WHERE token_hash=@hash AND user_id=@nid LIMIT 1 FOR UPDATE",
+                "SELECT TOP (1) * FROM voting_tokens WITH (UPDLOCK, HOLDLOCK) WHERE token_hash=@hash AND user_id=@nid ",
                 new { hash = tokenHash, nid = NationalId }, tx);
 
             if (token == null)
@@ -97,7 +97,7 @@ public class VoteController : ControllerBase
 
             // ثبت شرکت‌کننده
             var participant = await conn.QueryFirstOrDefaultAsync<int?>(
-                "SELECT id FROM election_participants WHERE national_id=@nid LIMIT 1", new { nid = NationalId }, tx);
+                "SELECT TOP (1) id FROM election_participants WHERE national_id=@nid ", new { nid = NationalId }, tx);
             if (!participant.HasValue)
                 await conn.ExecuteAsync(
                     "INSERT INTO election_participants (national_id, tracking_code) VALUES (@nid,@tc)",
@@ -107,7 +107,7 @@ public class VoteController : ControllerBase
             foreach (var candidateId in req.candidateIds)
             {
                 var dup = await conn.QueryFirstOrDefaultAsync<int?>(
-                    "SELECT id FROM votes WHERE national_id=@nid AND candidate_id=@cid LIMIT 1",
+                    "SELECT TOP (1) id FROM votes WHERE national_id=@nid AND candidate_id=@cid ",
                     new { nid = NationalId, cid = candidateId }, tx);
                 if (dup.HasValue) continue;
 
@@ -115,18 +115,18 @@ public class VoteController : ControllerBase
                     "INSERT INTO votes (national_id, candidate_id) VALUES (@nid, @cid)",
                     new { nid = NationalId, cid = candidateId }, tx);
                 await conn.ExecuteAsync(
-                    "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'ثبت رای',@desc)",
+                    "INSERT INTO logs (nationalId, action, description) VALUES (@nid,N'ثبت رای',@desc)",
                     new { nid = NationalId, desc = $"کد {NationalId} به {candidateId} رای داد" }, tx);
             }
 
             // مصرف توکن
             int tokenId = Convert.ToInt32(token.GetValueOrDefault("id") ?? 0);
             await conn.ExecuteAsync(
-                "UPDATE voting_tokens SET used=1, used_at=NOW() WHERE id=@id",
+                "UPDATE voting_tokens SET used=1, used_at=SYSDATETIME() WHERE id=@id",
                 new { id = tokenId }, tx);
 
             var mobile = await conn.QueryFirstOrDefaultAsync<string>(
-                "SELECT mobile FROM users WHERE national_id=@nid LIMIT 1", new { nid = NationalId }, tx);
+                "SELECT TOP (1) mobile FROM users WHERE national_id=@nid ", new { nid = NationalId }, tx);
             if (!string.IsNullOrWhiteSpace(mobile))
                 _bale.SendAsync(mobile, $"رأی شما با موفقیت ثبت شد. کد رهگیری: {trackingCode}");
 
@@ -313,9 +313,9 @@ public class VoteController : ControllerBase
         await using var conn = _db.CreateConnection();
 
         var currentUser = await conn.QueryRowDict(
-            @"SELECT u.roles, u.region_id, r.ProvinceCode
+            @"SELECT TOP (1) u.roles, u.region_id, r.ProvinceCode
               FROM users u LEFT JOIN region r ON r.id=u.region_id
-              WHERE u.national_id=@nid LIMIT 1", new { nid = NationalId });
+              WHERE u.national_id=@nid ", new { nid = NationalId });
 
         if (currentUser == null) return Forbid();
 
@@ -347,7 +347,7 @@ public class VoteController : ControllerBase
             { whereParts.Add($"vu.region_id={regionId}"); scope = "region"; }
         }
 
-        var sql = $@"SELECT
+        var sql = $@"SELECT TOP ({limit})
             vu.national_id,
             vu.first_name,
             vu.last_name,
@@ -367,7 +367,7 @@ public class VoteController : ControllerBase
           LEFT JOIN election_participants ep ON ep.national_id=vu.national_id
           WHERE {string.Join(" AND ", whereParts)}
           ORDER BY vu.id DESC
-          LIMIT {limit}";
+";
 
         var summary = (await conn.QueryListDict(sql, new { q = $"%{q}%" })).AsList();
 
@@ -379,7 +379,7 @@ public class VoteController : ControllerBase
         }
 
         await conn.ExecuteAsync(
-            "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'جستجوی کاربران',@desc)",
+            "INSERT INTO logs (nationalId, action, description) VALUES (@nid,N'جستجوی کاربران',@desc)",
             new { nid = NationalId, desc = $"جستجوی کاربران با عبارت {q}" });
 
         return Ok(new
@@ -397,7 +397,7 @@ public class VoteController : ControllerBase
         await using var conn = _db.CreateConnection();
 
         var me = await conn.QueryRowDict(
-            "SELECT roles FROM users WHERE national_id=@nid LIMIT 1", new { nid = NationalId });
+            "SELECT TOP (1) roles FROM users WHERE national_id=@nid ", new { nid = NationalId });
         if (me == null) return Unauthorized();
 
         if (me.Str("roles") != "ADMIN")
@@ -468,7 +468,7 @@ public class VoteController : ControllerBase
         }
 
         await conn.ExecuteAsync(
-            "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'دریافت خروجی اکسل نتایج',@desc)",
+            "INSERT INTO logs (nationalId, action, description) VALUES (@nid,N'دریافت خروجی اکسل نتایج',@desc)",
             new { nid = NationalId, desc = $"خروجی نتایج - منطقه:{region} استان:{province}" });
 
         // UTF-8 BOM برای نمایش صحیح فارسی در اکسل
@@ -492,4 +492,5 @@ public class VoteController : ControllerBase
 }
 
 public record InsertVoteRequest(int[] candidateIds, string vote_token);
+
 

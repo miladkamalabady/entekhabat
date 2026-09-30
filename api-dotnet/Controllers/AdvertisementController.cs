@@ -43,9 +43,9 @@ public class AdvertisementController : ControllerBase
 
         // Check advertising schedule
         var adsStartRow = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT start_date FROM election_schedule_events WHERE event_key='ads_upload_start' LIMIT 1");
+            "SELECT TOP (1) start_date FROM election_schedule_events WHERE event_key='ads_upload_start' ");
         var votingRow = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT start_date FROM election_schedule_events WHERE event_key='voting' LIMIT 1");
+            "SELECT TOP (1) start_date FROM election_schedule_events WHERE event_key='voting' ");
 
         if (adsStartRow != null && votingRow != null)
         {
@@ -98,26 +98,26 @@ public class AdvertisementController : ControllerBase
         await using var tx = await conn.BeginTransactionAsync();
         try
         {
-            await conn.ExecuteAsync(
-                @"INSERT INTO advertisements (id, nationalId, title, description, type, image, target_link, status,
-                    managerialRecords, academicRecords, honors, plans, slogan)
-                  VALUES (@id, @nid, @title, @desc, @type, @img, @link, 'pending',
-                    @mgr, @acad, @hon, @plans, @slogan)
-                  ON DUPLICATE KEY UPDATE
-                    title=VALUES(title), description=VALUES(description), type=VALUES(type),
-                    image=IF(VALUES(image) IS NULL, image, VALUES(image)),
-                    target_link=VALUES(target_link), managerialRecords=VALUES(managerialRecords),
-                    academicRecords=VALUES(academicRecords), honors=VALUES(honors),
-                    plans=VALUES(plans), slogan=VALUES(slogan), status=VALUES(status)",
-                new
-                {
-                    id, nid = NationalId, title = req.title, desc = req.description,
+            long insertId = await conn.QuerySingleAsync<long>(
+                @"IF @id > 0
+                  BEGIN
+                    UPDATE advertisements SET title=@title, description=@desc, type=@type,
+                      image=COALESCE(NULLIF(@img,''),image), target_link=@link,
+                      managerialRecords=@mgr, academicRecords=@acad, honors=@hon,
+                      plans=@plans, slogan=@slogan, status='pending'
+                    WHERE id=@id AND nationalId=@nid;
+                    IF @@ROWCOUNT=0 THROW 50001, 'Advertisement not found or access denied', 1;
+                    SELECT CAST(@id AS bigint);
+                  END
+                  ELSE
+                    INSERT INTO advertisements (nationalId,title,description,type,image,target_link,status,
+                      managerialRecords,academicRecords,honors,plans,slogan)
+                    OUTPUT CAST(INSERTED.id AS bigint)
+                    VALUES (@nid,@title,@desc,@type,@img,@link,'pending',@mgr,@acad,@hon,@plans,@slogan)",
+                new { id, nid = NationalId, title = req.title, desc = req.description,
                     type = req.type, img = storedImagePath ?? "", link = req.targetLink ?? "",
                     mgr = req.managerialRecords ?? "", acad = req.academicRecords ?? "",
-                    hon = req.honors ?? "", plans = req.plans ?? "", slogan = req.slogan ?? ""
-                }, tx);
-
-            long insertId = id > 0 ? id : Convert.ToInt64(await conn.ExecuteScalarAsync("SELECT LAST_INSERT_ID()", transaction: tx));
+                    hon = req.honors ?? "", plans = req.plans ?? "", slogan = req.slogan ?? "" }, tx);
             await tx.CommitAsync();
 
             return Ok(new { status = true, message = "تبلیغ با موفقیت ذخیره شد.", data = new { id = insertId, image = storedImagePath } });
@@ -214,7 +214,7 @@ public class AdvertisementController : ControllerBase
 
             await conn.ExecuteAsync(updateSql, new { id = req.code, d = newDeleter, r = req.reson ?? "" }, tx);
             await conn.ExecuteAsync(
-                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'تغییر وضعیت تبلیغ',@desc)",
+                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,N'تغییر وضعیت تبلیغ',@desc)",
                 new { nid = NationalId, desc = $"تغییر کد {req.code} به {newDeleter}" }, tx);
 
             await tx.CommitAsync();
@@ -250,7 +250,7 @@ public class AdvertisementController : ControllerBase
             return StatusCode(403, new { status = false, message = "شما دسترسی لازم را ندارید." });
 
         var ad = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT id, nationalId, status FROM advertisements WHERE id=@id LIMIT 1", new { id = req.id });
+            "SELECT TOP (1) id, nationalId, status FROM advertisements WHERE id=@id ", new { id = req.id });
         if (ad == null)
             return NotFound(new { status = false, message = "تبلیغ یافت نشد." });
 
@@ -267,7 +267,7 @@ public class AdvertisementController : ControllerBase
                     new { id = req.id, role = myRole, reason = req.reason ?? "" }, tx);
 
             await conn.ExecuteAsync(
-                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'بررسی تبلیغ',@desc)",
+                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,N'بررسی تبلیغ',@desc)",
                 new { nid = NationalId, desc = $"تبلیغ {req.id} به وضعیت {req.status} تغییر کرد - دلیل: {req.reason}" }, tx);
 
             await tx.CommitAsync();
@@ -294,7 +294,7 @@ public class AdvertisementController : ControllerBase
 
         // بررسی بازه نمایش: از ۲۴ ساعت قبل انتخابات تا پایان آن
         var votingRow = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT start_date, end_date FROM election_schedule_events WHERE event_key='voting' LIMIT 1");
+            "SELECT TOP (1) start_date, end_date FROM election_schedule_events WHERE event_key='voting' ");
 
         if (votingRow != null)
         {
@@ -371,3 +371,4 @@ public class DeleteAdvRequest
 }
 public class IncreaseViewRequest { public long? id { get; set; } }
 public record ApproveAdvRequest(long id, string? status, string? reason);
+

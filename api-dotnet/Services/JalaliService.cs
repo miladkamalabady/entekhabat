@@ -41,7 +41,7 @@ public class JalaliService
 
     // ─── NormalizeToGregorian ──────────────────────────────────────
 
-    // MySqlConnector تاریخ‌های شمسی ذخیره شده در DATETIME را به DateTime تبدیل می‌کند
+    // درایور دیتابیس تاریخ‌های شمسی ذخیره شده در DATETIME را به DateTime تبدیل می‌کند
     // باید آن را به‌عنوان شمسی تفسیر و به میلادی تبدیل کنیم
     public DateTime? NormalizeToGregorian(object? value)
     {
@@ -148,3 +148,4 @@ public class JalaliService
         }
     }
 }
+

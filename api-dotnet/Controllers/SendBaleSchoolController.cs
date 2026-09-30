@@ -2,7 +2,6 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
-using MySqlConnector;
 
 namespace EntekhabatApi.Controllers;
 
@@ -32,10 +31,10 @@ public class SendBaleSchoolController : ControllerBase
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
-    private MySqlConnection OpenMysql()
+    private SqlConnection OpenDatabase()
     {
         var cs = _config.GetConnectionString("BaleSchoolConnection")!;
-        var conn = new MySqlConnection(cs);
+        var conn = new SqlConnection(cs);
         conn.Open();
         return conn;
     }
@@ -62,37 +61,35 @@ public class SendBaleSchoolController : ControllerBase
 
     // ── ensure tables exist ──────────────────────────────────────────────────
 
-    private void EnsureTables(MySqlConnection conn)
+    private void EnsureTables(SqlConnection conn)
     {
         using var cmd = conn.CreateCommand();
         cmd.CommandText = @"
-CREATE TABLE IF NOT EXISTS history (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    school_code VARCHAR(20) NOT NULL,
-    school_name VARCHAR(100) NOT NULL,
+IF OBJECT_ID(N'dbo.history', N'U') IS NULL CREATE TABLE dbo.history (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    school_code NVARCHAR(20) NOT NULL,
+    school_name NVARCHAR(100) NOT NULL,
     year INT NOT NULL DEFAULT 1404,
-    class_name  VARCHAR(50),
-    INDEX (year, school_code)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    class_name  NVARCHAR(50)
+);
 
-CREATE TABLE IF NOT EXISTS student (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    student_code VARCHAR(15),
-    first_name VARCHAR(50) NOT NULL,
-    last_name  VARCHAR(50) NOT NULL,
-    school_code VARCHAR(20) NOT NULL,
-    class_name  VARCHAR(50),
-    student_phone VARCHAR(15),
-    father_phone  VARCHAR(15),
-    mother_phone  VARCHAR(15),
-    INDEX (school_code)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+IF OBJECT_ID(N'dbo.student', N'U') IS NULL CREATE TABLE dbo.student (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    student_code NVARCHAR(15),
+    first_name NVARCHAR(50) NOT NULL,
+    last_name  NVARCHAR(50) NOT NULL,
+    school_code NVARCHAR(20) NOT NULL,
+    class_name  NVARCHAR(50),
+    student_phone NVARCHAR(15),
+    father_phone  NVARCHAR(15),
+    mother_phone  NVARCHAR(15)
+);";
         cmd.ExecuteNonQuery();
     }
 
     // ── seed ────────────────────────────────────────────────────────────────
 
-    private void RunSeed(MySqlConnection conn)
+    private void RunSeed(SqlConnection conn)
     {
         using var cmd = conn.CreateCommand();
         cmd.CommandText = "TRUNCATE TABLE student; TRUNCATE TABLE history;";
@@ -166,7 +163,7 @@ CREATE TABLE IF NOT EXISTS student (
 
     private Task<IActionResult> Reseed()
     {
-        using var conn = OpenMysql();
+        using var conn = OpenDatabase();
         EnsureTables(conn);
         RunSeed(conn);
         return Task.FromResult<IActionResult>(Ok(new { ok = true }));
@@ -256,7 +253,7 @@ WHERE h.TimeYearType_Id = 1404 AND h.StudentStateType_Id IN (1,3) AND h.School_I
 
     private Task<IActionResult> GetSchools()
     {
-        using var conn = OpenMysql();
+        using var conn = OpenDatabase();
         EnsureTables(conn);
 
         using var cmd = conn.CreateCommand();
@@ -275,7 +272,7 @@ WHERE h.TimeYearType_Id = 1404 AND h.StudentStateType_Id IN (1,3) AND h.School_I
     private Task<IActionResult> GetStudents()
     {
         var sc = Request.Form["school_code"].ToString();
-        using var conn = OpenMysql();
+        using var conn = OpenDatabase();
         EnsureTables(conn);
 
         // auto-seed if empty
@@ -448,3 +445,4 @@ WHERE h.TimeYearType_Id = 1404 AND h.StudentStateType_Id IN (1,3) AND h.School_I
         return newDict;
     }
 }
+

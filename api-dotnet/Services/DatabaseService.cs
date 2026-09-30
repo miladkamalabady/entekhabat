@@ -1,4 +1,4 @@
-using MySqlConnector;
+using Microsoft.Data.SqlClient;
 
 namespace EntekhabatApi.Services;
 
@@ -8,17 +8,27 @@ public class DatabaseService
 
     public DatabaseService(IConfiguration config)
     {
-        _connectionString = config.GetConnectionString("DefaultConnection")!;
+        _connectionString = config.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException("DefaultConnection is required.");
     }
 
     // یک connection جدید بدون باز کردن
-    public MySqlConnection CreateConnection() => new MySqlConnection(_connectionString);
+    public SqlConnection CreateConnection() => new SqlConnection(_connectionString);
 
     // یک connection که از قبل باز است - برای transaction ها
-    public async Task<MySqlConnection> OpenConnectionAsync()
+    public async Task<SqlConnection> OpenConnectionAsync()
     {
-        var conn = new MySqlConnection(_connectionString);
-        await conn.OpenAsync();
-        return conn;
+        var conn = new SqlConnection(_connectionString);
+        try
+        {
+            await conn.OpenAsync();
+            return conn;
+        }
+        catch
+        {
+            await conn.DisposeAsync();
+            throw;
+        }
     }
 }
+

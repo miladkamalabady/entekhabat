@@ -30,7 +30,7 @@ public class CandidateController : ControllerBase
         await using var conn = _db.CreateConnection();
 
         var schedule = await conn.QueryRowDict(
-            "SELECT start_date, end_date FROM election_schedule_events WHERE event_key='voting' LIMIT 1");
+            "SELECT TOP (1) start_date, end_date FROM election_schedule_events WHERE event_key='voting' ");
 
         if (schedule == null)
             return BadRequest(new { status = false, message = "زمان‌بندی انتخابات تنظیم نشده است" });
@@ -88,7 +88,7 @@ public class CandidateController : ControllerBase
         await using var conn = _db.CreateConnection();
 
         var hasCol = await conn.QueryFirstOrDefaultAsync<string>(
-            "SHOW COLUMNS FROM final_submissions LIKE 'edited_at'");
+            "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA='dbo' AND TABLE_NAME='final_submissions' AND COLUMN_NAME='edited_at'");
         var editedExpr = hasCol != null ? "edited_at" : "NULL AS edited_at";
 
         var row = await conn.QueryRowDict(
@@ -125,7 +125,7 @@ public class CandidateController : ControllerBase
         return await DbHelper.WithTransaction(conn, async tx =>
         {
             var ev = await conn.QueryRowDict(
-                "SELECT start_date, end_date FROM election_schedule_events WHERE event_key='candidate_registration' LIMIT 1",
+                "SELECT TOP (1) start_date, end_date FROM election_schedule_events WHERE event_key='candidate_registration' ",
                 tx: tx);
 
             if (ev == null)
@@ -144,7 +144,7 @@ public class CandidateController : ControllerBase
 
             // استعلام عضویت از userscheck
             var checkRow = await conn.QueryFirstOrDefaultAsync<dynamic>(
-                "SELECT yearsOfService, education FROM userscheck WHERE national_id=@nid LIMIT 1",
+                "SELECT TOP (1) yearsOfService, education FROM userscheck WHERE national_id=@nid ",
                 new { nid = NationalId }, tx);
 
             if (checkRow == null)
@@ -165,18 +165,16 @@ public class CandidateController : ControllerBase
                 return StatusCode(404, new { status = false, message = "این کاربر قبلا ثبت نام کرده است.!" });
 
             await conn.ExecuteAsync(
-                @"INSERT INTO final_submissions (nationalId, tracking_code, requestStatus)
-                  VALUES (@nid, @tc, 'SUBMITTED')
-                  ON DUPLICATE KEY UPDATE tracking_code=VALUES(tracking_code), create_date=NOW()",
+                @"UPDATE final_submissions WITH (UPDLOCK, SERIALIZABLE) SET  tracking_code=@tc, create_date=SYSDATETIME() WHERE nationalId=@nid; IF @@ROWCOUNT=0 INSERT INTO final_submissions (nationalId, tracking_code, requestStatus) VALUES (@nid, @tc, 'SUBMITTED')",
                 new { nid = NationalId, tc = req.tracking_code }, tx);
 
             await conn.ExecuteAsync("UPDATE users SET roles='CANDIDATE' WHERE national_id=@nid", new { nid = NationalId }, tx);
             await conn.ExecuteAsync(
-                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'ثبت کاندید',@desc)",
+                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,N'ثبت کاندید',@desc)",
                 new { nid = NationalId, desc = $"تغییر کد {NationalId} ثبت نام کرد" }, tx);
 
             var mobile = await conn.QueryFirstOrDefaultAsync<string>(
-                "SELECT mobile FROM users WHERE national_id=@nid LIMIT 1", new { nid = NationalId }, tx);
+                "SELECT TOP (1) mobile FROM users WHERE national_id=@nid ", new { nid = NationalId }, tx);
             if (!string.IsNullOrWhiteSpace(mobile))
                 _bale.SendAsync(mobile, "ثبت‌نام کاندیداتوری شما در سامانه انتخابات با موفقیت انجام شد.");
 
@@ -203,7 +201,7 @@ public class CandidateController : ControllerBase
                 return StatusCode(403, new { status = false, message = "شما دسترسی لازم را ندارید" });
 
             var ev = await conn.QueryRowDict(
-                "SELECT start_date, end_date FROM election_schedule_events WHERE event_key='voting' LIMIT 1",
+                "SELECT TOP (1) start_date, end_date FROM election_schedule_events WHERE event_key='voting' ",
                 tx: tx);
             if (ev == null)
                 return StatusCode(403, new { status = false, message = "زمان انتخابات در سیستم تعریف نشده است." });
@@ -218,7 +216,7 @@ public class CandidateController : ControllerBase
             await conn.ExecuteAsync("DELETE FROM final_submissions WHERE nationalId=@nid", new { nid = NationalId }, tx);
             await conn.ExecuteAsync("UPDATE users SET roles='VOTER' WHERE national_id=@nid", new { nid = NationalId }, tx);
             await conn.ExecuteAsync(
-                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'حذف کاندید','حذف کاندید توسط خودش')",
+                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,N'حذف کاندید',N'حذف کاندید توسط خودش')",
                 new { nid = NationalId }, tx);
 
             return Ok(new { status = true, message = "با موفقیت انجام شد." });
@@ -227,3 +225,4 @@ public class CandidateController : ControllerBase
 }
 
 public record FinalSubmitRequest(string tracking_code);
+

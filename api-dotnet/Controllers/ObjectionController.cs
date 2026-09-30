@@ -25,41 +25,41 @@ public class ObjectionController : ControllerBase
 
     private static readonly string[] ReviewerRoles = { "SUPERVISOR", "EXECUTIVE", "ADMIN" };
 
-    private async Task EnsureObjectionTables(MySqlConnector.MySqlConnection conn)
+    private async Task EnsureObjectionTables(Microsoft.Data.SqlClient.SqlConnection conn)
     {
-        await conn.ExecuteAsync(@"CREATE TABLE IF NOT EXISTS objections (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            tracking_code VARCHAR(30) NOT NULL,
-            national_id VARCHAR(20) NOT NULL,
-            decision_type VARCHAR(80) NULL,
-            case_number VARCHAR(80) NULL,
-            candidate_name VARCHAR(255) NULL,
-            candidate_region VARCHAR(255) NULL,
-            candidate_position VARCHAR(255) NULL,
-            subject VARCHAR(255) NOT NULL,
-            description TEXT NOT NULL,
-            reasons TEXT NULL,
-            urgency VARCHAR(20) DEFAULT 'normal',
-            status VARCHAR(30) DEFAULT 'pending',
-            declaration TINYINT(1) DEFAULT 1,
-            response_text TEXT NULL,
-            response_by VARCHAR(20) NULL,
-            response_at DATETIME NULL,
-            cancelled_at DATETIME NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            UNIQUE KEY uq_tracking_code (tracking_code)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        await conn.ExecuteAsync(@"IF OBJECT_ID(N'dbo.objections', N'U') IS NULL CREATE TABLE dbo.objections (
+            id BIGINT IDENTITY(1,1) PRIMARY KEY,
+            tracking_code NVARCHAR(30) NOT NULL,
+            national_id NVARCHAR(20) NOT NULL,
+            decision_type NVARCHAR(80) NULL,
+            case_number NVARCHAR(80) NULL,
+            candidate_name NVARCHAR(255) NULL,
+            candidate_region NVARCHAR(255) NULL,
+            candidate_position NVARCHAR(255) NULL,
+            subject NVARCHAR(255) NOT NULL,
+            description NVARCHAR(MAX) NOT NULL,
+            reasons NVARCHAR(MAX) NULL,
+            urgency NVARCHAR(20) DEFAULT 'normal',
+            status NVARCHAR(30) DEFAULT 'pending',
+            declaration BIT DEFAULT 1,
+            response_text NVARCHAR(MAX) NULL,
+            response_by NVARCHAR(20) NULL,
+            response_at DATETIME2 NULL,
+            cancelled_at DATETIME2 NULL,
+            created_at DATETIME2 DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME2 DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT uq_tracking_code UNIQUE (tracking_code))");
 
-        await conn.ExecuteAsync(@"CREATE TABLE IF NOT EXISTS objection_documents (
-            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-            objection_id BIGINT UNSIGNED NOT NULL,
-            file_name VARCHAR(255) NOT NULL,
-            file_path VARCHAR(500) NOT NULL,
-            file_size INT UNSIGNED DEFAULT 0,
-            file_type VARCHAR(100) NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        await conn.ExecuteAsync(@"IF OBJECT_ID(N'dbo.objection_documents', N'U') IS NULL CREATE TABLE dbo.objection_documents (
+            id BIGINT IDENTITY(1,1) PRIMARY KEY,
+            objection_id BIGINT NOT NULL,
+            file_name NVARCHAR(255) NOT NULL,
+            file_path NVARCHAR(500) NOT NULL,
+            file_size BIGINT DEFAULT 0,
+            file_type NVARCHAR(100) NULL,
+            created_at DATETIME2 DEFAULT CURRENT_TIMESTAMP,
             INDEX idx_objection_id (objection_id),
-            FOREIGN KEY (objection_id) REFERENCES objections(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+            FOREIGN KEY (objection_id) REFERENCES objections(id) ON DELETE CASCADE)");
     }
 
     // GET /api/getObjections?trackingCode=&status=
@@ -183,7 +183,7 @@ public class ObjectionController : ControllerBase
                 @"INSERT INTO objections (tracking_code, national_id, decision_type, case_number, candidate_name,
                     candidate_region, candidate_position, subject, description, reasons, urgency, status, declaration)
                   VALUES (@tc,@nid,@dt,@cn,@cname,@cr,@cp,@subj,@desc,@reas,@urg,'pending',@decl);
-                  SELECT LAST_INSERT_ID();",
+                  SELECT CAST(SCOPE_IDENTITY() AS bigint);",
                 new { tc, nid = NationalId, dt = decisionType, cn = caseNumber, cname = candidateName,
                       cr = candidateRegion, cp = candidatePosition, subj = subject, desc = description,
                       reas = JsonSerializer.Serialize(reasons), urg = urgency, decl = declaration ? 1 : 0 }, tx);
@@ -212,7 +212,7 @@ public class ObjectionController : ControllerBase
             }
 
             await conn.ExecuteAsync(
-                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'ثبت اعتراض',@desc)",
+                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,N'ثبت اعتراض',@desc)",
                 new { nid = NationalId, desc = $"ثبت اعتراض با کد {tc} با {uploadedFiles.Count} فایل ضمیمه" }, tx);
 
             return Ok(new
@@ -247,9 +247,9 @@ public class ObjectionController : ControllerBase
                     status=@st,
                     response_text=CASE WHEN @rt <> '' THEN @rt ELSE response_text END,
                     response_by=CASE WHEN @st IN ('approved','rejected','under_review') THEN @by ELSE response_by END,
-                    response_at=CASE WHEN @st IN ('approved','rejected','under_review') THEN NOW() ELSE response_at END,
-                    cancelled_at=CASE WHEN @st='cancelled' THEN NOW() ELSE cancelled_at END,
-                    updated_at=NOW()
+                    response_at=CASE WHEN @st IN ('approved','rejected','under_review') THEN SYSDATETIME() ELSE response_at END,
+                    cancelled_at=CASE WHEN @st='cancelled' THEN SYSDATETIME() ELSE cancelled_at END,
+                    updated_at=SYSDATETIME()
                   WHERE id=@id {ownerClause}",
                 new { st = req.status, rt = req.responseText ?? "", by = NationalId, id = req.id, nid = NationalId }, tx);
 
@@ -260,7 +260,7 @@ public class ObjectionController : ControllerBase
             }
 
             await conn.ExecuteAsync(
-                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'بروزرسانی اعتراض',@desc)",
+                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,N'بروزرسانی اعتراض',@desc)",
                 new { nid = NationalId, desc = $"اعتراض {req.id} به وضعیت {req.status} تغییر یافت" }, tx);
 
             await tx.CommitAsync();
@@ -309,3 +309,4 @@ public record ObjectionJsonRequest(
     string? subject, string? description, string[]? reasons, string? urgency, bool declaration);
 
 public record UpdateObjectionRequest(long id, string status, string? responseText);
+

@@ -36,7 +36,7 @@ public class UserController : ControllerBase
         await using var conn = _db.CreateConnection();
 
         var check = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT national_id, yearsOfService, education FROM userscheck WHERE national_id=@nid LIMIT 1",
+            "SELECT TOP (1) national_id, yearsOfService, education FROM userscheck WHERE national_id=@nid ",
             new { nid = NationalId });
 
         bool inFund         = check != null;
@@ -46,7 +46,7 @@ public class UserController : ControllerBase
         bool hasDegree      = ValidDegrees.Contains(education);
 
         var reg = await conn.QueryFirstOrDefaultAsync<string>(
-            "SELECT nationalId FROM final_submissions WHERE nationalId=@nid LIMIT 1",
+            "SELECT TOP (1) nationalId FROM final_submissions WHERE nationalId=@nid ",
             new { nid = NationalId });
 
         return Ok(new
@@ -71,9 +71,9 @@ public class UserController : ControllerBase
         await using var conn = _db.CreateConnection();
 
         var currentUser = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            @"SELECT u.roles, u.region_id, r.ProvinceCode
+            @"SELECT TOP (1) u.roles, u.region_id, r.ProvinceCode
               FROM users u LEFT JOIN region r ON r.id=u.region_id
-              WHERE u.national_id=@nid LIMIT 1", new { nid = NationalId });
+              WHERE u.national_id=@nid ", new { nid = NationalId });
 
         if (currentUser == null) return Forbid();
 
@@ -140,7 +140,7 @@ public class UserController : ControllerBase
                 LEFT JOIN userscheck uc ON uc.national_id=u.national_id
                 {passJoin}
                 {where}
-                ORDER BY u.id DESC LIMIT @limit OFFSET @offset";
+                ORDER BY u.id DESC OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY";
 
         var rows = (await conn.QueryAsync<dynamic>(sql, sqlParams)).AsList();
 
@@ -184,9 +184,9 @@ public class UserController : ControllerBase
         await using var conn = _db.CreateConnection();
 
         var currentUser = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            @"SELECT u.roles, u.region_id, r.ProvinceCode
+            @"SELECT TOP (1) u.roles, u.region_id, r.ProvinceCode
               FROM users u LEFT JOIN region r ON r.id=u.region_id
-              WHERE u.national_id=@nid LIMIT 1", new { nid = NationalId });
+              WHERE u.national_id=@nid ", new { nid = NationalId });
 
         bool isAdmin = currentUser != null && (string)currentUser.roles == "ADMIN";
         bool isProvinceSupervisor = currentUser != null
@@ -197,7 +197,7 @@ public class UserController : ControllerBase
             return StatusCode(403, new { status = false, message = "شما دسترسی لازم را ندارید" });
 
         var newRegion = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT id, ProvinceCode, Name FROM region WHERE id=@id LIMIT 1", new { id = req.region_id });
+            "SELECT TOP (1) id, ProvinceCode, Name FROM region WHERE id=@id ", new { id = req.region_id });
         if (newRegion == null)
             return BadRequest(new { status = false, message = "منطقه انتخاب شده معتبر نیست." });
 
@@ -205,8 +205,8 @@ public class UserController : ControllerBase
         {
             int provincecode = (int)currentUser.ProvinceCode;
             var target = await conn.QueryFirstOrDefaultAsync<dynamic>(
-                @"SELECT u.national_id, r.ProvinceCode FROM users u
-                  JOIN region r ON r.id=u.region_id WHERE u.national_id=@nid LIMIT 1",
+                @"SELECT TOP (1) u.national_id, r.ProvinceCode FROM users u
+                  JOIN region r ON r.id=u.region_id WHERE u.national_id=@nid ",
                 new { nid = req.national_id });
 
             if (target == null
@@ -290,7 +290,7 @@ public class UserController : ControllerBase
         try
         {
             await conn.ExecuteAsync(
-                @"UPDATE final_submissions SET requestStatus=@s, reson=@r, edited_at=NOW()
+                @"UPDATE final_submissions SET requestStatus=@s, reson=@r, edited_at=SYSDATETIME()
                   WHERE nationalId=@nid",
                 new { s = req.requestStatus, r = req.reason ?? "", nid = req.national_Id }, tx);
 
@@ -299,13 +299,13 @@ public class UserController : ControllerBase
                 await conn.ExecuteAsync(
                     @"UPDATE user_documents
                       SET supervision_status=@s, supervision_reason=@r,
-                          supervision_reviewed_by=@by, supervision_reviewed_at=NOW()
+                          supervision_reviewed_by=@by, supervision_reviewed_at=SYSDATETIME()
                       WHERE nationalId=@nid",
                     new { s = req.requestStatus, r = req.reason ?? "", by = NationalId, nid = req.national_Id }, tx);
             }
 
             await conn.ExecuteAsync(
-                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'تغییر وضعیت',@desc)",
+                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,N'تغییر وضعیت',@desc)",
                 new { nid = NationalId, desc = $"تغییر کدملی {req.national_Id} به {req.requestStatus}" }, tx);
 
             await tx.CommitAsync();
@@ -321,7 +321,7 @@ public class UserController : ControllerBase
             if (statusMessages.TryGetValue(req.requestStatus, out var smsText))
             {
                 var mobile = await conn.QueryFirstOrDefaultAsync<string>(
-                    "SELECT mobile FROM users WHERE national_id=@nid LIMIT 1", new { nid = req.national_Id });
+                    "SELECT TOP (1) mobile FROM users WHERE national_id=@nid ", new { nid = req.national_Id });
                 if (!string.IsNullOrWhiteSpace(mobile))
                     _bale.SendAsync(mobile, $"سامانه انتخابات: {smsText}");
             }
@@ -343,3 +343,4 @@ public class UserController : ControllerBase
 
 public record UpdateUserRequest(string national_id, int region_id, string roles);
 public record ChangeStateRequest(string national_Id, string requestStatus, string? reason);
+
