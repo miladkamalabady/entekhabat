@@ -16,36 +16,36 @@ public class LiveChatController : ControllerBase
 
     private string NationalId => User.Claims.FirstOrDefault(c => c.Type == "national_id")?.Value ?? "";
 
-    private async Task EnsureTables(MySqlConnector.MySqlConnection conn)
+    private async Task EnsureTables(Microsoft.Data.SqlClient.SqlConnection conn)
     {
-        await conn.ExecuteAsync(@"CREATE TABLE IF NOT EXISTS live_chat_sessions (
-            id INT(11) NOT NULL AUTO_INCREMENT,
-            session_code VARCHAR(32) NOT NULL,
-            user_national_id VARCHAR(20) NOT NULL,
-            user_name VARCHAR(255) DEFAULT NULL,
-            user_role VARCHAR(50) DEFAULT NULL,
-            user_region_id VARCHAR(20) DEFAULT NULL,
-            assigned_agent_national_id VARCHAR(20) DEFAULT NULL,
-            assigned_agent_name VARCHAR(255) DEFAULT NULL,
-            status ENUM('waiting','active','closed') NOT NULL DEFAULT 'waiting',
-            subject VARCHAR(255) DEFAULT NULL,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            closed_at TIMESTAMP NULL DEFAULT NULL,
-            PRIMARY KEY (id), UNIQUE KEY session_code (session_code)) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+        await conn.ExecuteAsync(@"IF OBJECT_ID(N'dbo.live_chat_sessions', N'U') IS NULL CREATE TABLE dbo.live_chat_sessions (
+            id INT NOT NULL IDENTITY(1,1),
+            session_code NVARCHAR(32) NOT NULL,
+            user_national_id NVARCHAR(20) NOT NULL,
+            user_name NVARCHAR(255) DEFAULT NULL,
+            user_role NVARCHAR(50) DEFAULT NULL,
+            user_region_id NVARCHAR(20) DEFAULT NULL,
+            assigned_agent_national_id NVARCHAR(20) DEFAULT NULL,
+            assigned_agent_name NVARCHAR(255) DEFAULT NULL,
+            status NVARCHAR(20) NOT NULL DEFAULT 'waiting',
+            subject NVARCHAR(255) DEFAULT NULL,
+            created_at DATETIME2 NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME2 NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            closed_at DATETIME2 NULL DEFAULT NULL,
+            PRIMARY KEY (id), CONSTRAINT session_code UNIQUE (session_code))");
 
-        await conn.ExecuteAsync(@"CREATE TABLE IF NOT EXISTS live_chat_messages (
-            id INT(11) NOT NULL AUTO_INCREMENT,
-            session_id INT(11) NOT NULL,
-            sender_national_id VARCHAR(20) DEFAULT NULL,
-            sender_name VARCHAR(255) DEFAULT NULL,
-            sender_role VARCHAR(50) DEFAULT NULL,
-            sender_type ENUM('user','support','system') NOT NULL DEFAULT 'user',
-            message TEXT NOT NULL,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            is_read TINYINT(1) NOT NULL DEFAULT 0,
+        await conn.ExecuteAsync(@"IF OBJECT_ID(N'dbo.live_chat_messages', N'U') IS NULL CREATE TABLE dbo.live_chat_messages (
+            id INT NOT NULL IDENTITY(1,1),
+            session_id INT NOT NULL,
+            sender_national_id NVARCHAR(20) DEFAULT NULL,
+            sender_name NVARCHAR(255) DEFAULT NULL,
+            sender_role NVARCHAR(50) DEFAULT NULL,
+            sender_type NVARCHAR(20) NOT NULL DEFAULT 'user',
+            message NVARCHAR(MAX) NOT NULL,
+            created_at DATETIME2 NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            is_read BIT NOT NULL DEFAULT 0,
             PRIMARY KEY (id),
-            CONSTRAINT lc_msg_fk FOREIGN KEY (session_id) REFERENCES live_chat_sessions(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+            CONSTRAINT lc_msg_fk FOREIGN KEY (session_id) REFERENCES live_chat_sessions(id) ON DELETE CASCADE)");
     }
 
     private static bool IsSupportAgent(string role) =>
@@ -81,13 +81,13 @@ public class LiveChatController : ControllerBase
         isRead = Convert.ToInt32(r["is_read"]) == 1
     };
 
-    private async Task<IDictionary<string, object>?> GetUser(MySqlConnector.MySqlConnection conn, string nid)
+    private async Task<IDictionary<string, object>?> GetUser(Microsoft.Data.SqlClient.SqlConnection conn, string nid)
     {
         var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            @"SELECT u.national_id, u.first_name, u.last_name, u.roles, u.region_id,
+            @"SELECT TOP (1) u.national_id, u.first_name, u.last_name, u.roles, u.region_id,
                      r.Name AS regionName
               FROM users u LEFT JOIN region r ON r.id=u.region_id
-              WHERE u.national_id=@nid LIMIT 1",
+              WHERE u.national_id=@nid ",
             new { nid });
         if (row == null) return null;
         var d = (IDictionary<string, object>)row;
@@ -95,10 +95,10 @@ public class LiveChatController : ControllerBase
         return d;
     }
 
-    private async Task<IDictionary<string, object>?> CanAccess(MySqlConnector.MySqlConnection conn, int sessionId, string nid, IDictionary<string, object> user)
+    private async Task<IDictionary<string, object>?> CanAccess(Microsoft.Data.SqlClient.SqlConnection conn, int sessionId, string nid, IDictionary<string, object> user)
     {
         var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT * FROM live_chat_sessions WHERE id=@id LIMIT 1", new { id = sessionId });
+            "SELECT TOP (1) * FROM live_chat_sessions WHERE id=@id ", new { id = sessionId });
         if (row == null) return null;
         var s = (IDictionary<string, object>)row;
         if ((string)s["user_national_id"] == nid) return s;
@@ -122,7 +122,7 @@ public class LiveChatController : ControllerBase
 
         // Check existing active session
         var existing = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT * FROM live_chat_sessions WHERE user_national_id=@nid AND status IN ('waiting','active') ORDER BY id DESC LIMIT 1",
+            "SELECT TOP (1) * FROM live_chat_sessions WHERE user_national_id=@nid AND status IN ('waiting','active') ORDER BY id DESC ",
             new { nid = NationalId });
 
         IDictionary<string, object> session;
@@ -137,18 +137,18 @@ public class LiveChatController : ControllerBase
             string role = (string)user["roles"];
             string regionId = user["region_id"]?.ToString() ?? "";
 
-            await conn.ExecuteAsync(
-                "INSERT INTO live_chat_sessions (session_code, user_national_id, user_name, user_role, user_region_id, subject) VALUES (@code,@nid,@name,@role,@rid,@subj)",
+            int sessionId = await conn.QuerySingleAsync<int>(
+                "INSERT INTO live_chat_sessions (session_code, user_national_id, user_name, user_role, user_region_id, subject) OUTPUT INSERTED.id VALUES (@code,@nid,@name,@role,@rid,@subj)",
                 new { code, nid = NationalId, name = fullName, role, rid = regionId, subj = subject });
 
-            int sessionId = Convert.ToInt32(await conn.ExecuteScalarAsync("SELECT LAST_INSERT_ID()"));
+            
             string welcome = "گفتگوی آنلاین شما شروع شد. لطفاً پیام خود را بنویسید تا اولین پشتیبان آنلاین پاسخ دهد.";
             await conn.ExecuteAsync(
-                "INSERT INTO live_chat_messages (session_id, sender_type, sender_name, sender_role, message, is_read) VALUES (@sid,'system','سامانه','SYSTEM',@msg,1)",
+                "INSERT INTO live_chat_messages (session_id, sender_type, sender_name, sender_role, message, is_read) VALUES (@sid,'system',N'سامانه','SYSTEM',@msg,1)",
                 new { sid = sessionId, msg = welcome });
 
             var newSession = await conn.QueryFirstOrDefaultAsync<dynamic>(
-                "SELECT * FROM live_chat_sessions WHERE id=@id LIMIT 1", new { id = sessionId });
+                "SELECT TOP (1) * FROM live_chat_sessions WHERE id=@id ", new { id = sessionId });
             session = (IDictionary<string, object>)newSession!;
         }
 
@@ -171,11 +171,11 @@ public class LiveChatController : ControllerBase
             return StatusCode(403, new { status = false, message = "دسترسی به این گفتگو مجاز نیست" });
 
         await conn.ExecuteAsync(
-            "UPDATE live_chat_sessions SET status='closed', closed_at=NOW(), updated_at=NOW() WHERE id=@id",
+            "UPDATE live_chat_sessions SET status='closed', closed_at=SYSDATETIME(), updated_at=SYSDATETIME() WHERE id=@id",
             new { id = req.sessionId });
 
         await conn.ExecuteAsync(
-            "INSERT INTO live_chat_messages (session_id, sender_national_id, sender_name, sender_role, sender_type, message, is_read) VALUES (@sid,@nid,@name,@role,'system','گفتگو بسته شد.',0)",
+            "INSERT INTO live_chat_messages (session_id, sender_national_id, sender_name, sender_role, sender_type, message, is_read) VALUES (@sid,@nid,@name,@role,'system',N'گفتگو بسته شد.',0)",
             new { sid = req.sessionId, nid = NationalId, name = user!["full_name"], role = user["roles"] });
 
         return Ok(new { status = true, message = "گفتگو بسته شد" });
@@ -198,7 +198,7 @@ public class LiveChatController : ControllerBase
 
         string afterClause = afterId > 0 ? "AND id>@afterId" : "";
         var msgs = (await conn.QueryAsync<dynamic>(
-            $"SELECT * FROM live_chat_messages WHERE session_id=@sid {afterClause} ORDER BY id ASC LIMIT 200",
+            $"SELECT TOP (200) * FROM live_chat_messages WHERE session_id=@sid {afterClause} ORDER BY id ASC ",
             new { sid = sessionId, afterId })).AsList();
 
         await conn.ExecuteAsync(
@@ -206,7 +206,7 @@ public class LiveChatController : ControllerBase
             new { sid = sessionId, nid = NationalId });
 
         var updatedSession = await conn.QueryFirstOrDefaultAsync<dynamic>(
-            "SELECT * FROM live_chat_sessions WHERE id=@id LIMIT 1", new { id = sessionId });
+            "SELECT TOP (1) * FROM live_chat_sessions WHERE id=@id ", new { id = sessionId });
 
         return Ok(new
         {
@@ -233,13 +233,13 @@ public class LiveChatController : ControllerBase
             : $"s.user_national_id='{NationalId}'";
 
         var rows = (await conn.QueryAsync<dynamic>(
-            $@"SELECT s.*,
-                (SELECT message FROM live_chat_messages m WHERE m.session_id=s.id ORDER BY m.id DESC LIMIT 1) AS last_message,
+            $@"SELECT TOP ({limit}) s.*,
+                (SELECT TOP (1) message FROM live_chat_messages m WHERE m.session_id=s.id ORDER BY m.id DESC ) AS last_message,
                 (SELECT COUNT(*) FROM live_chat_messages m WHERE m.session_id=s.id AND m.sender_national_id<>'{NationalId}' AND m.is_read=0) AS unread_count
                FROM live_chat_sessions s
                WHERE {where}
-               ORDER BY FIELD(s.status,'waiting','active','closed'), s.updated_at DESC
-               LIMIT {limit}")).AsList();
+               ORDER BY CASE s.status WHEN 'waiting' THEN 1 WHEN 'active' THEN 2 ELSE 3 END, s.updated_at DESC
+               ")).AsList();
 
         var agentCount = await conn.QueryFirstOrDefaultAsync<int>(
             "SELECT COUNT(*) FROM users WHERE roles IN ('ADMIN','SUPERVISOR','EXECUTIVE')");
@@ -286,21 +286,21 @@ public class LiveChatController : ControllerBase
 
         if (isAgent)
             await conn.ExecuteAsync(
-                "UPDATE live_chat_sessions SET status='active', assigned_agent_national_id=@nid, assigned_agent_name=@name, updated_at=NOW() WHERE id=@id",
+                "UPDATE live_chat_sessions SET status='active', assigned_agent_national_id=@nid, assigned_agent_name=@name, updated_at=SYSDATETIME() WHERE id=@id",
                 new { nid = NationalId, name = user["full_name"], id = req.sessionId });
         else
-            await conn.ExecuteAsync("UPDATE live_chat_sessions SET updated_at=NOW() WHERE id=@id", new { id = req.sessionId });
+            await conn.ExecuteAsync("UPDATE live_chat_sessions SET updated_at=SYSDATETIME() WHERE id=@id", new { id = req.sessionId });
 
-        await conn.ExecuteAsync(
-            "INSERT INTO live_chat_messages (session_id, sender_national_id, sender_name, sender_role, sender_type, message) VALUES (@sid,@nid,@name,@role,@type,@msg)",
+        int msgId = await conn.QuerySingleAsync<int>(
+            "INSERT INTO live_chat_messages (session_id, sender_national_id, sender_name, sender_role, sender_type, message) OUTPUT INSERTED.id VALUES (@sid,@nid,@name,@role,@type,@msg)",
             new { sid = req.sessionId, nid = NationalId, name = user["full_name"], role = user["roles"], type = senderType, msg = req.message });
 
-        int msgId = Convert.ToInt32(await conn.ExecuteScalarAsync("SELECT LAST_INSERT_ID()"));
+        
         var msgRow = msgId > 0
             ? await conn.QueryFirstOrDefaultAsync<dynamic>(
-                "SELECT * FROM live_chat_messages WHERE id=@id LIMIT 1", new { id = msgId })
+                "SELECT TOP (1) * FROM live_chat_messages WHERE id=@id ", new { id = msgId })
             : await conn.QueryFirstOrDefaultAsync<dynamic>(
-                "SELECT * FROM live_chat_messages WHERE session_id=@sid ORDER BY id DESC LIMIT 1", new { sid = req.sessionId });
+                "SELECT TOP (1) * FROM live_chat_messages WHERE session_id=@sid ORDER BY id DESC ", new { sid = req.sessionId });
 
         if (msgRow == null)
             return StatusCode(500, new { status = false, message = "خطا در ذخیره‌سازی پیام" });
@@ -312,3 +312,4 @@ public class LiveChatController : ControllerBase
 public record StartChatRequest(string? subject);
 public record SessionRequest(int sessionId);
 public record SendMessageRequest(int sessionId, string message);
+

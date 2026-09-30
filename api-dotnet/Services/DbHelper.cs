@@ -1,6 +1,6 @@
 using System.Data;
 using Dapper;
-using MySqlConnector;
+using Microsoft.Data.SqlClient;
 
 namespace EntekhabatApi.Services;
 
@@ -11,13 +11,13 @@ namespace EntekhabatApi.Services;
 public static class DbHelper
 {
     public static async Task<T> WithTransaction<T>(
-        MySqlConnection conn,
-        Func<MySqlTransaction, Task<T>> callback)
+        SqlConnection conn,
+        Func<SqlTransaction, Task<T>> callback)
     {
         if (conn.State != System.Data.ConnectionState.Open)
             await conn.OpenAsync();
 
-        var tx = await conn.BeginTransactionAsync();
+        var tx = (SqlTransaction)await conn.BeginTransactionAsync();
         try
         {
             var result = await callback(tx);
@@ -36,13 +36,13 @@ public static class DbHelper
     }
 
     public static async Task WithTransaction(
-        MySqlConnection conn,
-        Func<MySqlTransaction, Task> callback)
+        SqlConnection conn,
+        Func<SqlTransaction, Task> callback)
     {
         if (conn.State != System.Data.ConnectionState.Open)
             await conn.OpenAsync();
 
-        var tx = await conn.BeginTransactionAsync();
+        var tx = (SqlTransaction)await conn.BeginTransactionAsync();
         try
         {
             await callback(tx);
@@ -102,3 +102,4 @@ public static class DbHelper
     public static int Int(this IDictionary<string, object> d, string key)
         => Convert.ToInt32(d.GetValueOrDefault(key) ?? 0);
 }
+

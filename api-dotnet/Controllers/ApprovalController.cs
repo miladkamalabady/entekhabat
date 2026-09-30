@@ -32,7 +32,7 @@ public class ApprovalController : ControllerBase
         await using var conn = _db.CreateConnection();
 
         var user = await conn.QueryRowDict(
-            "SELECT roles, region_id FROM users WHERE national_id=@nid LIMIT 1", new { nid = NationalId });
+            "SELECT TOP (1) roles, region_id FROM users WHERE national_id=@nid ", new { nid = NationalId });
         if (user == null) return Unauthorized();
 
         int regionId = user.Int("region_id");
@@ -44,7 +44,7 @@ public class ApprovalController : ControllerBase
         if (row == null)
         {
             await conn.ExecuteAsync(
-                "INSERT IGNORE INTO final_results_approvals (region_id, EXECUTIVEPass, SUPERVISORPass) VALUES (@rid,@ep,@sp)",
+                "INSERT INTO final_results_approvals (region_id, EXECUTIVEPass, SUPERVISORPass) SELECT @rid,@ep,@sp WHERE NOT EXISTS (SELECT 1 FROM final_results_approvals WITH (UPDLOCK, HOLDLOCK) WHERE region_id=@rid)",
                 new { rid = regionId, ep = GeneratePass(regionId), sp = GeneratePass(regionId) });
         }
 
@@ -71,7 +71,7 @@ public class ApprovalController : ControllerBase
         await using var conn = _db.CreateConnection();
 
         var user = await conn.QueryRowDict(
-            "SELECT roles, region_id FROM users WHERE national_id=@nid LIMIT 1", new { nid = NationalId });
+            "SELECT TOP (1) roles, region_id FROM users WHERE national_id=@nid ", new { nid = NationalId });
         if (user == null) return Unauthorized();
 
         int    regionId  = user.Int("region_id");
@@ -94,14 +94,14 @@ public class ApprovalController : ControllerBase
         {
             await conn.ExecuteAsync(
                 @"UPDATE final_results_approvals
-                  SET executive_approved=1, executive_approved_by=@nid, executive_approved_at=NOW(),
-                      supervisor_approved=1, supervisor_approved_by=@nid, supervisor_approved_at=NOW()
+                  SET executive_approved=1, executive_approved_by=@nid, executive_approved_at=SYSDATETIME(),
+                      supervisor_approved=1, supervisor_approved_by=@nid, supervisor_approved_at=SYSDATETIME()
                   WHERE region_id=@rid",
                 new { nid = NationalId, rid = regionId }, tx);
 
             var row = await conn.QueryRowDict(
-                "SELECT executive_approved, supervisor_approved FROM final_results_approvals WHERE region_id=@rid FOR UPDATE",
-                tx: tx);
+                "SELECT executive_approved, supervisor_approved FROM final_results_approvals WITH (UPDLOCK, HOLDLOCK) WHERE region_id=@rid",
+                new { rid = regionId }, tx: tx);
 
             bool ea = Convert.ToBoolean(row?.GetValueOrDefault("executive_approved") ?? false);
             bool sa = Convert.ToBoolean(row?.GetValueOrDefault("supervisor_approved") ?? false);
@@ -126,7 +126,7 @@ public class ApprovalController : ControllerBase
         await using var conn = _db.CreateConnection();
 
         var user = await conn.QueryRowDict(
-            "SELECT roles, region_id FROM users WHERE national_id=@nid LIMIT 1", new { nid = NationalId });
+            "SELECT TOP (1) roles, region_id FROM users WHERE national_id=@nid ", new { nid = NationalId });
         if (user == null) return Unauthorized();
 
         string userRoles = user.Str("roles").ToUpper();
@@ -138,8 +138,8 @@ public class ApprovalController : ControllerBase
         return await DbHelper.WithTransaction(conn, async tx =>
         {
             var row = await conn.QueryRowDict(
-                "SELECT executive_approved, supervisor_approved FROM final_results_approvals WHERE region_id=@rid FOR UPDATE",
-                tx: tx);
+                "SELECT executive_approved, supervisor_approved FROM final_results_approvals WITH (UPDLOCK, HOLDLOCK) WHERE region_id=@rid",
+                new { rid = regionId }, tx: tx);
 
             bool ea = Convert.ToBoolean(row?.GetValueOrDefault("executive_approved") ?? false);
             bool sa = Convert.ToBoolean(row?.GetValueOrDefault("supervisor_approved") ?? false);
@@ -160,3 +160,4 @@ public class ApprovalController : ControllerBase
 }
 
 public record SubmitApprovalRequest(string? role, string? passcode1, string? passcode2);
+

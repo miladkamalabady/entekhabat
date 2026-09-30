@@ -111,17 +111,13 @@ public class DocumentController : ControllerBase
 
         if (paths.ContainsKey("education_doc"))
             await conn.ExecuteAsync(
-                @"INSERT INTO user_documents (nationalId, user_photo, education_doc, employment_cert, soPishine_cert, ravan_cert)
-                  VALUES (@nid,@up,@ed,'',@sp,@rc)
-                  ON DUPLICATE KEY UPDATE user_photo=VALUES(user_photo), education_doc=VALUES(education_doc),
-                  soPishine_cert=VALUES(soPishine_cert), ravan_cert=VALUES(ravan_cert), updated_at=NOW()",
+                @"UPDATE user_documents WITH (UPDLOCK, SERIALIZABLE) SET  user_photo=@up, education_doc=@ed,
+                  soPishine_cert=@sp, ravan_cert=@rc, updated_at=SYSDATETIME() WHERE nationalId=@nid; IF @@ROWCOUNT=0 INSERT INTO user_documents (nationalId, user_photo, education_doc, employment_cert, soPishine_cert, ravan_cert) VALUES (@nid,@up,@ed,'',@sp,@rc)",
                 new { nid = NationalId, up = paths["user_photo"], ed = paths["education_doc"], sp = paths["soPishine_cert"], rc = paths["ravan_cert"] }, tx);
         else
             await conn.ExecuteAsync(
-                @"INSERT INTO user_documents (nationalId, user_photo, employment_cert, soPishine_cert, ravan_cert)
-                  VALUES (@nid,@up,'',@sp,@rc)
-                  ON DUPLICATE KEY UPDATE user_photo=VALUES(user_photo),
-                  soPishine_cert=VALUES(soPishine_cert), ravan_cert=VALUES(ravan_cert), updated_at=NOW()",
+                @"UPDATE user_documents WITH (UPDLOCK, SERIALIZABLE) SET  user_photo=@up,
+                  soPishine_cert=@sp, ravan_cert=@rc, updated_at=SYSDATETIME() WHERE nationalId=@nid; IF @@ROWCOUNT=0 INSERT INTO user_documents (nationalId, user_photo, employment_cert, soPishine_cert, ravan_cert) VALUES (@nid,@up,'',@sp,@rc)",
                 new { nid = NationalId, up = paths["user_photo"], sp = paths["soPishine_cert"], rc = paths["ravan_cert"] }, tx);
 
         await tx.CommitAsync();
@@ -157,20 +153,20 @@ public class DocumentController : ControllerBase
             return BadRequest(new { status = false, message = "وضعیت بررسی نامعتبر است." });
 
         await using var conn = _db.CreateConnection();
+        await conn.OpenAsync();
         await using var tx = await conn.BeginTransactionAsync();
         try
         {
             await conn.ExecuteAsync(
                 @"UPDATE user_documents
-                  SET document_reviews = JSON_SET(
-                    COALESCE(document_reviews, JSON_OBJECT()),
-                    CONCAT('$.', @key),
-                    JSON_OBJECT('status',@status,'reviewed_by',@by,'reviewed_at',DATE_FORMAT(NOW(),'%Y-%m-%d %H:%i:%s'))
-                  ) WHERE nationalId=@nid",
+                  SET document_reviews = JSON_MODIFY(COALESCE(document_reviews, '{}'),
+                    CONCAT('$.', @key), JSON_QUERY((SELECT @status AS status, @by AS reviewed_by,
+                    CONVERT(varchar(19), SYSDATETIME(), 120) AS reviewed_at FOR JSON PATH, WITHOUT_ARRAY_WRAPPER)))
+                  WHERE nationalId=@nid",
                 new { key = req.documentKey, status = req.reviewStatus, by = NationalId, nid = req.national_Id }, tx);
 
             await conn.ExecuteAsync(
-                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'بررسی مدرک',@desc)",
+                "INSERT INTO logs (nationalId, action, description) VALUES (@nid,N'بررسی مدرک',@desc)",
                 new { nid = NationalId, desc = $"بررسی {req.documentKey} برای {req.national_Id} با وضعیت {req.reviewStatus}" }, tx);
 
             await tx.CommitAsync();
@@ -190,3 +186,4 @@ public class DocumentController : ControllerBase
 }
 
 public record DocumentReviewRequest(string national_Id, string documentKey, string reviewStatus);
+

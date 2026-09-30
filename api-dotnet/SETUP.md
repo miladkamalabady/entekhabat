@@ -4,7 +4,22 @@
 
 ### پیش‌نیازها
 1. نصب [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-2. MySQL در حال اجرا (همان دیتابیس PHP)
+2. SQL Server 2022 و دیتابیس `entekhabat` با جدول‌ها و داده‌های سامانه
+3. اجرای API روی ویندوز با حسابی که دسترسی SQL Server دارد
+
+### اتصال SQL Server
+
+رشته اتصال پیش‌فرض در `appsettings.json` مطابق سرور محلی شما است:
+
+```json
+"DefaultConnection": "Server=.\\MSSQLSERVER2022;Database=entekhabat;Integrated Security=True;Encrypt=True;TrustServerCertificate=True;"
+```
+
+با Windows Authentication، حساب اجرای API استفاده می‌شود. اجرای `dotnet run` با حساب Administrator تصویر انجام شود؛ در IIS به هویت Application Pool دسترسی لازم روی دیتابیس بدهید. این نام سرور برای اجرای API روی همان رایانه است؛ روی رایانه دیگر نام یا IP میزبان SQL Server را جایگزین نقطه کنید.
+
+دیتابیس باید جدول‌های نسخه انتخابات را داشته باشد؛ این تغییر داده‌های MySQL را منتقل نمی‌کند و صرف ساختن دیتابیس خالی کافی نیست. ستون‌های متن فارسی باید `nvarchar` باشند. برای تاریخ‌های شمسی با سال کمتر از 1753 از `datetime2` استفاده کنید. قابلیت JSON به compatibility level حداقل 130 نیاز دارد. دستورهای ایجاد جدول فقط جدول‌های کمکی را در صورت نبودن می‌سازند.
+
+ماژول مستقل ارسال مدرسه تنظیم جداگانه `BaleSchoolConnection` دارد؛ اگر استفاده می‌شود، رشته اتصال SQL Server دیتابیس آن را جداگانه تنظیم کنید. پوشه `api/` نسخه قدیمی PHP است؛ این تغییر مربوط به بک‌اند `api-dotnet` است که proxy توسعه Vue به آن متصل است. فایل‌های `bin/` و `obj/` قدیمی را برای استقرار استفاده نکنید؛ build/publish تازه بگیرید.
 
 ### اجرا
 
@@ -14,7 +29,7 @@ dotnet restore
 dotnet run
 ```
 
-پیش‌فرض روی `http://localhost:5000` اجرا می‌شود.
+پیش‌فرض روی `http://localhost:5050` اجرا می‌شود.
 
 ---
 
@@ -91,7 +106,7 @@ api-dotnet/
 ├── EntekhabatApi.csproj          # بسته‌های NuGet
 ├── wwwroot/uploads/              # فایل‌های آپلود شده (همان /api/uploads در PHP)
 ├── Services/
-│   ├── DatabaseService.cs        # اتصال به MySQL (معادل database.php)
+│   ├── DatabaseService.cs        # اتصال به SQL Server (معادل database.php)
 │   ├── JwtService.cs             # تولید توکن JWT (معادل config.php)
 │   └── JalaliService.cs          # تبدیل تاریخ شمسی (معادل jdf.php)
 └── Controllers/
@@ -108,3 +123,4 @@ api-dotnet/
     ├── ApprovalController.cs      # getFinalResultsApprovalStatus, ...
     └── LogFeedbackController.cs   # getLogs, submitFeedback
 ```
+
