@@ -136,6 +136,47 @@ public class UserController : ControllerBase
             $"SELECT COUNT(*) FROM dbo.users u JOIN dbo.region r ON r.id=u.region_id {where}", queryParams);
         int pages = limit > 0 ? (int)Math.Ceiling(total / (double)limit) : 1;
 
+        // شمارش واجدین رأی هر منطقه باید مستقل از pagination/search باشد.
+        // کاربران با roles خالی/NULL مطابق منطق سامانه VOTER در نظر گرفته می‌شوند.
+        var voterCountConditions = new List<string>
+        {
+            "COALESCE(NULLIF(LTRIM(RTRIM(u.roles)), N''), N'VOTER') = N'VOTER'"
+        };
+        if (isProvinceSupervisor)
+            voterCountConditions.Add("r.ProvinceCode = @provinceCode");
+
+        string voterCountWhere = "WHERE " + string.Join(" AND ", voterCountConditions);
+        var voterCountRows = await conn.QueryAsync<dynamic>(
+            $@"SELECT
+                    u.region_id AS regionId,
+                    COUNT(*) AS voterCount,
+                    MAX(mv.maxVotes) AS maxVotes
+               FROM dbo.users u
+               JOIN dbo.region r ON r.id = u.region_id
+               LEFT JOIN dbo.maxvotes mv ON mv.region_id = u.region_id
+               {voterCountWhere}
+               GROUP BY u.region_id",
+            new { provinceCode = currentProvinceCode });
+
+        // تعداد رای مجاز: اگر maxvotes مقدار داشته باشد همان مقدار،
+        // در غیر این صورت به ازای هر 1000 واجد رأی یک رأی (گرد رو به بالا)
+        // کمتر از 1000 نفر = صفر
+        var voterCountByRegion = voterCountRows.ToDictionary(
+            x => Convert.ToString(x.regionId) ?? "0",
+            x => Convert.ToInt32(x.voterCount));
+
+        var allowedVotesByRegion = voterCountRows.ToDictionary(
+            x => Convert.ToString(x.regionId) ?? "0",
+            x =>
+            {
+                int? maxVotes = x.maxVotes == null ? null : Convert.ToInt32(x.maxVotes);
+                if (maxVotes.HasValue)
+                    return maxVotes.Value;
+
+                int count = Convert.ToInt32(x.voterCount);
+                return count < 1000 ? 0 : (int)Math.Ceiling(count / 1000.0);
+            });
+
         var sql = $@"SELECT u.id, u.national_id, u.first_name, u.last_name,
                     u.personnel_code, u.region_id, u.roles, u.created_at,
                     r.name AS regionName, r.ProvinceCode AS provinceCode,
@@ -162,7 +203,7 @@ public class UserController : ControllerBase
         {
             status = true,
             data = list,
-            meta = new { total, page, limit, pages }
+            meta = new { total, page, limit, pages, voterCountByRegion, allowedVotesByRegion }
         });
     }
 

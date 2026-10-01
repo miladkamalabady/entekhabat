@@ -86,14 +86,81 @@ public class VoteController : ControllerBase
             if (token.GetValueOrDefault("expires_at") is DateTime exp && exp < DateTime.Now)
                 return StatusCode(403, new { status = false, message = "زمان رأی‌گیری طولانی شده است، لطفا مجدد اقدام به ثبت رای نمایید" });
 
-            // حداکثر رأی مجاز
-            var maxRow = await conn.QueryRowDict(
-                "SELECT maxVotes FROM users JOIN maxvotes ON maxvotes.region_id=users.region_id WHERE national_id=@nid",
+            // تعیین حوزه رأی مؤثر و سقف رأی مجاز
+            // اگر منطقه کاربر ظرفیت داشته باشد، فقط همان منطقه معتبر است.
+            // اگر ظرفیت منطقه کاربر صفر باشد، کاربر فقط می‌تواند یک منطقه دارای ظرفیت
+            // از همان استان را به عنوان حوزه جایگزین انتخاب کند.
+            var userRegion = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                @"
+                SELECT r.id, r.ProvinceCode,
+                       CASE
+                           WHEN mv.maxVotes IS NOT NULL THEN mv.maxVotes
+                           WHEN COUNT(CASE WHEN COALESCE(NULLIF(LTRIM(RTRIM(u2.roles)), N''), N'VOTER') = N'VOTER' THEN 1 END) < 1000 THEN 0
+                           ELSE CEILING(COUNT(CASE WHEN COALESCE(NULLIF(LTRIM(RTRIM(u2.roles)), N''), N'VOTER') = N'VOTER' THEN 1 END) / 1000.0)
+                       END AS allowedVotes
+                FROM users u
+                JOIN region r ON r.id=u.region_id
+                OUTER APPLY (SELECT MAX(maxVotes) AS maxVotes FROM maxvotes WHERE region_id=r.id) mv
+                LEFT JOIN users u2 ON u2.region_id=r.id
+                WHERE u.national_id=@nid
+                GROUP BY r.id, r.ProvinceCode, mv.maxVotes",
                 new { nid = NationalId }, tx);
-            int maxVotes = Convert.ToInt32(maxRow?.GetValueOrDefault("maxVotes") ?? 1);
 
-            if (req.candidateIds.Length > maxVotes)
-                return StatusCode(403, new { status = false, message = "تعداد کاندیداهای انتخابی صحیح نمی‌باشد" });
+            if (userRegion == null)
+                return BadRequest(new { status=false, message="منطقه رأی‌دهنده یافت نشد." });
+
+            int userRegionId = Convert.ToInt32(userRegion.id);
+            int provinceCode = Convert.ToInt32(userRegion.ProvinceCode);
+            int allowedVotes = Convert.ToInt32(userRegion.allowedVotes);
+            int effectiveRegionId = userRegionId;
+
+            if (allowedVotes <= 0)
+            {
+                if (req.regionId == null)
+                    return BadRequest(new { status=false, requireRegionSelection=true, message="منطقه محل سکونت شما ظرفیت رأی ندارد، لطفاً منطقه دارای ظرفیت را انتخاب کنید." });
+
+                var validRegion = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                    @"SELECT r.id,
+                             CASE
+                                 WHEN mv.maxVotes IS NOT NULL THEN mv.maxVotes
+                                 WHEN COUNT(CASE WHEN COALESCE(NULLIF(LTRIM(RTRIM(u.roles)), N''), N'VOTER') = N'VOTER' THEN 1 END) < 1000 THEN 0
+                                 ELSE CEILING(COUNT(CASE WHEN COALESCE(NULLIF(LTRIM(RTRIM(u.roles)), N''), N'VOTER') = N'VOTER' THEN 1 END) / 1000.0)
+                             END AS allowedVotes
+                      FROM region r
+                      OUTER APPLY (SELECT MAX(maxVotes) AS maxVotes FROM maxvotes WHERE region_id=r.id) mv
+                      LEFT JOIN users u ON u.region_id=r.id
+                      WHERE r.id=@rid AND r.ProvinceCode=@province
+                      GROUP BY r.id, mv.maxVotes",
+                    new { rid=req.regionId.Value, province=provinceCode }, tx);
+
+                if (validRegion == null || Convert.ToInt32(validRegion.allowedVotes) <= 0)
+                    return BadRequest(new { status=false, message="منطقه انتخابی مجاز نیست." });
+
+                effectiveRegionId = Convert.ToInt32(validRegion.id);
+                allowedVotes = Convert.ToInt32(validRegion.allowedVotes);
+            }
+            else if (req.regionId.HasValue && req.regionId.Value != userRegionId)
+            {
+                return BadRequest(new { status=false, message="منطقه انتخابی با منطقه رأی‌دهنده مطابقت ندارد." });
+            }
+
+            // شناسه نامزدها باید یکتا باشد و همه نامزدها باید در حوزه رأی مؤثر،
+            // فعال و تأییدشده باشند.
+            var candidateIds = req.candidateIds.Distinct().ToArray();
+            if (candidateIds.Length > allowedVotes)
+                return StatusCode(403, new { status = false, message = "تعداد کاندیداهای انتخابی بیش از سقف مجاز منطقه است." });
+
+            var validCandidateCount = await conn.QueryFirstOrDefaultAsync<int>(
+                @"SELECT COUNT(*)
+                  FROM final_submissions f
+                  JOIN users cu ON cu.national_id=f.nationalId
+                  WHERE f.id IN @candidateIds
+                    AND f.requestStatus='SUPERVISION_APPROVED'
+                    AND cu.region_id=@regionId",
+                new { candidateIds, regionId=effectiveRegionId }, tx);
+
+            if (validCandidateCount != candidateIds.Length)
+                return BadRequest(new { status=false, message="یک یا چند نامزد متعلق به حوزه مجاز رأی‌دهنده نیستند." });
 
             // ثبت شرکت‌کننده
             var participant = await conn.QueryFirstOrDefaultAsync<int?>(
@@ -104,7 +171,7 @@ public class VoteController : ControllerBase
                     new { nid = NationalId, tc = trackingCode }, tx);
 
             // ثبت رأی‌ها
-            foreach (var candidateId in req.candidateIds)
+            foreach (var candidateId in candidateIds)
             {
                 var dup = await conn.QueryFirstOrDefaultAsync<int?>(
                     "SELECT id FROM votes WHERE national_id=@nid AND candidate_id=@cid",
@@ -516,6 +583,51 @@ public class VoteController : ControllerBase
         return File(result, "text/csv; charset=utf-8", fileName);
     }
 
+    // GET /api/getAvailableVoteRegions
+    // مناطق مجاز برای کاربرانی که منطقه خودشان ظرفیت رأی ندارد
+    [HttpGet("getAvailableVoteRegions")]
+    public async Task<IActionResult> GetAvailableVoteRegions()
+    {
+        await using var conn = _db.CreateConnection();
+
+        var province = await conn.QueryFirstOrDefaultAsync<int?>(
+            """
+            SELECT r.ProvinceCode
+            FROM users u
+            INNER JOIN region r ON r.id = u.region_id
+            WHERE u.national_id=@nid
+            """,
+            new { nid = NationalId });
+
+        if (!province.HasValue)
+            return BadRequest(new { status = false, message = "منطقه کاربر یافت نشد" });
+
+        var rows = await conn.QueryAsync<dynamic>(
+            """
+            SELECT
+                r.id,
+                r.Name AS name,
+                COALESCE(m.maxVotes, CEILING(CAST(COUNT(u.id) AS decimal(18,2)) / 1000)) AS allowedVotes,
+                COUNT(u.id) AS voterCount
+            FROM region r
+            LEFT JOIN maxvotes m ON m.region_id = r.id
+            LEFT JOIN users u ON u.region_id = r.id
+                AND COALESCE(NULLIF(u.roles,''),'VOTER') = 'VOTER'
+            WHERE r.ProvinceCode=@province
+              AND r.id % 100 <> 0
+            GROUP BY r.id, r.Name, m.maxVotes
+            HAVING COALESCE(m.maxVotes, CEILING(CAST(COUNT(u.id) AS decimal(18,2)) / 1000)) > 0
+            ORDER BY r.Name
+            """,
+            new { province });
+
+        return Ok(new
+        {
+            status = true,
+            regions = rows
+        });
+    }
+
     private static string CsvCell(string? value)
     {
         if (string.IsNullOrEmpty(value)) return "";
@@ -525,5 +637,5 @@ public class VoteController : ControllerBase
     }
 }
 
-public record InsertVoteRequest(int[] candidateIds, string vote_token);
+public record InsertVoteRequest(int[] candidateIds, string vote_token, int? regionId = null);
 

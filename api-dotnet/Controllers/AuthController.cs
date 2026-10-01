@@ -21,27 +21,20 @@ public class AuthController : ControllerBase
         _http = http;
     }
 
-    // GET /api/AccountLogin?code=...&role=...
+    // GET /api/AccountLogin?code=...
     [AllowAnonymous]
     [HttpPost("AccountLogin")]
     [HttpGet("AccountLogin")]
     public async Task<IActionResult> AccountLogin(
         [FromQuery] string? code,
-        [FromQuery] string? role,
         [FromBody] LoginRequest? body)
     {
         var nationalId = code ?? body?.code;
-        var roleParam  = role ?? body?.role;
 
         if (string.IsNullOrWhiteSpace(nationalId))
             return BadRequest(new { status = false, message = "خطای دریافت کد!" });
 
         await using var conn = _db.CreateConnection();
-
-        if (!string.IsNullOrWhiteSpace(roleParam))
-            await conn.ExecuteAsync(
-                "UPDATE users SET roles=@role WHERE national_id=@nid",
-                new { role = roleParam, nid = nationalId });
 
         var user = await conn.QueryRowDict(
             "SELECT * FROM users WHERE national_id=@nid",
@@ -51,9 +44,7 @@ public class AuthController : ControllerBase
             return BadRequest(new { status = false, message = "خطای دریافت کاربر!" });
 
         int    userId     = Convert.ToInt32(user.GetValueOrDefault("id") ?? 0);
-        string userRoles  = !string.IsNullOrWhiteSpace(roleParam)
-                                ? roleParam
-                                : (user.GetValueOrDefault("roles") as string ?? "VOTER");
+        string userRoles  = user.GetValueOrDefault("roles") as string ?? "VOTER";
         string regionName = user.GetValueOrDefault("regionName") as string ?? "";
         if (string.IsNullOrEmpty(regionName))
         {
@@ -285,5 +276,5 @@ public class AuthController : ControllerBase
     }
 }
 
-public record LoginRequest(string? code, string? role);
+public record LoginRequest(string? code);
 public record SsoLoginRequest(string? Code);

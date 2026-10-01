@@ -73,6 +73,7 @@
               <td>{{ area.id }}</td>
               <td>{{ area.name }}</td>
               <td>{{ voterCountByRegion[area.id] || 0 }}</td>
+              <td>{{ area.allowedVotes || 0 }}</td>
               <td>
                 <input v-model.number="area.maxVotes" class="max-votes-input" type="number" min="1" max="50">
               </td>
@@ -255,6 +256,7 @@ export default {
       perPage: 50,
       total: 0,
       totalPages: 1,
+      voterCountsByRegion: {},
       searchInput: '',
       searchDebounce: null,
       filters: {
@@ -301,17 +303,14 @@ export default {
     selectedProvinceAreas() {
       return this.areasByProvince[this.selectedProvinceCode] || [];
     }, maxVotesProvinceAreas() {
-      return this.areasByProvince[this.maxVotesProvinceCode] || [];
+      return (this.areasByProvince[this.maxVotesProvinceCode] || [])
+        .filter(area => !String(area.id || '').endsWith('00'));
     },
     voterCountByRegion() {
-      const map = {};
-      this.users.forEach(u => {
-        if (u.roles === 'VOTER') {
-          const rid = Number(u.region_id);
-          map[rid] = (map[rid] || 0) + 1;
-        }
-      });
-      return map;
+      return this.voterCountsByRegion || {};
+    },
+    allowedVotesByRegion() {
+      return this.allowedVotesByRegionData || {};
     },
     filteredUsers() {
       return this.users.filter(user => {
@@ -351,6 +350,8 @@ export default {
         this.users      = Array.isArray(usersRes?.data) ? usersRes.data : [];
         this.total      = usersRes?.meta?.total ?? this.users.length;
         this.totalPages = usersRes?.meta?.pages  ?? 1;
+        this.voterCountsByRegion = usersRes?.meta?.voterCountByRegion || {};
+        this.allowedVotesByRegionData = usersRes?.meta?.allowedVotesByRegion || {};
 
         this.provinces       = regionsResponse?.data || [];
         this.areasByProvince = regionsResponse?.areasByProvince || {};
@@ -362,6 +363,7 @@ export default {
           this.maxVotesProvinceCode = String(this.visibleProvinces[0].id);
         }
         this.syncRegionVoteDefaults();
+        this.applyRegionVoteStats();
       } catch (error) {
         this.$bvToast.toast("خطا در بارگذاری کاربران", { title: "خطا", variant: "danger", solid: true });
       } finally {
@@ -375,10 +377,20 @@ export default {
         this.users      = Array.isArray(res?.data) ? res.data : [];
         this.total      = res?.meta?.total ?? this.users.length;
         this.totalPages = res?.meta?.pages  ?? 1;
+        this.voterCountsByRegion = res?.meta?.voterCountByRegion || {};
+        this.allowedVotesByRegionData = res?.meta?.allowedVotesByRegion || {};
       } finally {
         this.loading       = false;
         this.searchLoading = false;
       }
+    },
+    applyRegionVoteStats() {
+      Object.keys(this.areasByProvince).forEach(code => {
+        this.areasByProvince[code] = this.areasByProvince[code].map(area => ({
+          ...area,
+          allowedVotes: area.allowedVotes ?? this.allowedVotesByRegion?.[area.id] ?? 0
+        }));
+      });
     },
     changePage(p) {
       if (p < 1 || p > this.totalPages) return;

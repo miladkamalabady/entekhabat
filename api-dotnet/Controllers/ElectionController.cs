@@ -138,9 +138,12 @@ END");
         await using var conn = _db.CreateConnection();
 
         var rows = (await conn.QueryAsync<dynamic>(
-            @"SELECT r.id, r.ProvinceCode, r.Name AS name, COALESCE(mv.maxVotes,1) AS maxVotes
+            @"SELECT r.id, r.ProvinceCode, r.Name AS name, mv.maxVotes,
+                     COUNT(CASE WHEN COALESCE(NULLIF(LTRIM(RTRIM(u.roles)), N''), N'VOTER') = N'VOTER' THEN 1 END) AS voterCount
               FROM region r
               LEFT JOIN (SELECT region_id, MAX(maxVotes) AS maxVotes FROM maxvotes GROUP BY region_id) mv ON mv.region_id=r.id
+              LEFT JOIN users u ON u.region_id=r.id
+              GROUP BY r.id, r.ProvinceCode, r.Name, mv.maxVotes
               ORDER BY r.ProvinceCode ASC, r.id ASC, r.Name ASC")).AsList();
 
         var provincesMap = new Dictionary<int, object>();
@@ -157,7 +160,12 @@ END");
             if (!areasByProvince.ContainsKey(pcode))
                 areasByProvince[pcode] = new List<object>();
 
-            areasByProvince[pcode].Add(new { id = rid, name = (string)r.name, maxVotes = (int)r.maxVotes });
+            int voterCount = Convert.ToInt32(r.voterCount);
+            int allowedVotes = r.maxVotes == null
+                ? (voterCount < 1000 ? 0 : (int)Math.Ceiling(voterCount / 1000.0))
+                : Convert.ToInt32(r.maxVotes);
+
+            areasByProvince[pcode].Add(new { id = rid, name = (string)r.name, maxVotes = allowedVotes, voterCount, allowedVotes });
         }
 
         return Ok(new
