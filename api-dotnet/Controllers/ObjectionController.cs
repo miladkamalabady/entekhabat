@@ -111,7 +111,8 @@ END");
                 description = desc, preview, reasons = reasons ?? new object[0],
                 urgency = d["urgency"] ?? "normal", status = d["status"],
                 declaration = Convert.ToBoolean(d.GetValueOrDefault("declaration") ?? false),
-                submittedDate = d["created_at"], lastUpdate = d["updated_at"],
+                submittedDate = d["created_at"] is DateTime createdAt ? _jalali.Format(createdAt, "H:i Y-n-j") : d["created_at"],
+                lastUpdate = d["updated_at"] is DateTime updatedAt ? _jalali.Format(updatedAt, "H:i Y-n-j") : d["updated_at"],
                 documentsCount = Convert.ToInt32(d["documents_count"]),
                 documents = docs.Select(doc => new {
                     id = Convert.ToInt32(((IDictionary<string, object>)doc)["id"]),
