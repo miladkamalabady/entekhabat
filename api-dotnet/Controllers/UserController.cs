@@ -292,13 +292,15 @@ public class UserController : ControllerBase
             return StatusCode(403, new { status = false, message = "شما دسترسی لازم را ندارید" });
 
         int regionId = Convert.ToInt32(me.region_id);
+        bool isProvinceSupervisor = myListRole == "SUPERVISOR" && regionId != 1000 && regionId % 100 == 0;
+        int provinceCode = isProvinceSupervisor ? regionId / 100 : 0;
 
         var rows = (await conn.QueryAsync<dynamic>(
             @"SELECT f.id AS codeentekhabati, tracking_code, requestStatus, f.create_date,
                      u.id, u.national_Id, u.first_name, u.last_name, u.persian_birth_date,
                      u.personnel_code, u.gender, u.father_name, u.org_position_desc,
                      uc.yearsOfService, uc.education, u.user_type, u.region_id,
-                     re.name AS regname, u.roles,
+                     re.name AS regname, re.ProvinceCode, u.roles,
                      ud.user_photo, ud.education_doc, ud.employment_cert,
                      ud.soPishine_cert, ud.ravan_cert, ud.transparency_form,
                      ud.document_reviews,
@@ -310,8 +312,10 @@ public class UserController : ControllerBase
               JOIN dbo.user_documents ud ON ud.nationalId=f.nationalId
               LEFT JOIN dbo.user_addresses ua ON ua.user_id=u.id
               LEFT JOIN dbo.userscheck uc ON uc.national_id=u.national_id
-              WHERE u.region_id=@rid ORDER BY create_date DESC",
-            new { rid = regionId })).AsList();
+              WHERE ((@provinceScope=1 AND re.ProvinceCode=@provinceCode)
+                     OR (@provinceScope=0 AND u.region_id=@rid))
+              ORDER BY create_date DESC",
+            new { rid = regionId, provinceScope = isProvinceSupervisor ? 1 : 0, provinceCode })).AsList();
 
         var list = rows.Select(r =>
         {
