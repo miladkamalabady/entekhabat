@@ -94,8 +94,10 @@ public class UserController : ControllerBase
         int? currentProvinceCode = currentUser.ProvinceCode == null ? null : Convert.ToInt32(currentUser.ProvinceCode);
 
         bool isAdmin = currentRole == "ADMIN";
+        // کدهای xx00 ناظر استانی هستند؛ 1000 ستاد است و استانی محسوب نمی‌شود.
         bool isProvinceSupervisor = currentRole == "SUPERVISOR"
-            && currentRegionId > 0 && currentRegionId % 100 == 0
+            && currentRegionId > 0 && currentRegionId != 1000
+            && currentRegionId % 100 == 0
             && currentProvinceCode.HasValue;
 
         if (!isAdmin && !isProvinceSupervisor)
@@ -227,7 +229,9 @@ public class UserController : ControllerBase
         int? currentProvinceCode = currentUser?.ProvinceCode == null ? null : Convert.ToInt32(currentUser.ProvinceCode);
 
         bool isAdmin = currentRole == "ADMIN";
-        bool isProvinceSupervisor = currentRole == "SUPERVISOR" && currentRegionId > 0 && currentRegionId % 100 == 0;
+        // ناظر استانی: xx00، به استثنای ستاد 1000
+        bool isProvinceSupervisor = currentRole == "SUPERVISOR"
+            && currentRegionId > 0 && currentRegionId != 1000 && currentRegionId % 100 == 0;
 
         if (!isAdmin && !isProvinceSupervisor)
             return StatusCode(403, new { status = false, message = "شما دسترسی لازم را ندارید" });
@@ -236,6 +240,22 @@ public class UserController : ControllerBase
             "SELECT TOP (1) id, ProvinceCode, Name FROM dbo.region WHERE id=@id", new { id = req.region_id });
         if (newRegion == null)
             return BadRequest(new { status = false, message = "منطقه انتخاب شده معتبر نیست." });
+
+        // هنگام تخصیص نقش نظارت، سطح دسترسی از روی کد منطقه تعیین می‌شود:
+        // xx01..xx99 = نظارت منطقه‌ای، xx00 = نظارت استانی، 1000 = ستاد.
+        if (req.roles == "SUPERVISOR")
+        {
+            int supervisorRegionId = req.region_id;
+            bool isHeadquarters = supervisorRegionId == 1000;
+            bool isProvinceLevel = !isHeadquarters && supervisorRegionId % 100 == 0;
+
+            if (!isHeadquarters && supervisorRegionId < 1000)
+                return BadRequest(new { status = false, message = "کد حوزه نظارت معتبر نیست." });
+
+            // برای ناظر استانی باید رکورد xx00 همان استان انتخاب شود.
+            if (isProvinceLevel && Convert.ToInt32(newRegion.ProvinceCode) != supervisorRegionId / 100)
+                return BadRequest(new { status = false, message = "کد ناظر استانی با استان انتخاب‌شده تطابق ندارد." });
+        }
 
         if (isProvinceSupervisor)
         {
