@@ -766,11 +766,11 @@
                   <small class="text-muted mr-2">{{ formatFileSize(doc.size) }}</small>
                 </div>
                 <div class="document-actions">
-                  <b-button size="sm" variant="outline-primary" :href="getDocumentUrl(doc)" target="_blank">
+                  <b-button size="sm" variant="outline-primary" @click="openObjectionDocument(doc)">
                     <b-icon icon="eye"></b-icon>
                     مشاهده
                   </b-button>
-                  <b-button size="sm" variant="outline-success" :href="getDocumentUrl(doc)" download class="mr-2">
+                  <b-button size="sm" variant="outline-success" @click="downloadObjectionDocument(doc)" class="mr-2">
                     <b-icon icon="download"></b-icon>
                     دانلود
                   </b-button>
@@ -1224,7 +1224,7 @@ export default {
   },
   methods: {
     ...mapMutations(["setChangeStateInfo"]),
-    ...mapActions(["getEXECUTIVEList", "ChangeState", "UpdateDocumentReview", "getAdvertisements", "deleteAdv", "getSystemSchedule", "getObjections", "updateObjectionStatus", "getRecentLogs"]),
+    ...mapActions(["getEXECUTIVEList", "ChangeState", "UpdateDocumentReview", "getAdvertisements", "deleteAdv", "getSystemSchedule", "getObjections", "updateObjectionStatus", "downloadObjectionFile", "getRecentLogs"]),
     getFileIcon(file) {
       const ext = (file.name || file.file_name || '').split('.').pop().toLowerCase()
       if (ext === 'pdf') return 'file-earmark-pdf'
@@ -1241,11 +1241,38 @@ export default {
       return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
     },
 
-    getDocumentUrl(doc) {
-      if (doc.id) {
-        return `/apiEntekhabat/downloadObjectionFile.php?id=${doc.id}`
+    async getObjectionDocumentBlob(doc) {
+      if (!doc?.id) throw new Error('شناسه فایل اعتراض نامعتبر است')
+      const blob = await this.downloadObjectionFile({ id: doc.id })
+      if (!(blob instanceof Blob)) throw new Error('دریافت فایل اعتراض ناموفق بود')
+      return blob
+    },
+    async openObjectionDocument(doc) {
+      try {
+        const blob = await this.getObjectionDocumentBlob(doc)
+        const url = URL.createObjectURL(blob)
+        window.open(url, '_blank', 'noopener')
+        setTimeout(() => URL.revokeObjectURL(url), 60000)
+      } catch (error) {
+        console.error('Error opening objection document:', error)
+        this.$bvToast.toast('امکان مشاهده فایل وجود ندارد.', { title: 'خطا', variant: 'danger', solid: true })
       }
-      return doc.path || ''
+    },
+    async downloadObjectionDocument(doc) {
+      try {
+        const blob = await this.getObjectionDocumentBlob(doc)
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = doc.name || doc.file_name || 'objection-document'
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        URL.revokeObjectURL(url)
+      } catch (error) {
+        console.error('Error downloading objection document:', error)
+        this.$bvToast.toast('امکان دانلود فایل وجود ندارد.', { title: 'خطا', variant: 'danger', solid: true })
+      }
     },
     // تنظیم وضعیت یک شرط
     setConditionReview(key, status) {
