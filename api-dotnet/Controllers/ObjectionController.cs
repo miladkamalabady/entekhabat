@@ -45,10 +45,28 @@ END");
         await using var conn = _db.CreateConnection();
         await EnsureObjectionTables(conn);
 
-        bool isReviewer = ReviewerRoles.Contains(UserRole);
-        var where = new List<string>();
+        var me = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            @"SELECT TOP (1) u.roles, u.region_id, r.ProvinceCode
+              FROM dbo.users u LEFT JOIN dbo.region r ON r.id=u.region_id
+              WHERE u.national_id=@nid", new { nid = NationalId });
 
-        if (!isReviewer) where.Add("o.national_id=@nid");
+        string role = me == null ? "" : (Convert.ToString(me.roles) ?? "");
+        int regionId = me == null ? 0 : Convert.ToInt32(me.region_id ?? 0);
+        int provinceCode = me?.ProvinceCode == null ? 0 : Convert.ToInt32(me.ProvinceCode);
+        bool isAdmin = role == "ADMIN";
+        bool isSupervisor = role == "SUPERVISOR";
+        bool isProvinceSupervisor = isSupervisor && regionId != 1000 && regionId % 100 == 0;
+
+        var where = new List<string>();
+        if (!isAdmin && !isSupervisor)
+            where.Add("o.national_id=@nid");
+        else if (isProvinceSupervisor)
+            // اعتراضات داوطلبان تمام مناطق همان استان فقط در کارتابل نظارت استان دیده می‌شود.
+            where.Add("r.ProvinceCode=@provinceCode");
+        else if (isSupervisor)
+            // ناظر منطقه فقط اعتراضات حوزه خودش را می‌بیند؛ تصمیم نهایی اعتراض با استان است.
+            where.Add("u.region_id=@regionId");
+
         if (!string.IsNullOrWhiteSpace(trackingCode)) where.Add("o.tracking_code=@tc");
         if (!string.IsNullOrWhiteSpace(status)) where.Add("o.status=@st");
 
@@ -56,65 +74,58 @@ END");
 
         var rows = (await conn.QueryAsync<dynamic>(
             $@"SELECT o.*, COUNT(d.id) AS documents_count
-               FROM objections o
-               LEFT JOIN objection_documents d ON o.id=d.objection_id
+               FROM dbo.objections o
+               LEFT JOIN dbo.objection_documents d ON o.id=d.objection_id
+               LEFT JOIN dbo.users u ON u.national_id=o.national_id
+               LEFT JOIN dbo.region r ON r.id=u.region_id
                {whereSql}
-               GROUP BY o.id ORDER BY o.created_at DESC",
-            new { nid = NationalId, tc = trackingCode, st = status })).AsList();
+               GROUP BY o.id, o.tracking_code, o.national_id, o.decision_type, o.case_number,
+                        o.candidate_name, o.candidate_region, o.candidate_position, o.subject,
+                        o.description, o.reasons, o.urgency, o.status, o.declaration,
+                        o.response_text, o.response_by, o.response_at, o.cancelled_at,
+                        o.created_at, o.updated_at
+               ORDER BY o.created_at DESC",
+            new { nid = NationalId, tc = trackingCode, st = status, regionId, provinceCode })).AsList();
 
         var result = new List<object>();
         foreach (var r in rows)
         {
             var d = (IDictionary<string, object>)r;
             long objId = Convert.ToInt64(d["id"]);
-
             var docs = (await conn.QueryAsync<dynamic>(
                 "SELECT id, file_name, file_path, file_size, file_type, created_at FROM objection_documents WHERE objection_id=@id ORDER BY created_at ASC",
                 new { id = objId })).AsList();
 
             string desc = (string)(d["description"] ?? "");
             string preview = desc.Length > 150 ? desc[..150] + "..." : desc;
-
             object? reasons = null;
             if (d["reasons"] is string rStr && !string.IsNullOrWhiteSpace(rStr))
                 try { reasons = JsonSerializer.Deserialize<object>(rStr); } catch { }
 
             result.Add(new
             {
-                id = objId,
-                trackingCode = d["tracking_code"],
-                nationalId = d["national_id"],
-                decisionType = d["decision_type"],
-                caseNumber = d["case_number"],
-                candidateName = d["candidate_name"],
-                candidateRegion = d["candidate_region"],
-                candidatePosition = d["candidate_position"],
-                subject = d["subject"],
-                description = desc,
-                preview,
-                reasons = reasons ?? new object[0],
-                urgency = d["urgency"] ?? "normal",
-                status = d["status"],
+                id = objId, trackingCode = d["tracking_code"], nationalId = d["national_id"],
+                decisionType = d["decision_type"], caseNumber = d["case_number"],
+                candidateName = d["candidate_name"], candidateRegion = d["candidate_region"],
+                candidatePosition = d["candidate_position"], subject = d["subject"],
+                description = desc, preview, reasons = reasons ?? new object[0],
+                urgency = d["urgency"] ?? "normal", status = d["status"],
                 declaration = Convert.ToBoolean(d.GetValueOrDefault("declaration") ?? false),
-                submittedDate = d["created_at"],
-                lastUpdate = d["updated_at"],
-                documentsCount = (int)Convert.ToInt32(d["documents_count"]),
-                documents = docs.Select(doc => new
-                {
-                    id = (int)Convert.ToInt32(((IDictionary<string, object>)doc)["id"]),
+                submittedDate = d["created_at"], lastUpdate = d["updated_at"],
+                documentsCount = Convert.ToInt32(d["documents_count"]),
+                documents = docs.Select(doc => new {
+                    id = Convert.ToInt32(((IDictionary<string, object>)doc)["id"]),
                     name = ((IDictionary<string, object>)doc)["file_name"],
                     path = ((IDictionary<string, object>)doc)["file_path"],
-                    size = (int)Convert.ToInt32(((IDictionary<string, object>)doc)["file_size"]),
+                    size = Convert.ToInt32(((IDictionary<string, object>)doc)["file_size"]),
                     type = ((IDictionary<string, object>)doc)["file_type"],
                     uploadedAt = ((IDictionary<string, object>)doc)["created_at"]
                 }),
-                responseText = d["response_text"],
-                responseBy = d["response_by"],
-                responseAt = d["response_at"]
+                responseText = d["response_text"], responseBy = d["response_by"], responseAt = d["response_at"]
             });
         }
 
-        return Ok(new { status = true, data = result });
+        return Ok(new { status = true, data = result, scope = isProvinceSupervisor ? "province" : isSupervisor ? "region" : isAdmin ? "all" : "self" });
     }
 
     // POST /api/saveObjection  (multipart/form-data)
@@ -208,12 +219,35 @@ END");
         if (req.id <= 0 || !allowed.Contains(req.status))
             return BadRequest(new { status = false, message = "پارامترها نامعتبر است." });
 
-        bool isReviewer = ReviewerRoles.Contains(UserRole);
-        if ((req.status == "approved" || req.status == "rejected" || req.status == "under_review") && !isReviewer)
-            return StatusCode(403, new { status = false, message = "دسترسی لازم برای تایید/رد اعتراض را ندارید." });
-
         await using var conn = _db.CreateConnection();
         await conn.OpenAsync();
+
+        var me = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            @"SELECT TOP (1) u.roles, u.region_id, r.ProvinceCode
+              FROM dbo.users u LEFT JOIN dbo.region r ON r.id=u.region_id
+              WHERE u.national_id=@nid", new { nid = NationalId });
+        string role = me == null ? "" : (Convert.ToString(me.roles) ?? "");
+        int reviewerRegionId = me == null ? 0 : Convert.ToInt32(me.region_id ?? 0);
+        int reviewerProvinceCode = me?.ProvinceCode == null ? 0 : Convert.ToInt32(me.ProvinceCode);
+        bool isAdmin = role == "ADMIN";
+        bool isProvinceSupervisor = role == "SUPERVISOR" && reviewerRegionId != 1000 && reviewerRegionId % 100 == 0;
+        bool isReviewer = isAdmin || isProvinceSupervisor;
+
+        // تایید/رد اعتراض فقط توسط نظارت استان (یا ADMIN) مجاز است.
+        if ((req.status == "approved" || req.status == "rejected" || req.status == "under_review") && !isReviewer)
+            return StatusCode(403, new { status = false, message = "رسیدگی نهایی اعتراض فقط برای نظارت استان مجاز است." });
+
+        if (isProvinceSupervisor)
+        {
+            var objectionProvince = await conn.QueryFirstOrDefaultAsync<int?>(
+                @"SELECT r.ProvinceCode
+                  FROM dbo.objections o
+                  JOIN dbo.users u ON u.national_id=o.national_id
+                  JOIN dbo.region r ON r.id=u.region_id
+                  WHERE o.id=@id", new { id = req.id });
+            if (!objectionProvince.HasValue || objectionProvince.Value != reviewerProvinceCode)
+                return StatusCode(403, new { status = false, message = "این اعتراض مربوط به استان شما نیست." });
+        }
         await using var tx = await conn.BeginTransactionAsync();
         try
         {

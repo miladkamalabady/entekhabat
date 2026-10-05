@@ -17,8 +17,9 @@
         <b-col cols="12" md="4" class="text-left text-md-right">
           <div class="supervisor-info">
             <div class="supervisor-name">{{ currentUser.full_name }}</div>
-            <div class="supervisor-role">{{ supervisor.role }} - {{ currentUser.regionName }} ({{ currentUser?.regionId
-            }})</div>
+            <div class="supervisor-role">
+              {{ supervisorScopeLabel }} - {{ supervisorScopeName }} ({{ currentUser?.regionId }})
+            </div>
             <div class="supervisor-stats">
               <b-badge variant="info" class="mr-2">
                 {{ pendingCount }} در انتظار
@@ -295,7 +296,7 @@
           </b-tab>
 
           <!-- تب اعتراضات - جدید -->
-          <b-tab title="اعتراضات">
+          <b-tab v-if="isProvinceSupervisor" title="اعتراضات">
             <div class="p-3">
               <!-- فیلترها -->
               <b-card class="mb-4">
@@ -1083,6 +1084,17 @@ export default {
   },
   computed: {
     ...mapGetters(["currentUser", "EXECUTIVEListInfo", "ChangeStateInfo", "SystemScheduleInfo"]),
+    isProvinceSupervisor() {
+      const regionId = Number(this.currentUser?.regionId || 0);
+      return regionId !== 1000 && regionId > 0 && regionId % 100 === 0;
+    },
+    supervisorScopeLabel() {
+      if (Number(this.currentUser?.regionId) === 1000) return 'نظارت ستاد';
+      return this.isProvinceSupervisor ? 'نظارت استان' : 'نظارت منطقه';
+    },
+    supervisorScopeName() {
+      return this.currentUser?.regionName || '-';
+    },
     // فیلتر شده اعتراضات
     filteredObjections() {
       let filtered = [...this.objectionsList]

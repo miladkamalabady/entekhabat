@@ -94,8 +94,10 @@ public class UserController : ControllerBase
         int? currentProvinceCode = currentUser.ProvinceCode == null ? null : Convert.ToInt32(currentUser.ProvinceCode);
 
         bool isAdmin = currentRole == "ADMIN";
+        // کدهای xx00 ناظر استانی هستند؛ 1000 ستاد است و استانی محسوب نمی‌شود.
         bool isProvinceSupervisor = currentRole == "SUPERVISOR"
-            && currentRegionId > 0 && currentRegionId % 100 == 0
+            && currentRegionId > 0 && currentRegionId != 1000
+            && currentRegionId % 100 == 0
             && currentProvinceCode.HasValue;
 
         if (!isAdmin && !isProvinceSupervisor)
@@ -227,7 +229,9 @@ public class UserController : ControllerBase
         int? currentProvinceCode = currentUser?.ProvinceCode == null ? null : Convert.ToInt32(currentUser.ProvinceCode);
 
         bool isAdmin = currentRole == "ADMIN";
-        bool isProvinceSupervisor = currentRole == "SUPERVISOR" && currentRegionId > 0 && currentRegionId % 100 == 0;
+        // ناظر استانی: xx00، به استثنای ستاد 1000
+        bool isProvinceSupervisor = currentRole == "SUPERVISOR"
+            && currentRegionId > 0 && currentRegionId != 1000 && currentRegionId % 100 == 0;
 
         if (!isAdmin && !isProvinceSupervisor)
             return StatusCode(403, new { status = false, message = "شما دسترسی لازم را ندارید" });
@@ -236,6 +240,22 @@ public class UserController : ControllerBase
             "SELECT TOP (1) id, ProvinceCode, Name FROM dbo.region WHERE id=@id", new { id = req.region_id });
         if (newRegion == null)
             return BadRequest(new { status = false, message = "منطقه انتخاب شده معتبر نیست." });
+
+        // هنگام تخصیص نقش نظارت، سطح دسترسی از روی کد منطقه تعیین می‌شود:
+        // xx01..xx99 = نظارت منطقه‌ای، xx00 = نظارت استانی، 1000 = ستاد.
+        if (req.roles == "SUPERVISOR")
+        {
+            int supervisorRegionId = req.region_id;
+            bool isHeadquarters = supervisorRegionId == 1000;
+            bool isProvinceLevel = !isHeadquarters && supervisorRegionId % 100 == 0;
+
+            if (!isHeadquarters && supervisorRegionId < 1000)
+                return BadRequest(new { status = false, message = "کد حوزه نظارت معتبر نیست." });
+
+            // برای ناظر استانی باید رکورد xx00 همان استان انتخاب شود.
+            if (isProvinceLevel && Convert.ToInt32(newRegion.ProvinceCode) != supervisorRegionId / 100)
+                return BadRequest(new { status = false, message = "کد ناظر استانی با استان انتخاب‌شده تطابق ندارد." });
+        }
 
         if (isProvinceSupervisor)
         {
@@ -272,15 +292,18 @@ public class UserController : ControllerBase
             return StatusCode(403, new { status = false, message = "شما دسترسی لازم را ندارید" });
 
         int regionId = Convert.ToInt32(me.region_id);
+        bool isProvinceSupervisor = myListRole == "SUPERVISOR" && regionId != 1000 && regionId % 100 == 0;
+        int provinceCode = isProvinceSupervisor ? regionId / 100 : 0;
 
         var rows = (await conn.QueryAsync<dynamic>(
             @"SELECT f.id AS codeentekhabati, tracking_code, requestStatus, f.create_date,
                      u.id, u.national_Id, u.first_name, u.last_name, u.persian_birth_date,
                      u.personnel_code, u.gender, u.father_name, u.org_position_desc,
                      uc.yearsOfService, uc.education, u.user_type, u.region_id,
-                     re.name AS regname, u.roles,
+                     re.name AS regname, re.ProvinceCode, u.roles,
                      ud.user_photo, ud.education_doc, ud.employment_cert,
-                     ud.soPishine_cert, ud.ravan_cert,transparency_form, ud.document_reviews,
+                     ud.soPishine_cert, ud.ravan_cert, ud.transparency_form,
+                     ud.document_reviews,
                      ud.updated_at AS datepic,
                      ua.post_code, ua.address, f.reson
               FROM dbo.final_submissions f
@@ -289,8 +312,10 @@ public class UserController : ControllerBase
               JOIN dbo.user_documents ud ON ud.nationalId=f.nationalId
               LEFT JOIN dbo.user_addresses ua ON ua.user_id=u.id
               LEFT JOIN dbo.userscheck uc ON uc.national_id=u.national_id
-              WHERE u.region_id=@rid ORDER BY create_date DESC",
-            new { rid = regionId })).AsList();
+              WHERE ((@provinceScope=1 AND re.ProvinceCode=@provinceCode)
+                     OR (@provinceScope=0 AND u.region_id=@rid))
+              ORDER BY create_date DESC",
+            new { rid = regionId, provinceScope = isProvinceSupervisor ? 1 : 0, provinceCode })).AsList();
 
         var list = rows.Select(r =>
         {

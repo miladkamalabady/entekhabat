@@ -133,9 +133,12 @@ public class AdvertisementController : ControllerBase
         string roles = (string)me.roles;
         int regionId = (int)me.region_id;
 
+        bool isProvinceSupervisor = roles == "SUPERVISOR" && regionId != 1000 && regionId % 100 == 0;
+        int provinceCode = isProvinceSupervisor ? regionId / 100 : 0;
+
         string sql = roles == "CANDIDATE"
             ? @"SELECT f.id AS codeentekhabati, ad.*, u.first_name, u.last_name, u.id AS code,
-                       re.name AS regionName, u.user_type, uc.education, uc.yearsOfService
+                       re.name AS regionName, re.ProvinceCode, u.region_id, u.user_type, uc.education, uc.yearsOfService
                 FROM advertisements ad
                 JOIN users u ON u.national_id=ad.nationalId
                 LEFT JOIN final_submissions f ON ad.nationalId=f.nationalId
@@ -143,17 +146,19 @@ public class AdvertisementController : ControllerBase
                 LEFT JOIN userscheck uc ON uc.national_id=u.national_id
                 WHERE ad.nationalId=@nid ORDER BY ad.create_date DESC"
             : @"SELECT f.id AS codeentekhabati, ad.*, u.first_name, u.last_name, u.id AS code,
-                       re.name AS regionName, u.user_type, uc.education, uc.yearsOfService
+                       re.name AS regionName, re.ProvinceCode, u.region_id, u.user_type, uc.education, uc.yearsOfService
                 FROM advertisements ad
                 JOIN users u ON u.national_id=ad.nationalId
                 LEFT JOIN final_submissions f ON ad.nationalId=f.nationalId
                 LEFT JOIN region re ON re.id=u.region_id
                 LEFT JOIN userscheck uc ON uc.national_id=u.national_id
-                WHERE u.region_id=@rid ORDER BY ad.create_date DESC";
+                WHERE ((@provinceScope=1 AND re.ProvinceCode=@provinceCode)
+                       OR (@provinceScope=0 AND u.region_id=@rid))
+                ORDER BY ad.create_date DESC";
 
         var param = roles == "CANDIDATE"
             ? (object)new { nid = NationalId }
-            : new { rid = regionId };
+            : new { rid = regionId, provinceScope = isProvinceSupervisor ? 1 : 0, provinceCode };
 
         var rows = (await conn.QueryAsync<dynamic>(sql, param)).AsList();
         var list = rows.Select(r =>
