@@ -1,4 +1,6 @@
 C:\Users\Administrator\Documents\entekhabat\api-dotnet\publish\EntekhabatApi.exe
+C:\Users\Administrator\Documents\entekhabat\api-dotnet\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\web.config
+C:\Users\Administrator\Documents\entekhabat\api-dotnet\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\web.config
 C:\Users\Administrator\Documents\entekhabat\api-dotnet\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\web.config
 C:\Users\Administrator\Documents\entekhabat\api-dotnet\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\web.config
 C:\Users\Administrator\Documents\entekhabat\api-dotnet\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\web.config
@@ -71,6 +73,14 @@ C:\Users\Administrator\Documents\entekhabat\api-dotnet\publish\publish\publish\p
 C:\Users\Administrator\Documents\entekhabat\api-dotnet\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\appsettings.json
 C:\Users\Administrator\Documents\entekhabat\api-dotnet\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\EntekhabatApi.deps.json
 C:\Users\Administrator\Documents\entekhabat\api-dotnet\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\EntekhabatApi.runtimeconfig.json
+C:\Users\Administrator\Documents\entekhabat\api-dotnet\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\appsettings.Development.json
+C:\Users\Administrator\Documents\entekhabat\api-dotnet\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\appsettings.json
+C:\Users\Administrator\Documents\entekhabat\api-dotnet\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\EntekhabatApi.deps.json
+C:\Users\Administrator\Documents\entekhabat\api-dotnet\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\EntekhabatApi.runtimeconfig.json
+C:\Users\Administrator\Documents\entekhabat\api-dotnet\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\appsettings.Development.json
+C:\Users\Administrator\Documents\entekhabat\api-dotnet\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\appsettings.json
+C:\Users\Administrator\Documents\entekhabat\api-dotnet\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\EntekhabatApi.deps.json
+C:\Users\Administrator\Documents\entekhabat\api-dotnet\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\publish\EntekhabatApi.runtimeconfig.json
 C:\Users\Administrator\Documents\entekhabat\api-dotnet\publish\EntekhabatApi.dll
 C:\Users\Administrator\Documents\entekhabat\api-dotnet\publish\EntekhabatApi.deps.json
 C:\Users\Administrator\Documents\entekhabat\api-dotnet\publish\EntekhabatApi.runtimeconfig.json
