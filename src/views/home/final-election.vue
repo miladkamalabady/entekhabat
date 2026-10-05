@@ -526,8 +526,9 @@ export default {
       ],
 
       // Share Link
-      shareLink: ''
-      , hoveredFinalProvince: null
+      shareLink: '',
+      adminSecondPassword: '', // فقط در حافظه صفحه؛ در localStorage ذخیره نمی‌شود
+      hoveredFinalProvince: null
     };
   },
   computed: {
@@ -617,10 +618,23 @@ export default {
       let params = {};
       if (this.selectedArea) params = { region: this.selectedArea };
       else if (this.selectedProvince) params = { province: this.selectedProvince };
-      const [data, regionsResponse] = await Promise.all([
-        this.getInfoVote(params),
-        this.getRegions()
-      ]);
+      if (this.isAdmin && this.adminSecondPassword) params.secondPassword = this.adminSecondPassword;
+
+      let data = await this.getInfoVote(params);
+      if (data?.secondPasswordRequired && this.isAdmin) {
+        const entered = window.prompt('برای مشاهده میزان آرا قبل از تأیید نهایی، رمز دوم ادمین را وارد کنید:');
+        if (!entered) return;
+        this.adminSecondPassword = entered;
+        data = await this.getInfoVote({ ...params, secondPassword: entered });
+        if (data?.secondPasswordRequired) {
+          this.adminSecondPassword = '';
+          this.$bvToast.toast(data.message || 'رمز دوم صحیح نیست.', { title: 'دسترسی', variant: 'warning', solid: true });
+          return;
+        }
+      } else if (data?.secondPasswordRequired) {
+        return;
+      }
+      const regionsResponse = await this.getRegions();
 
       const totalVotes = Number(data?.totalVotes) || 0;
       const totalVoters = Number(data?.totalVoters) || 0;

@@ -104,7 +104,11 @@ commit.commit('setProcessing', true)
       }
       else if (error.response?.data) {
         const data = error.response.data;
-        
+        // Security-gated endpoints return this flag so the UI can request
+        // the admin second password without storing it anywhere.
+        if (data?.secondPasswordRequired) {
+          retr = data;
+        }
         commit.commit('setError',data.message)
 
       } else if (error?.response?.status == 404) {

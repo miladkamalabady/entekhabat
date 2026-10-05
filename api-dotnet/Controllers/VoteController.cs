@@ -25,6 +25,51 @@ public class VoteController : ControllerBase
 
     private string NationalId => User.Claims.FirstOrDefault(c => c.Type == "national_id")?.Value ?? "";
 
+
+    // رمز دوم ادمین فقط از دیتابیس خوانده می‌شود و هیچ API برای تغییر آن وجود ندارد.
+    private async Task EnsureAdminSecondPasswordSetting(System.Data.IDbConnection conn)
+    {
+        await conn.ExecuteAsync(@"IF OBJECT_ID(N'dbo.app_security_settings', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.app_security_settings (
+        setting_key NVARCHAR(100) NOT NULL PRIMARY KEY,
+        setting_value NVARCHAR(500) NOT NULL,
+        updated_at DATETIME2 NOT NULL CONSTRAINT DF_app_security_settings_updated_at DEFAULT GETDATE()
+    );
+END;
+IF NOT EXISTS (SELECT 1 FROM dbo.app_security_settings WHERE setting_key=N'ADMIN_SECOND_PASSWORD')
+BEGIN
+    INSERT INTO dbo.app_security_settings(setting_key, setting_value)
+    VALUES (N'ADMIN_SECOND_PASSWORD', N'136555');
+END;");
+    }
+
+    private async Task<bool> IsAdminWithSecondPassword(System.Data.IDbConnection conn, string? suppliedPassword)
+    {
+        var role = await conn.QueryFirstOrDefaultAsync<string>(
+            "SELECT roles FROM dbo.users WHERE national_id=@nid", new { nid = NationalId });
+        if (!string.Equals((role ?? "").Trim(), "ADMIN", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        await EnsureAdminSecondPasswordSetting(conn);
+        var dbPassword = await conn.QueryFirstOrDefaultAsync<string>(
+            "SELECT setting_value FROM dbo.app_security_settings WHERE setting_key=N'ADMIN_SECOND_PASSWORD'");
+
+        if (string.IsNullOrEmpty(dbPassword) || suppliedPassword == null)
+            return false;
+
+        // مقایسه ثابت‌زمان برای جلوگیری از نشت زمانی ساده.
+        var a = Encoding.UTF8.GetBytes(dbPassword);
+        var b = Encoding.UTF8.GetBytes(suppliedPassword);
+        return a.Length == b.Length && CryptographicOperations.FixedTimeEquals(a, b);
+    }
+
+    private string? GetSecondPassword(string? queryPassword)
+    {
+        if (!string.IsNullOrWhiteSpace(queryPassword)) return queryPassword;
+        return Request.Headers.TryGetValue("X-Admin-Second-Password", out var v) ? v.ToString() : null;
+    }
+
     // GET /api/createVoteToken
     [HttpGet("createVoteToken")]
     [HttpPost("createVoteToken")]
@@ -244,9 +289,28 @@ public class VoteController : ControllerBase
 
     // GET /api/getInfoVote?province=11&region=5 - آمار زنده انتخابات (province=ProvinceCode, region=region_id اختیاری)
     [HttpGet("getInfoVote")]
-    public async Task<IActionResult> GetInfoVote([FromQuery] int? province = null, [FromQuery] int? region = null)
+    public async Task<IActionResult> GetInfoVote([FromQuery] int? province = null, [FromQuery] int? region = null, [FromQuery] string? secondPassword = null)
     {
         await using var conn = _db.CreateConnection();
+
+        // تا قبل از تایید نهایی آرا، مشاهده آمار رأی فقط برای ADMIN با رمز دوم مجاز است.
+        var approvalPending = await conn.QueryFirstOrDefaultAsync<int>(@"
+            SELECT CASE WHEN EXISTS (
+                SELECT 1
+                FROM dbo.region rg
+                LEFT JOIN dbo.final_results_approvals fra ON fra.region_id=rg.id
+                WHERE rg.id % 100 <> 0
+                  AND (@region IS NULL OR rg.id=@region)
+                  AND (@region IS NOT NULL OR @province IS NULL OR rg.ProvinceCode=@province)
+                  AND ISNULL(fra.is_active,0)=0
+            ) THEN 1 ELSE 0 END", new { region, province });
+
+        if (approvalPending == 1)
+        {
+            var supplied = GetSecondPassword(secondPassword);
+            if (!await IsAdminWithSecondPassword(conn, supplied))
+                return StatusCode(403, new { status=false, secondPasswordRequired=true, message="مشاهده میزان آرا قبل از تایید نهایی فقط برای ادمین و با رمز دوم مجاز است." });
+        }
 
         var p = province.HasValue ? (object)province.Value : DBNull.Value;
         var r = region.HasValue ? (object)region.Value : DBNull.Value;
@@ -375,7 +439,7 @@ public class VoteController : ControllerBase
 
     // GET /api/searchUserVotes?q=...&limit=200
     [HttpGet("searchUserVotes")]
-    public async Task<IActionResult> SearchUserVotes([FromQuery] string? q, [FromQuery] int limit = 200)
+    public async Task<IActionResult> SearchUserVotes([FromQuery] string? q, [FromQuery] int limit = 200, [FromQuery] string? secondPassword = null)
     {
         await using var conn = _db.CreateConnection();
 
@@ -386,12 +450,19 @@ public class VoteController : ControllerBase
 
         if (currentUser == null) return Forbid();
 
-        string role    = (currentUser.Str("roles")).ToUpper();
-        bool isAdmin   = role.Contains("ADMIN");
+        string role = (currentUser.Str("roles")).Trim().ToUpperInvariant();
+        bool isAdmin = role == "ADMIN";
         bool isSupervisor = role.Contains("SUPERVISOR");
 
         if (!isAdmin && !isSupervisor)
-            return StatusCode(403, new { status = false, message = "شما دسترسی لازم را ندارید" });
+            return StatusCode(403, new { status = false, message = "شما دسترسی لازم را ندارید." });
+
+        if (isAdmin)
+        {
+            var supplied = GetSecondPassword(secondPassword);
+            if (!await IsAdminWithSecondPassword(conn, supplied))
+                return StatusCode(403, new { status = false, secondPasswordRequired = true, message = "برای مشاهده جزئیات رأی کاربران ورود رمز دوم ادمین الزامی است." });
+        }
 
         if (string.IsNullOrWhiteSpace(q) || q.Length < 2)
             return Ok(new { status = true, data = new { scope = "all", items = Array.Empty<object>(), summary = Array.Empty<object>() }, message = "برای جستجو حداقل دو کاراکتر وارد کنید." });
@@ -412,14 +483,20 @@ public class VoteController : ControllerBase
         };
 
         string scope = "all";
-        if (!isAdmin)
+        if (isSupervisor && !isAdmin)
         {
-            int regionId     = currentUser.Int("region_id");
+            int regionId = currentUser.Int("region_id");
             int provinceCode = currentUser.Int("ProvinceCode");
             if (regionId.ToString().EndsWith("00") && provinceCode > 0)
-            { whereParts.Add($"vr.ProvinceCode={provinceCode}"); scope = "province"; }
+            {
+                whereParts.Add($"vr.ProvinceCode={provinceCode}");
+                scope = "province";
+            }
             else
-            { whereParts.Add($"vu.region_id={regionId}"); scope = "region"; }
+            {
+                whereParts.Add($"vu.region_id={regionId}");
+                scope = "region";
+            }
         }
 
         var sql = $@"SELECT
@@ -475,6 +552,8 @@ public class VoteController : ControllerBase
                     region_name    = row.GetValueOrDefault("voter_region_name"),
                     province_name  = row.GetValueOrDefault("voter_province_name"),
                     tracking_code  = row.GetValueOrDefault("tracking_code"),
+                    voted_at       = row.GetValueOrDefault("voted_at"),
+                    voted_at_shamsi= row.GetValueOrDefault("voted_at_shamsi"),
                     vote_count     = rows.Count(x => x.Str("voter_national_id") == voterId && x.GetValueOrDefault("vote_id") != null)
                 };
         }
@@ -486,7 +565,7 @@ public class VoteController : ControllerBase
         return Ok(new
         {
             status = true,
-            data = new { scope, items = rows, summary = summary.Values },
+            data = new { scope, items = isAdmin ? rows : new List<IDictionary<string, object>>(), summary = summary.Values },
             message = "جستجوی آرای کاربران با موفقیت انجام شد."
         });
     }
