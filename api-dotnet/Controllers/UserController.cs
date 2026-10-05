@@ -280,7 +280,8 @@ public class UserController : ControllerBase
                      uc.yearsOfService, uc.education, u.user_type, u.region_id,
                      re.name AS regname, u.roles,
                      ud.user_photo, ud.education_doc, ud.employment_cert,
-                     ud.soPishine_cert, ud.ravan_cert, ud.document_reviews,
+                     ud.soPishine_cert, ud.ravan_cert, ud.transparency_form,
+                     ud.document_reviews,
                      ud.updated_at AS datepic,
                      ua.post_code, ua.address, f.reson
               FROM dbo.final_submissions f
