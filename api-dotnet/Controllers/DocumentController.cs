@@ -355,7 +355,7 @@ public class DocumentController : ControllerBase
                 setParts.Add($@"document_reviews = JSON_MODIFY(
                     COALESCE(NULLIF(document_reviews,''),'{{}}'),
                     '$.{key}',
-                    JSON_QUERY('{{"status":"pending"}}')
+                    JSON_QUERY('{{""status"":""pending""}}')
                 )");
             }
 
