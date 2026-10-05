@@ -346,17 +346,24 @@ public class DocumentController : ControllerBase
 
             setParts.Add("updated_at = GETDATE()");
 
-            // فقط همان مدارکی که تغییر کرده‌اند دوباره در وضعیت pending قرار می‌گیرند.
-            foreach (var key in saved.Keys)
-            {
-                if (key == "transparency_form")
-                    continue;
+            // وضعیت بررسی همه مدارک تغییرکرده را در یک انتساب واحد به document_reviews
+            // به pending برمی‌گردانیم. SQL Server اجازه نمی‌دهد یک ستون چند بار
+            // در همان SET clause مقداردهی شود.
+            var reviewKeys = saved.Keys
+                .Where(key => key != "transparency_form")
+                .ToList();
 
-                setParts.Add($@"document_reviews = JSON_MODIFY(
-                    COALESCE(NULLIF(document_reviews,''),'{{}}'),
-                    '$.{key}',
-                    JSON_QUERY('{{"status":"pending"}}')
-                )");
+            if (reviewKeys.Count > 0)
+            {
+                var reviewExpression = "COALESCE(NULLIF(document_reviews,''),'{}')";
+
+                foreach (var key in reviewKeys)
+                {
+                    reviewExpression =
+                        $"JSON_MODIFY({reviewExpression}, '$.{key}', JSON_QUERY('{{\"status\":\"pending\"}}'))";
+                }
+
+                setParts.Add($"document_reviews = {reviewExpression}");
             }
 
             var updateSql = $@"UPDATE dbo.user_documents
