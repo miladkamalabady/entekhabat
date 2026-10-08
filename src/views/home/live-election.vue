@@ -156,7 +156,7 @@
         <b-col lg="12" class="mb-4" v-if="showCandidateReport">
           <b-card class="ranking-card">
             <div class="d-flex justify-content-between align-items-center mb-4">
-              <h5 class="mb-0">رتبه‌بندی زنده کاندیداها</h5>
+              <h5 class="mb-0">فهرست نامزدهای تأییدشده</h5>
             </div>
 
             <!-- Table View -->
@@ -168,7 +168,7 @@
                   </div>
                 </template>
 
-                <template #cell(provinceName)="data">{{ provinceFilterOptions.find(x => Number(x.value) === Number(data.item.provinceCode))?.text || "-" }}</template>
+                <template #cell(provinceName)="data">{{ data.item.provinceName || provinceNameByCode(data.item.provinceCode) }}</template>
                 <template #cell(candidate)="data">
                   <div class="candidate-info">
                     <img v-if="data.item.user_photo" :src="`${apiUrlrtb}/${data.item.user_photo}`"
