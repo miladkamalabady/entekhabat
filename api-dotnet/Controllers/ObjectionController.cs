@@ -12,12 +12,14 @@ namespace EntekhabatApi.Controllers;
 public class ObjectionController : ControllerBase
 {
     private readonly DatabaseService _db;
+    private readonly JalaliService _jalali;
     private readonly IWebHostEnvironment _env;
 
-    public ObjectionController(DatabaseService db, IWebHostEnvironment env)
+    public ObjectionController(DatabaseService db, IWebHostEnvironment env, JalaliService jalali)
     {
         _db = db;
         _env = env;
+        _jalali = jalali;
     }
 
     private string NationalId => User.Claims.FirstOrDefault(c => c.Type == "national_id")?.Value ?? "";
