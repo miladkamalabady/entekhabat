@@ -307,8 +307,7 @@ END;");
 
         // آمار عمومی مشارکت بدون جزئیات رأی نامزدها در دسترس است.
         // دسترسی به اطلاعات نامزدها و شمارش رأی هر نامزد همچنان محدود می‌ماند.
-        var canSeeCandidateVotes = approvalPending != 1
-            || await IsAdminWithSecondPassword(conn, GetSecondPassword(secondPassword));
+        var canSeeCandidateVotes = false; // این API عمومی هرگز رأی نامزدها را برنمی‌گرداند.
 
         var p = province.HasValue ? (object)province.Value : DBNull.Value;
         var r = region.HasValue ? (object)region.Value : DBNull.Value;
@@ -332,39 +331,33 @@ END;");
                OR (@r IS NULL AND (@p IS NULL OR reg.ProvinceCode = @p))",
             new { p, r });
 
-        var participants = await conn.QueryFirstOrDefaultAsync<int>(
-            "SELECT COUNT(*) FROM election_participants");
+        var participants = totalVotes;
 
-        var totalCandidates = await conn.QueryFirstOrDefaultAsync<int>(
-            "SELECT COUNT(*) FROM final_submissions");
+        var totalCandidates = await conn.QueryFirstOrDefaultAsync<int>(@"
+            SELECT COUNT(*) FROM final_submissions fi JOIN users u ON u.national_id=fi.nationalId
+            JOIN region reg ON reg.id=u.region_id
+            WHERE (@r IS NULL OR u.region_id=@r) AND (@r IS NOT NULL OR @p IS NULL OR reg.ProvinceCode=@p)", new { p, r });
 
-        var activeCandidates = await conn.QueryFirstOrDefaultAsync<int>(
-            "SELECT COUNT(*) FROM final_submissions WHERE requestStatus='SUPERVISION_APPROVED'");
+        var activeCandidates = await conn.QueryFirstOrDefaultAsync<int>(@"
+            SELECT COUNT(*) FROM final_submissions fi JOIN users u ON u.national_id=fi.nationalId
+            JOIN region reg ON reg.id=u.region_id
+            WHERE fi.requestStatus='SUPERVISION_APPROVED'
+              AND (@r IS NULL OR u.region_id=@r) AND (@r IS NOT NULL OR @p IS NULL OR reg.ProvinceCode=@p)", new { p, r });
 
-        // vote_count per candidate filtered by voter's region > province > all
-        var listCan = canSeeCandidateVotes ? (await conn.QueryAsync<dynamic>(@"
+        // فهرست عمومی نامزدهای تاییدشده؛ بدون تعداد رأی یا رتبه‌بندی.
+        var listCan = (await conn.QueryAsync<dynamic>(@"
             SELECT fi.id AS codeentekhabati,
-                   u.national_id, u.first_name, u.last_name,
-                   u.org_position_desc, u.gender, u.region_id,
-                   reg.name AS regname,
-                   ud.user_photo,
-                   COUNT(CASE WHEN (@r IS NOT NULL AND voter.region_id = @r)
-                                OR (@r IS NULL AND (@p IS NULL OR vr.ProvinceCode = @p))
-                              THEN v.id ELSE NULL END) AS vote_count,
-                   fi.requestStatus
+                   u.first_name, u.last_name, u.org_position_desc,
+                   u.gender, u.region_id, reg.name AS regname,
+                   ud.user_photo, fi.requestStatus
             FROM final_submissions fi
             JOIN users u ON u.national_id = fi.nationalId
             LEFT JOIN region reg ON reg.id = u.region_id
             LEFT JOIN user_documents ud ON ud.nationalId = fi.nationalId
-            LEFT JOIN votes v ON v.candidate_id = fi.id
-            LEFT JOIN users voter ON voter.national_id = v.national_id
-            LEFT JOIN region vr ON vr.id = voter.region_id
             WHERE fi.requestStatus = 'SUPERVISION_APPROVED'
-            GROUP BY fi.id, u.national_id, u.first_name, u.last_name,
-                     u.org_position_desc, u.gender, u.region_id, reg.name,
-                     ud.user_photo, fi.requestStatus
-            ORDER BY vote_count DESC",
-            new { p, r })).AsList() : new List<dynamic>();
+              AND (@r IS NULL OR u.region_id = @r)
+              AND (@r IS NOT NULL OR @p IS NULL OR reg.ProvinceCode = @p)
+            ORDER BY u.last_name, u.first_name, fi.id", new { p, r })).AsList();
 
         var regionVoteStatsRaw = (await conn.QueryAsync<dynamic>(@"
             SELECT u.region_id, COUNT(v.id) AS votes
