@@ -91,7 +91,7 @@
               <b-icon icon="people-fill"></b-icon>
             </div>
             <div class="stat-number">{{ formatNumber(safeTotalVoters) }}</div>
-            <div class="stat-label">کل واجدین شرایط</div>
+            <div class="stat-label">واجدین شرایط مناطق دارای انتخابات</div>
             <div class="stat-change text-success">
               <b-icon icon="arrow-up"></b-icon>
               {{ safeParticipation }}% مشارکت
@@ -105,7 +105,7 @@
               <b-icon icon="check-circle-fill"></b-icon>
             </div>
             <div class="stat-number">{{ formatNumber(safeTotalVotes) }}</div>
-            <div class="stat-label">آرای ثبت شده</div>
+            <div class="stat-label">رأی‌دهندگان مناطق دارای انتخابات</div>
             <div class="stat-change">
               <b-icon icon="clock-history"></b-icon>
               آخرین بروزرسانی: {{ lastUpdate }}
@@ -1012,7 +1012,7 @@ export default {
           return sum + Number(stat?.votes || 0);
         }, 0);
         const votes = Number(provinceStat?.votes ?? areaVotes);
-        const eligibleVoters = Number(eligiblePerProvince[provinceKey] || provinceStat?.eligible || 0);
+        const eligibleVoters = Number(eligiblePerProvince[provinceKey] ?? provinceStat?.eligible ?? 0);
         const participation = eligibleVoters ? Number(((votes / eligibleVoters) * 100).toFixed(1)) : 0;
 
         return {
