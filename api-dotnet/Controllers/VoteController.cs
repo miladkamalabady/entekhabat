@@ -316,8 +316,9 @@ END;");
             SELECT COUNT(DISTINCT u.national_id)
             FROM dbo.users u
             JOIN dbo.region reg ON reg.id = u.region_id
-            WHERE (@r IS NOT NULL AND u.region_id = @r)
-               OR (@r IS NULL AND (@p IS NULL OR reg.ProvinceCode = @p))",
+            WHERE EXISTS (SELECT 1 FROM dbo.final_results_approvals fra WHERE fra.region_id=u.region_id)
+              AND ((@r IS NOT NULL AND u.region_id = @r)
+               OR (@r IS NULL AND (@p IS NULL OR reg.ProvinceCode = @p)))",
             new { p, r });
 
         // total votes cast: filtered by voter's region > province > all
@@ -326,8 +327,9 @@ END;");
             FROM votes v
             JOIN users u ON u.national_id = v.national_id
             JOIN region reg ON reg.id = u.region_id
-            WHERE (@r IS NOT NULL AND u.region_id = @r)
-               OR (@r IS NULL AND (@p IS NULL OR reg.ProvinceCode = @p))",
+            WHERE EXISTS (SELECT 1 FROM dbo.final_results_approvals fra WHERE fra.region_id=u.region_id)
+              AND ((@r IS NOT NULL AND u.region_id = @r)
+               OR (@r IS NULL AND (@p IS NULL OR reg.ProvinceCode = @p)))",
             new { p, r });
 
         var participants = totalVotes;
@@ -365,11 +367,14 @@ END;");
                    COUNT(DISTINCT voter.national_id) AS eligible,
                    COUNT(DISTINCT v.national_id) AS votes
             FROM dbo.region rg
-            LEFT JOIN dbo.final_results_approvals fra ON fra.region_id=rg.id
+            
             LEFT JOIN dbo.users voter ON voter.region_id=rg.id
             LEFT JOIN dbo.votes v ON v.national_id=voter.national_id
             WHERE rg.id % 100 <> 0 AND rg.ProvinceCode > 0
+              AND EXISTS (SELECT 1 FROM dbo.final_results_approvals fra WHERE fra.region_id=rg.id)
             GROUP BY rg.id, rg.ProvinceCode")).AsList();
+
+        var electionRegionCount = regional.Count;
 
         var regionVoteStats = regional.ToDictionary(
             x => (object)x.region_id,
@@ -392,6 +397,7 @@ END;");
             data = new
             {
                 totalVoters,
+                electionRegionCount,
                 totalVotes,
                 participants,
                 Candidates = totalCandidates,
