@@ -348,7 +348,7 @@ END;");
         var listCan = (await conn.QueryAsync<dynamic>(@"
             SELECT fi.id AS codeentekhabati,
                    u.first_name, u.last_name, u.org_position_desc,
-                   u.gender, u.region_id, reg.name AS regname,
+                   u.gender, u.region_id, reg.name AS regname, reg.ProvinceCode AS provinceCode,
                    ud.user_photo, fi.requestStatus
             FROM final_submissions fi
             JOIN users u ON u.national_id = fi.nationalId
@@ -359,56 +359,32 @@ END;");
               AND (@r IS NOT NULL OR @p IS NULL OR reg.ProvinceCode = @p)
             ORDER BY u.last_name, u.first_name, fi.id", new { p, r })).AsList();
 
-        var regionVoteStatsRaw = (await conn.QueryAsync<dynamic>(@"
-            SELECT u.region_id, COUNT(v.id) AS votes
-            FROM votes v
-            JOIN final_submissions fi ON fi.id = v.candidate_id
-            JOIN users u ON u.national_id = fi.nationalId
-            GROUP BY u.region_id")).AsList();
+        // Participation belongs to the voter's registered region, never the candidate's region.
+        var regional = (await conn.QueryAsync<dynamic>(@"
+            SELECT rg.id AS region_id, rg.ProvinceCode,
+                   COALESCE(MAX(fra.totalEligible),0) AS eligible,
+                   COUNT(DISTINCT v.national_id) AS votes
+            FROM dbo.region rg
+            LEFT JOIN dbo.final_results_approvals fra ON fra.region_id=rg.id
+            LEFT JOIN dbo.users voter ON voter.region_id=rg.id
+            LEFT JOIN dbo.votes v ON v.national_id=voter.national_id
+            WHERE rg.id % 100 <> 0 AND rg.ProvinceCode > 0
+            GROUP BY rg.id, rg.ProvinceCode")).AsList();
 
-        var regionVoteStats = regionVoteStatsRaw.ToDictionary(
-            r => (object)r.region_id,
-            r => (object)new { votes = Convert.ToInt32(r.votes) });
+        var regionVoteStats = regional.ToDictionary(
+            x => (object)x.region_id,
+            x => (object)new { votes = Convert.ToInt32(x.votes), eligible = Convert.ToInt32(x.eligible) });
 
-        var provinceVoteStatsRaw = (await conn.QueryAsync<dynamic>(@"
-            SELECT (r.ProvinceCode * 100) AS province_id,
-                   COUNT(CASE WHEN (@r IS NOT NULL AND voter.region_id = @r)
-                                OR (@r IS NULL AND (@p IS NULL OR vr.ProvinceCode = @p))
-                              THEN v.id ELSE NULL END) AS votes,
-                   COUNT(DISTINCT CASE WHEN (@r IS NOT NULL AND voter.region_id = @r)
-                                         OR (@r IS NULL AND (@p IS NULL OR vr.ProvinceCode = @p))
-                                       THEN v.national_id ELSE NULL END) AS eligible
-            FROM votes v
-            JOIN final_submissions fi ON fi.id = v.candidate_id
-            JOIN users u ON u.national_id = fi.nationalId
-            JOIN region r ON r.id = u.region_id
-            LEFT JOIN users voter ON voter.national_id = v.national_id
-            LEFT JOIN region vr ON vr.id = voter.region_id
-            WHERE r.ProvinceCode > 0
-            GROUP BY r.ProvinceCode",
-            new { p, r })).AsList();
+        var provinceVoteStats = regional.GroupBy(x => Convert.ToInt32(x.ProvinceCode))
+            .ToDictionary(g => (object)(g.Key * 100),
+                g => (object)new {
+                    votes = g.Sum(x => Convert.ToInt32(x.votes)),
+                    eligible = g.Sum(x => Convert.ToInt32(x.eligible))
+                });
 
-        var eligibleByProvince = (await conn.QueryAsync<dynamic>(@"
-            SELECT r.ProvinceCode, COALESCE(SUM(fra.totalEligible), 0) AS eligible
-            FROM final_results_approvals fra
-            JOIN region r ON r.id = fra.region_id
-            WHERE r.ProvinceCode > 0
-            GROUP BY r.ProvinceCode")).AsList();
-
-        var eligibleMap = eligibleByProvince.ToDictionary(
-            r => Convert.ToInt64(r.ProvinceCode) * 100L,
-            r => Convert.ToInt32(r.eligible));
-
-        var provinceVoteStats = provinceVoteStatsRaw.ToDictionary(
-            r => (object)r.province_id,
-            r => (object)new {
-                votes = Convert.ToInt32(r.votes),
-                eligible = eligibleMap.GetValueOrDefault((long)r.province_id, 0)
-            });
-
-        var eligiblePerProvince = eligibleMap.ToDictionary(
-            kvp => (object)(long)kvp.Key,
-            kvp => (object)kvp.Value);
+        var eligiblePerProvince = regional.GroupBy(x => Convert.ToInt32(x.ProvinceCode))
+            .ToDictionary(g => (object)(g.Key * 100),
+                g => (object)g.Sum(x => Convert.ToInt32(x.eligible)));
 
         return Ok(new
         {
