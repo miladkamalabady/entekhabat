@@ -298,8 +298,7 @@ END;");
             SELECT CASE WHEN EXISTS (
                 SELECT 1
                 FROM dbo.region rg
-                LEFT JOIN dbo.final_results_approvals fra ON fra.region_id=rg.id
-                WHERE rg.id % 100 <> 0
+                    WHERE rg.id % 100 <> 0
                   AND (@region IS NULL OR rg.id=@region)
                   AND (@region IS NOT NULL OR @province IS NULL OR rg.ProvinceCode=@province)
                   AND ISNULL(fra.is_active,0)=0
@@ -314,10 +313,10 @@ END;");
 
         // eligible voters: filtered by region > province > all
         var totalVoters = await conn.QueryFirstOrDefaultAsync<int>(@"
-            SELECT COALESCE(SUM(fra.totalEligible), 0)
-            FROM final_results_approvals fra
-            JOIN region reg ON reg.id = fra.region_id
-            WHERE (@r IS NOT NULL AND fra.region_id = @r)
+            SELECT COUNT(DISTINCT u.national_id)
+            FROM dbo.users u
+            JOIN dbo.region reg ON reg.id = u.region_id
+            WHERE (@r IS NOT NULL AND u.region_id = @r)
                OR (@r IS NULL AND (@p IS NULL OR reg.ProvinceCode = @p))",
             new { p, r });
 
@@ -349,6 +348,7 @@ END;");
             SELECT fi.id AS codeentekhabati,
                    u.first_name, u.last_name, u.org_position_desc,
                    u.gender, u.region_id, reg.name AS regname, reg.ProvinceCode AS provinceCode,
+                   (SELECT TOP 1 pr.name FROM dbo.region pr WHERE pr.id = reg.ProvinceCode * 100) AS provinceName,
                    ud.user_photo, fi.requestStatus
             FROM final_submissions fi
             JOIN users u ON u.national_id = fi.nationalId
@@ -362,7 +362,7 @@ END;");
         // Participation belongs to the voter's registered region, never the candidate's region.
         var regional = (await conn.QueryAsync<dynamic>(@"
             SELECT rg.id AS region_id, rg.ProvinceCode,
-                   COALESCE(MAX(fra.totalEligible),0) AS eligible,
+                   COUNT(DISTINCT voter.national_id) AS eligible,
                    COUNT(DISTINCT v.national_id) AS votes
             FROM dbo.region rg
             LEFT JOIN dbo.final_results_approvals fra ON fra.region_id=rg.id
