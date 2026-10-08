@@ -69,6 +69,20 @@
           </b-col>
         </b-row>
       </b-card>
+      <b-card class="mb-3">
+        <b-row>
+          <b-col md="6">
+            <b-form-group label="فیلتر استان">
+              <b-form-select v-model="selectedProvinceId" :options="provinceFilterOptions" />
+            </b-form-group>
+          </b-col>
+          <b-col md="6">
+            <b-form-group label="فیلتر منطقه">
+              <b-form-select v-model="selectedAreaId" :options="areaFilterOptions" :disabled="!selectedProvinceId" />
+            </b-form-group>
+          </b-col>
+        </b-row>
+      </b-card>
       <!-- Quick Stats -->
       <b-row class="mb-4">
         <b-col cols="6" md="3">
@@ -76,7 +90,7 @@
             <div class="stat-icon voters-icon">
               <b-icon icon="people-fill"></b-icon>
             </div>
-            <div class="stat-number">{{ formatNumber(infoVote?.totalVoters) }}</div>
+            <div class="stat-number">{{ formatNumber(safeTotalVoters) }}</div>
             <div class="stat-label">کل واجدین شرایط</div>
             <div class="stat-change text-success">
               <b-icon icon="arrow-up"></b-icon>
@@ -90,7 +104,7 @@
             <div class="stat-icon vote-icon">
               <b-icon icon="check-circle-fill"></b-icon>
             </div>
-            <div class="stat-number">{{ formatNumber(infoVote?.totalVotes) }}</div>
+            <div class="stat-number">{{ formatNumber(safeTotalVotes) }}</div>
             <div class="stat-label">آرای ثبت شده</div>
             <div class="stat-change">
               <b-icon icon="clock-history"></b-icon>
@@ -104,11 +118,11 @@
             <div class="stat-icon candidate-icon">
               <b-icon icon="person-badge-fill"></b-icon>
             </div>
-            <div class="stat-number">{{ infoVote?.Candidates }}</div>
+            <div class="stat-number">{{ formatNumber(filteredCandidates.length) }}</div>
             <div class="stat-label">کاندیداها</div>
             <div class="stat-change text-info">
               <b-icon icon="person-plus"></b-icon>
-              {{ infoVote?.activeCandidates }} کاندیدای تایید شده
+              {{ formatNumber(filteredCandidates.length) }} کاندیدای تایید شده
             </div>
           </b-card>
         </b-col>
@@ -154,6 +168,7 @@
                   </div>
                 </template>
 
+                <template #cell(provinceName)="data">{{ provinceFilterOptions.find(x => Number(x.value) === Number(data.item.provinceCode))?.text || "-" }}</template>
                 <template #cell(candidate)="data">
                   <div class="candidate-info">
                     <img v-if="data.item.user_photo" :src="`${apiUrlrtb}/${data.item.user_photo}`"
@@ -375,6 +390,7 @@ export default {
       // نقشه
       hoveredProvinceId: null,
       selectedProvinceId: null,
+      selectedAreaId: null,
       selectedProvinceForMap: null,
       hoveredProvince: null,
       tooltipStyle: {},
@@ -458,6 +474,8 @@ export default {
       candidateFields: [
         { key: 'codeentekhabati', label: 'کد نامزد', sortable: false },
         { key: 'candidate', label: 'کاندیدا', sortable: false },
+        { key: 'provinceName', label: 'استان' },
+        { key: 'regname', label: 'منطقه' },
       ],
       regionCandidateFields: [
         { key: 'codeentekhabati', label: 'کدکاندید', sortable: false },
@@ -528,9 +546,31 @@ export default {
       });
     },
     sortedCandidates() {
-      return [...this.candidates].sort((a, b) => b.vote_count - a.vote_count);
+      return [...this.filteredCandidates].sort((a, b) => String(a.last_name || '').localeCompare(String(b.last_name || ''), 'fa'));
     },
 
+    provinceFilterOptions() {
+      return [{ value: null, text: 'کل کشور' }, ...this.regions.map(x => ({ value: x.id, text: x.name }))];
+    },
+    areaFilterOptions() {
+      return [{ value: null, text: 'همه مناطق' }, ...(this.areasByProvince?.[this.selectedProvinceId] || []).map(x => ({ value: Number(x.id), text: x.name }))];
+    },
+    filteredCandidates() {
+      return this.candidates.filter(x =>
+        (!this.selectedProvinceId || Number(x.provinceCode) === Number(this.selectedProvinceId)) &&
+        (!this.selectedAreaId || Number(x.region_id) === Number(this.selectedAreaId)));
+    },
+    scopedTotals() {
+      if (this.selectedAreaId) {
+        const s = this.infoVote?.regionVoteStats?.[this.selectedAreaId] || {};
+        return { eligible: Number(s.eligible || 0), votes: Number(s.votes || 0) };
+      }
+      if (this.selectedProvinceId) {
+        const s = this.infoVote?.provinceVoteStats?.[Number(this.selectedProvinceId) * 100] || {};
+        return { eligible: Number(s.eligible || 0), votes: Number(s.votes || 0) };
+      }
+      return { eligible: Number(this.infoVote?.totalVoters || 0), votes: Number(this.infoVote?.totalVotes || 0) };
+    },
     availableReportTypes() {
       if (this.currentUser?.roles?.includes('ADMIN')) return this.reportTypeOptions;
       return this.reportTypeOptions.filter(opt => opt.value !== 'admin');
@@ -552,13 +592,13 @@ export default {
       });
     },
     safeTotalVotes() {
-      return Number(this.infoVote?.totalVotes || 0);
+      return this.scopedTotals.votes;
     },
     safeTotalVoters() {
-      return Number(this.infoVote?.totalVoters || 0);
+      return this.scopedTotals.eligible;
     },
     safeParticipation() {
-      if (this.infoVote?.voterParticipation !== undefined && this.infoVote?.voterParticipation !== null) {
+      if (!this.selectedProvinceId && !this.selectedAreaId && this.infoVote?.voterParticipation !== undefined && this.infoVote?.voterParticipation !== null) {
         return Number(this.infoVote.voterParticipation).toFixed(2);
       }
       return this.safeTotalVoters ? ((this.safeTotalVotes / this.safeTotalVoters) * 100).toFixed(2) : '0.00';
@@ -583,7 +623,7 @@ export default {
       return this.regions.flatMap(region => this.buildRegionAreas(region).map(area => ({
         ...area,
         provinceName: region.name,
-        participation: region.eligibleVoters ? Number(((area.votes / region.eligibleVoters) * 100).toFixed(1)) : 0
+        participation: area.eligibleVoters ? Number(((area.votes / area.eligibleVoters) * 100).toFixed(1)) : 0
       }))).sort((a, b) => Number(b.votes) - Number(a.votes));
     },
     showCandidateReport() {
@@ -689,6 +729,7 @@ export default {
     clearInterval(this.refreshInterval);
     if (this.realTimeChart) this.realTimeChart.destroy();
   }, watch: {
+    selectedProvinceId() { this.selectedAreaId = null; },
     availableReportTypes(options) {
       if (!options.some(opt => opt.value === this.selectedReportType)) {
         this.selectedReportType = 'province';
@@ -757,6 +798,7 @@ export default {
       const info = this.irCodeMap[irCode];
       if (!info) return;
       this.selectedProvinceId = info.id;
+      this.selectedAreaId = null;
       const region = this.regions.find(r => r.id === info.id) || {};
       this.selectedProvinceForMap = { ...info, ...region };
     },
