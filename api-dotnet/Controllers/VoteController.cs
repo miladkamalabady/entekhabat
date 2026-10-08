@@ -305,12 +305,10 @@ END;");
                   AND ISNULL(fra.is_active,0)=0
             ) THEN 1 ELSE 0 END", new { region, province });
 
-        if (approvalPending == 1)
-        {
-            var supplied = GetSecondPassword(secondPassword);
-            if (!await IsAdminWithSecondPassword(conn, supplied))
-                return StatusCode(403, new { status=false, secondPasswordRequired=true, message="مشاهده میزان آرا قبل از تایید نهایی فقط برای ادمین و با رمز دوم مجاز است." });
-        }
+        // آمار عمومی مشارکت بدون جزئیات رأی نامزدها در دسترس است.
+        // دسترسی به اطلاعات نامزدها و شمارش رأی هر نامزد همچنان محدود می‌ماند.
+        var canSeeCandidateVotes = approvalPending != 1
+            || await IsAdminWithSecondPassword(conn, GetSecondPassword(secondPassword));
 
         var p = province.HasValue ? (object)province.Value : DBNull.Value;
         var r = region.HasValue ? (object)region.Value : DBNull.Value;
@@ -344,7 +342,7 @@ END;");
             "SELECT COUNT(*) FROM final_submissions WHERE requestStatus='SUPERVISION_APPROVED'");
 
         // vote_count per candidate filtered by voter's region > province > all
-        var listCan = (await conn.QueryAsync<dynamic>(@"
+        var listCan = canSeeCandidateVotes ? (await conn.QueryAsync<dynamic>(@"
             SELECT fi.id AS codeentekhabati,
                    u.national_id, u.first_name, u.last_name,
                    u.org_position_desc, u.gender, u.region_id,
@@ -366,7 +364,7 @@ END;");
                      u.org_position_desc, u.gender, u.region_id, reg.name,
                      ud.user_photo, fi.requestStatus
             ORDER BY vote_count DESC",
-            new { p, r })).AsList();
+            new { p, r })).AsList() : new List<dynamic>();
 
         var regionVoteStatsRaw = (await conn.QueryAsync<dynamic>(@"
             SELECT u.region_id, COUNT(v.id) AS votes
@@ -430,6 +428,7 @@ END;");
                 Candidates = totalCandidates,
                 activeCandidates,
                 listCan,
+                candidateVotesHidden = !canSeeCandidateVotes,
                 regionVoteStats,
                 provinceVoteStats,
                 eligiblePerProvince
