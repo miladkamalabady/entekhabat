@@ -456,7 +456,7 @@ export default {
 
       // Table Fields
       candidateFields: [
-        { key: 'rank', label: 'رتبه', sortable: false },
+        { key: 'codeentekhabati', label: 'کد نامزد', sortable: false },
         { key: 'candidate', label: 'کاندیدا', sortable: false },
       ],
       regionCandidateFields: [
@@ -625,7 +625,7 @@ export default {
       ];
     },
     selectedReportHighlights() {
-      const topCandidate = this.sortedCandidates[0];
+      const topCandidate = null;
       const topRegion = this.topRegion;
       const topArea = this.areaReportRows[0];
       const highlightsByType = {
@@ -641,7 +641,7 @@ export default {
         ],
         candidate: [
           { label: 'کاندیداهای فعال', value: this.formatNumber(this.infoVote?.activeCandidates || this.candidates.length), icon: 'person-badge-fill', variant: 'primary' },
-          { label: 'پیشتاز فعلی', value: topCandidate ? `${topCandidate.first_name} ${topCandidate.last_name}` : '-', icon: 'award-fill', variant: 'success' },
+          { label: 'وضعیت انتشار آرا', value: 'آرای نامزدها محرمانه است', icon: 'award-fill', variant: 'success' },
           { label: 'کل آرای ثبت‌شده', value: this.formatNumber(this.safeTotalVotes), icon: 'bar-chart-fill', variant: 'info' }
         ],
         participation: [
@@ -680,7 +680,7 @@ export default {
     await this.loadRegions();
 
     this.infoVote = await this.getInfoVote()
-    this.candidates = this.infoVote?.candidateVotesHidden ? [] : (this.infoVote?.listCan || [])
+    this.candidates = this.infoVote?.listCan || []
     this.updateRegionLiveStats();
 
   },
@@ -935,7 +935,7 @@ export default {
 
         const data = await this.getInfoVote();
         this.infoVote = data;
-        this.candidates = data?.candidateVotesHidden ? [] : (data?.listCan || []);
+        this.candidates = data?.listCan || [];
         this.updateRegionLiveStats();
 
         this.lastUpdate = new Date().toLocaleTimeString('fa-IR');
@@ -947,7 +947,7 @@ export default {
 
       const data = await this.getInfoVote();
       this.infoVote = data;
-      this.candidates = data?.candidateVotesHidden ? [] : (data?.listCan || []);
+      this.candidates = data?.listCan || [];
       this.updateRegionLiveStats();
 
       this.lastUpdate = new Date().toLocaleTimeString('fa-IR');
@@ -969,7 +969,7 @@ export default {
           const stat = regionVoteStats?.[area.id] || regionVoteStats?.[Number(area.id)] || null;
           return sum + Number(stat?.votes || 0);
         }, 0);
-        const votes = Number(provinceStat?.votes || areaVotes);
+        const votes = Number(provinceStat?.votes ?? areaVotes);
         const eligibleVoters = Number(eligiblePerProvince[provinceKey] || provinceStat?.eligible || 0);
         const participation = eligibleVoters ? Number(((votes / eligibleVoters) * 100).toFixed(1)) : 0;
 
@@ -979,7 +979,7 @@ export default {
           eligibleVoters,
           participation,
           activeLocations: areas.length,
-          growth: Number((Math.random() * 3).toFixed(1)),
+          growth: 0,
           areaVotes
         };
       });
