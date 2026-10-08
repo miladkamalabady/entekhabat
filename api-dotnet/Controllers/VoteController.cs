@@ -312,13 +312,14 @@ END;");
         var r = region.HasValue ? (object)region.Value : DBNull.Value;
 
         // eligible voters: filtered by region > province > all
+        // Eligible totals come from election-region approval records, not users.
         var totalVoters = await conn.QueryFirstOrDefaultAsync<int>(@"
-            SELECT COUNT(DISTINCT u.national_id)
-            FROM dbo.users u
-            JOIN dbo.region reg ON reg.id = u.region_id
-            WHERE EXISTS (SELECT 1 FROM dbo.final_results_approvals fra WHERE fra.region_id=u.region_id)
-              AND ((@r IS NOT NULL AND u.region_id = @r)
-               OR (@r IS NULL AND (@p IS NULL OR reg.ProvinceCode = @p)))",
+            SELECT COALESCE(SUM(CAST(fra.totalEligible AS BIGINT)),0)
+            FROM dbo.final_results_approvals fra
+            JOIN dbo.region rg ON rg.id=fra.region_id
+            WHERE rg.id % 100 <> 0
+              AND (@r IS NULL OR rg.id=@r)
+              AND (@r IS NOT NULL OR @p IS NULL OR rg.ProvinceCode=@p)",
             new { p, r });
 
         // total votes cast: filtered by voter's region > province > all
@@ -364,14 +365,13 @@ END;");
         // Participation belongs to the voter's registered region, never the candidate's region.
         var regional = (await conn.QueryAsync<dynamic>(@"
             SELECT rg.id AS region_id, rg.ProvinceCode,
-                   COUNT(DISTINCT voter.national_id) AS eligible,
+                   COALESCE(MAX(CAST(fra.totalEligible AS BIGINT)),0) AS eligible,
                    COUNT(DISTINCT v.national_id) AS votes
             FROM dbo.region rg
-            
+            JOIN dbo.final_results_approvals fra ON fra.region_id=rg.id
             LEFT JOIN dbo.users voter ON voter.region_id=rg.id
             LEFT JOIN dbo.votes v ON v.national_id=voter.national_id
             WHERE rg.id % 100 <> 0 AND rg.ProvinceCode > 0
-              AND EXISTS (SELECT 1 FROM dbo.final_results_approvals fra WHERE fra.region_id=rg.id)
             GROUP BY rg.id, rg.ProvinceCode")).AsList();
 
         var electionRegionCount = regional.Count;
