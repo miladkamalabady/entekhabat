@@ -680,7 +680,7 @@ export default {
     await this.loadRegions();
 
     this.infoVote = await this.getInfoVote()
-    this.candidates = this.infoVote?.listCan || []
+    this.candidates = this.infoVote?.candidateVotesHidden ? [] : (this.infoVote?.listCan || [])
     this.updateRegionLiveStats();
 
   },
@@ -935,7 +935,7 @@ export default {
 
         const data = await this.getInfoVote();
         this.infoVote = data;
-        this.candidates = data?.listCan || [];
+        this.candidates = data?.candidateVotesHidden ? [] : (data?.listCan || []);
         this.updateRegionLiveStats();
 
         this.lastUpdate = new Date().toLocaleTimeString('fa-IR');
@@ -947,7 +947,7 @@ export default {
 
       const data = await this.getInfoVote();
       this.infoVote = data;
-      this.candidates = data?.listCan || [];
+      this.candidates = data?.candidateVotesHidden ? [] : (data?.listCan || []);
       this.updateRegionLiveStats();
 
       this.lastUpdate = new Date().toLocaleTimeString('fa-IR');
