@@ -472,10 +472,11 @@ export default {
     },
 
     async loadVotingCandidates() {
-      const token = localStorage.getItem('token');
+      const token = this.currentUser?.token || JSON.parse(localStorage.getItem('user') || '{}')?.token;
       const response = await fetch(`${this.apiUrlrtb}/api/getVotingCandidates`, {
         headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
       });
+      if (response.status === 401) throw new Error('نشست کاربری معتبر نیست؛ لطفاً دوباره وارد شوید.');
       if (!response.ok) throw new Error('خطا در دریافت نامزدهای مجاز');
       const result = await response.json();
       if (!result.status || !Array.isArray(result.data)) throw new Error('فهرست نامزدها نامعتبر است');
