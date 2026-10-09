@@ -538,9 +538,27 @@ END;");
 
     // Published final candidate results, grouped by each candidate's electoral region.
     [HttpGet("getFinalCandidateResults")]
-    public async Task<IActionResult> GetFinalCandidateResults([FromQuery] int? province = null, [FromQuery] int? region = null)
+    public async Task<IActionResult> GetFinalCandidateResults([FromQuery] int? province = null, [FromQuery] int? region = null, string? secondPassword = null)
     {
         await using var conn = _db.CreateConnection();
+        var pending = await conn.ExecuteScalarAsync<int>(@"
+            SELECT CASE WHEN EXISTS (
+                SELECT 1 FROM dbo.region rg
+                LEFT JOIN dbo.final_results_approvals fra ON fra.region_id=rg.id
+                WHERE rg.id % 100 <> 0
+                  AND (@region IS NULL OR rg.id=@region)
+                  AND (@region IS NOT NULL OR @province IS NULL OR rg.ProvinceCode=@province)
+                  AND ISNULL(fra.is_active,0)=0
+            ) THEN 1 ELSE 0 END", new { region, province });
+        bool adminPreview = false;
+        if (pending == 1)
+        {
+            adminPreview = await IsAdminWithSecondPassword(conn, GetSecondPassword(secondPassword));
+            if (!adminPreview)
+                return StatusCode(403, new { status=false, secondPasswordRequired=true,
+                    message="مشاهده آرای تأییدنشده فقط با رمز دوم مدیر مجاز است." });
+        }
+
         var results = await conn.QueryAsync<dynamic>(@"
             SELECT fi.id AS id, fi.id AS codeentekhabati,
                    u.first_name, u.last_name, u.org_position_desc, ud.user_photo,
@@ -556,13 +574,13 @@ END;");
             WHERE fi.requestStatus='SUPERVISION_APPROVED'
               AND (@region IS NULL OR u.region_id=@region)
               AND (@region IS NOT NULL OR @province IS NULL OR rg.ProvinceCode=@province)
-              AND EXISTS (
+              AND (@adminPreview=1 OR EXISTS (
                   SELECT 1 FROM dbo.final_results_approvals fra
-                  WHERE fra.region_id=u.region_id AND ISNULL(fra.is_active,0)=1)
+                  WHERE fra.region_id=u.region_id AND ISNULL(fra.is_active,0)=1))
             GROUP BY fi.id,u.first_name,u.last_name,u.org_position_desc,ud.user_photo,
                      u.region_id,rg.name,rg.ProvinceCode,pr.name
             ORDER BY rg.ProvinceCode,u.region_id,vote_count DESC",
-            new { province, region });
+            new { province, region, adminPreview });
         return Ok(new { status=true, data=results });
     }
 
