@@ -159,30 +159,18 @@ END;");
             int allowedVotes = Convert.ToInt32(userRegion.allowedVotes);
             int effectiveRegionId = userRegionId;
 
-            if (allowedVotes <= 0)
+            // Small regions vote for approved candidates within their own province.
+            // No candidate from another province can be selected.
+            bool provinceWideVoting = allowedVotes <= 0;
+            if (provinceWideVoting)
             {
-                if (req.regionId == null)
-                    return BadRequest(new { status=false, requireRegionSelection=true, message="منطقه محل سکونت شما ظرفیت رأی ندارد، لطفاً منطقه دارای ظرفیت را انتخاب کنید." });
-
-                var validRegion = await conn.QueryFirstOrDefaultAsync<dynamic>(
-                    @"SELECT r.id,
-                             CASE
-                                 WHEN mv.maxVotes IS NOT NULL THEN mv.maxVotes
-                                 WHEN COUNT(CASE WHEN COALESCE(NULLIF(LTRIM(RTRIM(u.roles)), N''), N'VOTER') = N'VOTER' THEN 1 END) < 1000 THEN 0
-                                 ELSE CEILING(COUNT(CASE WHEN COALESCE(NULLIF(LTRIM(RTRIM(u.roles)), N''), N'VOTER') = N'VOTER' THEN 1 END) / 1000.0)
-                             END AS allowedVotes
-                      FROM region r
-                      OUTER APPLY (SELECT MAX(maxVotes) AS maxVotes FROM maxvotes WHERE region_id=r.id) mv
-                      LEFT JOIN users u ON u.region_id=r.id
-                      WHERE r.id=@rid AND r.ProvinceCode=@province
-                      GROUP BY r.id, mv.maxVotes",
-                    new { rid=req.regionId.Value, province=provinceCode }, tx);
-
-                if (validRegion == null || Convert.ToInt32(validRegion.allowedVotes) <= 0)
-                    return BadRequest(new { status=false, message="منطقه انتخابی مجاز نیست." });
-
-                effectiveRegionId = Convert.ToInt32(validRegion.id);
-                allowedVotes = Convert.ToInt32(validRegion.allowedVotes);
+                allowedVotes = await conn.QueryFirstOrDefaultAsync<int>(@"
+                    SELECT COALESCE(MAX(m.maxVotes),1)
+                    FROM dbo.region r
+                    LEFT JOIN dbo.maxvotes m ON m.region_id=r.id
+                    WHERE r.ProvinceCode=@province AND r.id % 100 <> 0",
+                    new { province = provinceCode }, tx);
+                allowedVotes = Math.Max(1, allowedVotes);
             }
             else if (req.regionId.HasValue && req.regionId.Value != userRegionId)
             {
@@ -201,8 +189,11 @@ END;");
                   JOIN users cu ON cu.national_id=f.nationalId
                   WHERE f.id IN @candidateIds
                     AND f.requestStatus='SUPERVISION_APPROVED'
-                    AND cu.region_id=@regionId",
-                new { candidateIds, regionId=effectiveRegionId }, tx);
+                    AND ((@provinceWideVoting=0 AND cu.region_id=@regionId)
+                      OR (@provinceWideVoting=1 AND EXISTS (
+                          SELECT 1 FROM dbo.region cr
+                          WHERE cr.id=cu.region_id AND cr.ProvinceCode=@province)))",
+                new { candidateIds, regionId=effectiveRegionId, provinceWideVoting, province=provinceCode }, tx);
 
             if (validCandidateCount != candidateIds.Length)
                 return BadRequest(new { status=false, message="یک یا چند نامزد متعلق به حوزه مجاز رأی‌دهنده نیستند." });
