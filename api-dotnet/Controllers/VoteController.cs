@@ -64,6 +64,21 @@ END;");
         return a.Length == b.Length && CryptographicOperations.FixedTimeEquals(a, b);
     }
 
+    private async Task<bool> CanReviewEndedElectionResults(System.Data.IDbConnection conn)
+    {
+        var schedule = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            "SELECT TOP (1) end_date FROM dbo.election_schedule_events WHERE event_key='voting'");
+        if (schedule == null) return false;
+        DateTime? end = _jalali.NormalizeToGregorian(schedule.end_date);
+        if (!end.HasValue || DateTime.Now <= end.Value) return false;
+
+        var roles = await conn.QueryFirstOrDefaultAsync<string>(
+            "SELECT roles FROM dbo.users WHERE national_id=@nid", new { nid = NationalId });
+        var roleSet = (roles ?? "").ToUpperInvariant()
+            .Split(new[] { ',', ';', ' ', '|' }, StringSplitOptions.RemoveEmptyEntries);
+        return roleSet.Contains("EXECUTIVE") || roleSet.Contains("SUPERVISOR");
+    }
+
     private string? GetSecondPassword(string? queryPassword)
     {
         if (!string.IsNullOrWhiteSpace(queryPassword)) return queryPassword;
@@ -555,7 +570,8 @@ END;");
         {
             // Approved regions remain publicly visible; pending regions are excluded
             // unless an administrator supplies the second password.
-            adminPreview = await IsAdminWithSecondPassword(conn, GetSecondPassword(secondPassword));
+            adminPreview = await IsAdminWithSecondPassword(conn, GetSecondPassword(secondPassword))
+                || await CanReviewEndedElectionResults(conn);
         }
 
         var results = await conn.QueryAsync<dynamic>(@"
