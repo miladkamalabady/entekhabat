@@ -770,6 +770,13 @@ export default {
       }
     },
 
+    provinceNameByCode(provinceCode) {
+      const code = Number(provinceCode);
+      if (!Number.isFinite(code)) return '';
+      const province = this.regions.find(r => Number(r.id) === code);
+      return province?.name || '';
+    },
+
     getProvinceByIrCode(irCode) {
       const info = this.irCodeMap[irCode];
       if (!info) return null;
