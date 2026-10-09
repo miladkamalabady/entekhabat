@@ -151,7 +151,7 @@
                       </div>
                     </div>
                     <div class="status-card-action">
-                      <button class="btn-action-warning" @click="$router.push('/candidate/objection')">
+                      <button v-if="electionStatusAll === 'upcoming'" class="btn-action-warning" @click="$router.push('/candidate/objection')">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                           <path
                             d="M12 9V13M12 17H12.01M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z"
@@ -274,6 +274,7 @@ export default {
           ? item.visibleWhen(this.requestStatus)
           : true
 
+        if (item.route === '/candidate/objection' && this.electionStatusAll !== 'upcoming') return false
         return roleAllowed && statusAllowed
       })
     }, currentStep() {
