@@ -391,6 +391,7 @@ export default {
       hoveredProvinceId: null,
       selectedProvinceId: null,
       selectedAreaId: null,
+      candidateSearch: '',
       selectedProvinceForMap: null,
       hoveredProvince: null,
       tooltipStyle: {},
@@ -546,7 +547,8 @@ export default {
       });
     },
     sortedCandidates() {
-      return [...this.filteredCandidates].sort((a, b) => String(a.last_name || '').localeCompare(String(b.last_name || ''), 'fa'));
+      const search = String(this.candidateSearch || '').trim().toLocaleLowerCase('fa');
+      return [...this.filteredCandidates].filter(x => !search || [x.first_name, x.last_name, x.codeentekhabati, x.provinceName, this.provinceNameByCode(x.provinceCode), x.regname].some(value => String(value ?? '').toLocaleLowerCase('fa').includes(search))).sort((a, b) => String(a.last_name || '').localeCompare(String(b.last_name || ''), 'fa'));
     },
 
     provinceFilterOptions() {
@@ -604,10 +606,10 @@ export default {
       return this.safeTotalVoters ? ((this.safeTotalVotes / this.safeTotalVoters) * 100).toFixed(2) : '0.00';
     },
     topRegion() {
-      return [...this.regions].sort((a, b) => Number(b.participation) - Number(a.participation))[0] || null;
+      return [...this.regions].filter(region => Number(region.votes) > 0).sort((a, b) => Number(b.participation) - Number(a.participation))[0] || null;
     },
     lowestRegion() {
-      return [...this.regions].filter(region => Number(region.eligibleVoters) || Number(region.votes))
+      return [...this.regions].filter(region => Number(region.votes) > 0)
         .sort((a, b) => Number(a.participation) - Number(b.participation))[0] || null;
     },
     regionDisplayData() {
@@ -620,7 +622,7 @@ export default {
         }));
     },
     areaReportRows() {
-      return this.regions.flatMap(region => this.buildRegionAreas(region).map(area => ({
+      return this.regions.flatMap(region => this.buildRegionAreas(region).filter(area => Number(area.votes) > 0).map(area => ({
         ...area,
         provinceName: region.name,
         participation: area.eligibleVoters ? Number(((area.votes / area.eligibleVoters) * 100).toFixed(1)) : 0
@@ -670,7 +672,7 @@ export default {
       const topArea = this.areaReportRows[0];
       const highlightsByType = {
         province: [
-          { label: 'استان‌های دارای داده', value: this.formatNumber(this.regions.length), icon: 'geo-alt-fill', variant: 'primary' },
+          { label: 'استان‌های دارای داده', value: this.formatNumber(this.regionDisplayData.length), icon: 'geo-alt-fill', variant: 'primary' },
           { label: 'بیشترین مشارکت استانی', value: topRegion ? `${topRegion.name} (${topRegion.participation}%)` : '-', icon: 'graph-up', variant: 'success' },
           { label: 'کل آرای زنده', value: this.formatNumber(this.safeTotalVotes), icon: 'check2-circle', variant: 'info' }
         ],
