@@ -606,11 +606,20 @@ END;");
         await using var conn = _db.CreateConnection();
 
         var me = await conn.QueryRowDict(
-            "SELECT roles FROM users WHERE national_id=@nid", new { nid = NationalId });
+            "SELECT roles, region_id FROM users WHERE national_id=@nid", new { nid = NationalId });
         if (me == null) return Unauthorized();
 
-        if (me.Str("roles") != "ADMIN")
-            return StatusCode(403, new { status = false, message = "فقط ادمین می‌تواند نتایج را دریافت کند." });
+        var roles = me.Str("roles").ToUpperInvariant()
+            .Split(new[] { ',', ';', ' ', '|' }, StringSplitOptions.RemoveEmptyEntries);
+        bool admin = roles.Contains("ADMIN");
+        bool committee = roles.Contains("EXECUTIVE") || roles.Contains("SUPERVISOR");
+        if (!admin && (!committee || !await CanReviewEndedElectionResults(conn)))
+            return StatusCode(403, new { status = false, message = "دریافت خروجی فقط برای مدیر یا اعضای اجرایی و نظارت پس از پایان انتخابات مجاز است." });
+
+        int? allowedRegion = admin ? null : me.Int("region_id");
+        if (!admin && region.HasValue && region.Value != allowedRegion)
+            return StatusCode(403, new { status = false, message = "دسترسی به نتایج این منطقه مجاز نیست." });
+        if (!admin) region = allowedRegion;
 
         var p = province.HasValue ? (object)province.Value : DBNull.Value;
         var r = region.HasValue   ? (object)region.Value   : DBNull.Value;
@@ -633,12 +642,15 @@ END;");
             LEFT JOIN votes v ON v.candidate_id = fi.id
             LEFT JOIN users voter ON voter.national_id = v.national_id
             LEFT JOIN region vr ON vr.id = voter.region_id
-            WHERE fi.requestStatus IN ('SUPERVISION_APPROVED','SUPERVISION_REJECTED','SUBMITTED')
+            WHERE (@allowedRegion IS NULL OR u.region_id=@allowedRegion)
+              AND (@r IS NULL OR u.region_id=@r)
+              AND (@r IS NOT NULL OR @p IS NULL OR reg.ProvinceCode=@p)
+              AND fi.requestStatus IN ('SUPERVISION_APPROVED','SUPERVISION_REJECTED','SUBMITTED')
             GROUP BY fi.id, u.national_id, u.first_name, u.last_name,
                      u.org_position_desc, u.gender, uc.education, uc.yearsOfService,
                      reg.name, reg.ProvinceCode, prov.Name, fi.requestStatus, fi.create_date
             ORDER BY vote_count DESC, u.last_name ASC",
-            new { p, r })).AsList();
+            new { p, r, allowedRegion })).AsList();
 
         var sb = new System.Text.StringBuilder();
         sb.AppendLine("ردیف,کد انتخاباتی,کد ملی,نام,نام خانوادگی,جنسیت,تحصیلات,سابقه خدمت,سمت سازمانی,استان,منطقه,وضعیت,تعداد آرا,تاریخ ثبت نام");
