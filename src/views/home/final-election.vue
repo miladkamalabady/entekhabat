@@ -123,7 +123,19 @@
 
       <b-card class="mb-5">
         <h4 class="mb-3">وضعیت تأیید مناطق</h4>
-        <b-table :items="visibleApprovalRegions" :fields="approvalRegionFields" striped hover responsive>
+        <b-row class="mb-3">
+          <b-col md="8" class="mb-2 mb-md-0">
+            <b-form-input v-model.trim="approvalSearch" placeholder="جستجوی نام منطقه یا کد منطقه"></b-form-input>
+          </b-col>
+          <b-col md="4">
+            <b-form-select v-model.number="approvalPerPage" :options="[
+              { value: 10, text: '۱۰ منطقه در صفحه' },
+              { value: 20, text: '۲۰ منطقه در صفحه' },
+              { value: 50, text: '۵۰ منطقه در صفحه' }
+            ]"></b-form-select>
+          </b-col>
+        </b-row>
+        <b-table :items="pagedApprovalRegions" :fields="approvalRegionFields" striped hover responsive>
           <template #cell(executiveApproved)="data">
             <b-badge :variant="data.value ? 'success' : 'secondary'">{{ data.value ? 'تأیید شده' : 'در انتظار' }}</b-badge>
           </template>
@@ -134,6 +146,11 @@
             <b-badge :variant="data.value ? 'success' : 'warning'">{{ data.value ? 'منتشر شده' : 'منتشر نشده' }}</b-badge>
           </template>
         </b-table>
+        <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap">
+          <small class="text-muted">{{ visibleApprovalRegions.length }} منطقه</small>
+          <b-pagination v-model="approvalPage" :total-rows="visibleApprovalRegions.length"
+            :per-page="approvalPerPage" size="sm" class="mb-0"></b-pagination>
+        </div>
       </b-card>
 
       <!-- Final Ranking -->
@@ -419,6 +436,9 @@ export default {
       // Region Results (from API)
       regionResults: [],
       approvalRegions: [],
+      approvalSearch: "",
+      approvalPage: 1,
+      approvalPerPage: 10,
       approvalRegionFields: [
         { key: "regionName", label: "منطقه" },
         { key: "executiveApproved", label: "تأیید اجرایی" },
@@ -448,6 +468,12 @@ export default {
       hoveredFinalProvince: null
     };
   },
+  watch: {
+    approvalSearch() { this.approvalPage = 1; },
+    approvalPerPage() { this.approvalPage = 1; },
+    selectedProvince() { this.approvalPage = 1; },
+    selectedArea() { this.approvalPage = 1; }
+  },
   computed: {
     ...mapGetters(["electionStatusAll", "ConfigInfo", "currentUser"]),
     isAdmin() {
@@ -461,10 +487,17 @@ export default {
       return this.areasByProvince[this.selectedProvince] || [];
     },
     visibleApprovalRegions() {
+      const search = this.approvalSearch.trim().toLocaleLowerCase('fa');
       return this.approvalRegions.filter(row =>
         (!this.selectedProvince || Number(row.provinceCode) === Number(this.selectedProvince)) &&
-        (!this.selectedArea || Number(row.regionId) === Number(this.selectedArea))
+        (!this.selectedArea || Number(row.regionId) === Number(this.selectedArea)) &&
+        (!search || String(row.regionName || '').toLocaleLowerCase('fa').includes(search) ||
+          String(row.regionId || '').includes(search))
       );
+    },
+    pagedApprovalRegions() {
+      const offset = (this.approvalPage - 1) * this.approvalPerPage;
+      return this.visibleApprovalRegions.slice(offset, offset + this.approvalPerPage);
     },
     regionalWinners() {
       const byRegion = {};
