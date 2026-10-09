@@ -121,6 +121,21 @@
         </b-table>
       </b-card>
 
+      <b-card class="mb-5">
+        <h4 class="mb-3">وضعیت تأیید مناطق</h4>
+        <b-table :items="visibleApprovalRegions" :fields="approvalRegionFields" striped hover responsive>
+          <template #cell(executiveApproved)="data">
+            <b-badge :variant="data.value ? 'success' : 'secondary'">{{ data.value ? 'تأیید شده' : 'در انتظار' }}</b-badge>
+          </template>
+          <template #cell(supervisorApproved)="data">
+            <b-badge :variant="data.value ? 'success' : 'secondary'">{{ data.value ? 'تأیید شده' : 'در انتظار' }}</b-badge>
+          </template>
+          <template #cell(isActive)="data">
+            <b-badge :variant="data.value ? 'success' : 'warning'">{{ data.value ? 'منتشر شده' : 'منتشر نشده' }}</b-badge>
+          </template>
+        </b-table>
+      </b-card>
+
       <!-- Final Ranking -->
       <b-card class="ranking-card mb-5">
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -403,6 +418,13 @@ export default {
 
       // Region Results (from API)
       regionResults: [],
+      approvalRegions: [],
+      approvalRegionFields: [
+        { key: "regionName", label: "منطقه" },
+        { key: "executiveApproved", label: "تأیید اجرایی" },
+        { key: "supervisorApproved", label: "تأیید نظارت" },
+        { key: "isActive", label: "انتشار نتایج" }
+      ],
 
       // Table Fields
       rankingFields: [
@@ -437,6 +459,12 @@ export default {
     areasForSelectedProvince() {
       if (!this.selectedProvince) return [];
       return this.areasByProvince[this.selectedProvince] || [];
+    },
+    visibleApprovalRegions() {
+      return this.approvalRegions.filter(row =>
+        (!this.selectedProvince || Number(row.provinceCode) === Number(this.selectedProvince)) &&
+        (!this.selectedArea || Number(row.regionId) === Number(this.selectedArea))
+      );
     },
     regionalWinners() {
       const byRegion = {};
@@ -669,6 +697,18 @@ export default {
         })
         .filter(r => r.votes > 0 || r.participation > 0)
         .sort((a, b) => b.votes - a.votes);
+
+      try {
+        const token = this.currentUser?.token || JSON.parse(localStorage.getItem('user') || '{}')?.token;
+        const response = await fetch(`${this.apiUrlrtb}/api/getRegionalApprovalStatuses`, {
+          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+        });
+        const result = response.ok ? await response.json() : null;
+        this.approvalRegions = result?.status && Array.isArray(result.data) ? result.data : [];
+      } catch (error) {
+        console.warn('Unable to load regional approval statuses', error);
+        this.approvalRegions = [];
+      }
 
       this.$nextTick(() => {
         this.initializeCharts();
