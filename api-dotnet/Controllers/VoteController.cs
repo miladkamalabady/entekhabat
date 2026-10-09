@@ -536,6 +536,36 @@ END;");
         });
     }
 
+    // Published final candidate results, grouped by each candidate's electoral region.
+    [HttpGet("getFinalCandidateResults")]
+    public async Task<IActionResult> GetFinalCandidateResults([FromQuery] int? province = null, [FromQuery] int? region = null)
+    {
+        await using var conn = _db.CreateConnection();
+        var results = await conn.QueryAsync<dynamic>(@"
+            SELECT fi.id AS id, fi.id AS codeentekhabati,
+                   u.first_name, u.last_name, u.org_position_desc, ud.user_photo,
+                   u.region_id AS regionId, rg.name AS regname,
+                   rg.ProvinceCode AS provinceCode, pr.name AS provinceName,
+                   COUNT(v.id) AS vote_count
+            FROM dbo.final_submissions fi
+            JOIN dbo.users u ON u.national_id=fi.nationalId
+            JOIN dbo.region rg ON rg.id=u.region_id
+            LEFT JOIN dbo.region pr ON pr.id=rg.ProvinceCode*100
+            LEFT JOIN dbo.user_documents ud ON ud.nationalId=fi.nationalId
+            LEFT JOIN dbo.votes v ON v.candidate_id=fi.id
+            WHERE fi.requestStatus='SUPERVISION_APPROVED'
+              AND (@region IS NULL OR u.region_id=@region)
+              AND (@region IS NOT NULL OR @province IS NULL OR rg.ProvinceCode=@province)
+              AND EXISTS (
+                  SELECT 1 FROM dbo.final_results_approvals fra
+                  WHERE fra.region_id=u.region_id AND ISNULL(fra.is_active,0)=1)
+            GROUP BY fi.id,u.first_name,u.last_name,u.org_position_desc,ud.user_photo,
+                     u.region_id,rg.name,rg.ProvinceCode,pr.name
+            ORDER BY rg.ProvinceCode,u.region_id,vote_count DESC",
+            new { province, region });
+        return Ok(new { status=true, data=results });
+    }
+
     // GET /api/exportResults?region=&province=  - خروجی CSV نتایج برای ادمین
     [HttpGet("exportResults")]
     public async Task<IActionResult> ExportResults([FromQuery] int? region = null, [FromQuery] int? province = null)
