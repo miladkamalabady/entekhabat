@@ -31,7 +31,7 @@
       <!-- Tabs with Modern Design -->
       <div class="tabs-modern">
         <div class="tab-header">
-          <button class="tab-btn" :class="{ active: activeTab === 0 }" @click="activeTab = 0">
+          <button v-if="!votingStarted" class="tab-btn" :class="{ active: activeTab === 0 }" @click="activeTab = 0">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path
                 d="M12 8V12M12 16H12.01M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z"
@@ -67,7 +67,7 @@
         <div class="tab-content-modern">
 
           <!-- Tab 1: ثبت اعتراض جدید -->
-          <div v-if="activeTab === 0" class="tab-pane">
+          <div v-if="activeTab === 0 && !votingStarted" class="tab-pane">
             <div class="form-card-modern">
               <!-- هشدار محدودیت تعداد اعتراض -->
               <div v-if="complaintCount >= 2" class="alert-warning-modern">
@@ -496,6 +496,7 @@ export default {
     return {
       apiUrlrtb,
       activeTab: 0,
+      votingStarted: false,
       submitting: false,
       trackingLoading: false,
       complaintData: createDefaultComplaintData(),
@@ -529,7 +530,19 @@ export default {
     await this.loadUserComplaints()
   },
   methods: {
-    ...mapActions(['getObjections', 'saveObjection', 'updateObjectionStatus','downloadObjectionFile']),
+    ...mapActions(['getObjections', 'saveObjection', 'updateObjectionStatus','downloadObjectionFile', 'getConfig']),
+
+    async checkVotingStarted() {
+      try {
+        const result = await this.getConfig()
+        const config = result?.data?.data || result?.data || result
+        const start = config?.startDate ? new Date(config.startDate).getTime() : NaN
+        this.votingStarted = Number.isFinite(start) && Date.now() >= start
+        if (this.votingStarted && this.activeTab === 0) this.activeTab = 1
+      } catch (error) {
+        console.warn('Could not load voting schedule', error)
+      }
+    },
 
     async downloadDocument(doc) {
       if (!doc || !doc.id) {
