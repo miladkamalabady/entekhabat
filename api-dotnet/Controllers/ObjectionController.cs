@@ -157,6 +157,21 @@ END");
         await using var conn = _db.CreateConnection();
         await conn.OpenAsync();
         await EnsureObjectionTables(conn);
+        // Stop new objections by rejected candidates after the voting start time.
+        var votingStartValue = await conn.QueryFirstOrDefaultAsync<object?>(
+            "SELECT start_date FROM dbo.election_schedule_events WHERE event_key = 'voting'");
+        var votingStart = _jalali.NormalizeToGregorian(votingStartValue);
+        if (votingStart.HasValue && DateTime.Now >= votingStart.Value)
+        {
+            var rejected = await conn.ExecuteScalarAsync<int>(@"
+                SELECT CASE WHEN EXISTS (
+                    SELECT 1 FROM dbo.final_submissions
+                    WHERE nationalId = @nationalId AND requestStatus LIKE '%REJECT%'
+                ) THEN 1 ELSE 0 END", new { nationalId = NationalId });
+            if (rejected == 1)
+                return BadRequest(new { status = false, message = "پس از شروع انتخابات، نامزد ردصلاحیت‌شده امکان ثبت اعتراض جدید ندارد." });
+        }
+
 
         return await DbHelper.WithTransaction(conn, async tx =>
         {
