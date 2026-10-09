@@ -157,6 +157,9 @@
       <b-card class="ranking-card mb-5">
         <div class="d-flex justify-content-between align-items-center mb-4">
           <h4>رتبه‌بندی نهایی کاندیداها</h4>
+          <b-button v-if="canExportResults" variant="success" size="sm" @click="downloadResultsExcel">
+            <b-icon icon="download" class="ml-1"></b-icon> دریافت اکسل آرا و نامزدها
+          </b-button>
           <div class="ranking-actions">
             <b-button-group>
               <b-button :variant="viewMode === 'table' ? 'primary' : 'outline-primary'" @click="viewMode = 'table'">
@@ -476,6 +479,14 @@ export default {
   },
   computed: {
     ...mapGetters(["electionStatusAll", "ConfigInfo", "currentUser"]),
+    canExportResults() {
+      const roles = this.currentUser?.roles;
+      const roleList = Array.isArray(roles) ? roles : String(roles || '').split(/[,;\s|]+/);
+      const normalized = roleList.map(role => String(role).toUpperCase());
+      return normalized.includes('ADMIN') ||
+        (this.electionStatusAll === 'ended' &&
+          (normalized.includes('EXECUTIVE') || normalized.includes('SUPERVISOR')));
+    },
     isAdmin() {
       const roles = this.currentUser?.roles;
       return Array.isArray(roles)
@@ -559,6 +570,33 @@ export default {
   methods: {
     ...mapActions(["getConfig", "getInfoVote", "getRegions", "getFinalResultsApprovalStatus", "setFinalResultsApproval"]),
     // Formatting
+    async downloadResultsExcel() {
+      if (!this.canExportResults) return;
+      const token = this.currentUser?.token || JSON.parse(localStorage.getItem('user') || '{}')?.token;
+      const params = new URLSearchParams();
+      if (this.isAdmin && this.selectedArea) params.set('region', this.selectedArea);
+      else if (this.isAdmin && this.selectedProvince) params.set('province', this.selectedProvince);
+      try {
+        const response = await fetch(`${this.apiUrlrtb}/api/exportResults?${params.toString()}`, {
+          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+        });
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}));
+          throw new Error(error.message || 'دریافت خروجی ناموفق بود.');
+        }
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'election_results.csv';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        this.$bvToast.toast(error.message, { title: 'خروجی اکسل', variant: 'danger', solid: true });
+      }
+    },
     async activateFinalResults() {
       if (!this.isAdmin || !this.selectedArea || !this.document) {
         this.$bvToast.toast('انتخاب منطقه و فایل صورتجلسه الزامی است.', { variant: 'warning', solid: true });
