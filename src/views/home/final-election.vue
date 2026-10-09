@@ -112,118 +112,13 @@
         </b-col>
       </b-row>
 
-      <!-- Winner Announcement -->
+      <!-- Winners are determined independently in each electoral region. -->
       <b-card class="winner-card mb-5">
-        <!-- حالت تساوی -->
-        <div v-if="winner.isTie">
-          <div class="winner-header text-center mb-4">
-            <h3>
-              <b-icon icon="exclamation-triangle-fill" variant="warning" class="ml-2"></b-icon>
-              نتیجه: تساوی آرا
-            </h3>
-            <p class="text-muted">برندگان مساوی انتخابات</p>
-          </div>
-
-          <b-alert variant="warning" show class="text-center mb-4">
-            <h5 class="alert-heading mb-2">
-              <b-icon icon="exclamation-circle-fill" class="ml-1"></b-icon>
-              تساوی آرا!
-            </h5>
-            <p class="mb-0">
-              {{ winner.tiedWinners.length }} نفر با {{ formatNumber(winner.votes) }} رأی ({{ winner.percentage }}%) مساوی هستند.
-              طبق آیین‌نامه باید تکلیف این تساوی مشخص شود.
-            </p>
-          </b-alert>
-
-          <b-row class="justify-content-center">
-            <b-col
-              v-for="(tied, idx) in winner.tiedWinners"
-              :key="tied.id"
-              md="4"
-              class="text-center mb-4"
-            >
-              <div class="winner-photo-container mx-auto" style="width:fit-content">
-              
-                <img v-if="tied.photo" :src="`${apiUrlrtb}/${tied.photo}`" :alt="tied.name" class="winner-photo" />
-                <div v-else class="winner-photo placeholder">
-                  <b-icon icon="person-circle"></b-icon>
-                </div>
-                <div class="winner-crown">
-                  <b-icon icon="trophy-fill"></b-icon>
-                </div>
-              </div>
-              <h4 class="winner-name mt-3">{{ tied.name }}</h4>
-              <p class="text-muted small">{{ tied.org_position_desc }}</p>
-              <b-badge variant="warning" class="p-2">
-                {{ formatNumber(tied.votes) }} رأی — {{ tied.percentage }}%
-              </b-badge>
-            </b-col>
-          </b-row>
-        </div>
-
-        <!-- حالت عادی: یک برنده مشخص -->
-        <div v-else>
-          <div class="winner-header text-center mb-4">
-            <h3>
-              <b-icon icon="trophy" variant="warning" class="ml-2"></b-icon>
-              منتخب فرهنگیان
-            </h3>
-            <p class="text-muted">برنده نهایی انتخابات</p>
-          </div>
-
-          <b-row class="align-items-center">
-            <b-col md="4" class="text-center">
-              <div class="winner-photo-container">
-                <img v-if="winner.photo" :src="`${apiUrlrtb}/${winner.photo}`" :alt="winner.name"
-                  class="winner-photo" />
-                <div v-else class="winner-photo placeholder">
-                  <b-icon icon="person-circle"></b-icon>
-                </div>
-                <div class="winner-crown">
-                  <b-icon icon="crown-fill"></b-icon>
-                </div>
-              </div>
-            </b-col>
-
-            <b-col md="8">
-              <div class="winner-info">
-                <h2 class="winner-name">{{ winner.name }}</h2>
-                <p class="winner-position">{{ winner.org_position_desc }}</p>
-
-                <div class="winner-stats">
-                  <b-row>
-                    <b-col>
-                      <div class="stat-item">
-                        <div class="stat-value">{{ formatNumber(winner.votes) }}</div>
-                        <div class="stat-label">آرای کسب شده</div>
-                      </div>
-                    </b-col>
-                    <b-col>
-                      <div class="stat-item">
-                        <div class="stat-value">{{ winner.percentage }}%</div>
-                        <div class="stat-label">درصد آرا</div>
-                      </div>
-                    </b-col>
-                    <b-col>
-                      <div class="stat-item">
-                        <div class="stat-value">{{ winner.margin }}%</div>
-                        <div class="stat-label">تفاوت با نفر دوم</div>
-                      </div>
-                    </b-col>
-                  </b-row>
-                </div>
-              </div>
-            </b-col>
-          </b-row>
-
-          <div class="victory-message text-center mt-4">
-            <b-alert variant="success" show class="d-inline-block">
-              <h5 class="alert-heading mb-2">پیروزی با {{ winner.name }}!</h5>
-              <p class="mb-0">با کسب {{ winner.percentage }}% از آراء به عنوان عضو جدید صندوق ذخیره فرهنگیان
-                انتخاب شدند.</p>
-            </b-alert>
-          </div>
-        </div>
+        <h4 class="mb-3">منتخبان هر منطقه</h4>
+        <b-alert v-if="!regionalWinners.length" variant="info" show>نتایج نهایی تأییدشده‌ای برای این محدوده موجود نیست.</b-alert>
+        <b-table v-else :items="regionalWinners" :fields="regionalWinnerFields" striped hover>
+          <template #cell(votes)="data">{{ formatNumber(data.item.votes) }}</template>
+        </b-table>
       </b-card>
 
       <!-- Final Ranking -->
@@ -425,22 +320,11 @@
               <b-icon icon="printer" class="ml-1"></b-icon>
               چاپ نتایج
             </b-button>
-            <b-button variant="outline-primary" class="share-btn" @click="shareTelegram">
-              <b-icon icon="telegram"></b-icon>
-              تلگرام
-            </b-button>
-            <b-button variant="outline-info" class="share-btn" @click="shareWhatsApp">
-              <b-icon icon="whatsapp"></b-icon>
-              واتس‌اپ
-            </b-button>
             <b-button variant="outline-secondary" class="share-btn" @click="copyLink">
               <b-icon icon="link"></b-icon>
               کپی لینک
             </b-button>
-            <b-button variant="outline-dark" class="share-btn" @click="shareTwitter">
-              <b-icon icon="twitter"></b-icon>
-              توییتر
-            </b-button>
+
           </div>
 
         </div>
@@ -508,6 +392,13 @@ export default {
       // Candidates Data
       candidates: [],
 
+      regionalWinnerFields: [
+        { key: 'provinceName', label: 'استان' },
+        { key: 'regname', label: 'منطقه' },
+        { key: 'name', label: 'منتخب / نامزدهای مساوی' },
+        { key: 'votes', label: 'تعداد آرا' }
+      ],
+
       // Region Results (from API)
       regionResults: [],
 
@@ -515,6 +406,8 @@ export default {
       rankingFields: [
         { key: 'rank', label: 'رتبه', sortable: false },
         { key: 'candidate', label: 'کاندیدا', sortable: false },
+        { key: 'provinceName', label: 'استان' },
+        { key: 'regname', label: 'منطقه' },
         { key: 'votes', label: 'آرا', sortable: true },
         { key: 'status', label: 'وضعیت', sortable: true }
       ],
@@ -541,6 +434,16 @@ export default {
     areasForSelectedProvince() {
       if (!this.selectedProvince) return [];
       return this.areasByProvince[this.selectedProvince] || [];
+    },
+    regionalWinners() {
+      const byRegion = {};
+      this.candidates.forEach(candidate => {
+        const key = candidate.regionId;
+        if (key == null) return;
+        if (!byRegion[key] || candidate.votes > byRegion[key].votes) byRegion[key] = { ...candidate };
+        else if (candidate.votes === byRegion[key].votes) byRegion[key].name += '، ' + candidate.name;
+      });
+      return Object.values(byRegion).filter(candidate => candidate.votes > 0);
     },
     sortedCandidates() {
       return [...this.candidates].sort((a, b) => b.votes - a.votes);
@@ -638,7 +541,15 @@ export default {
 
       const totalVotes = Number(data?.totalVotes) || 0;
       const totalVoters = Number(data?.totalVoters) || 0;
-      const listCandidates = data?.listCan || [];
+      const token = this.currentUser?.token || JSON.parse(localStorage.getItem('user') || '{}')?.token;
+      const query = new URLSearchParams();
+      if (this.selectedArea) query.set('region', this.selectedArea);
+      else if (this.selectedProvince) query.set('province', this.selectedProvince);
+      const candidateResponse = await fetch(`${this.apiUrlrtb}/api/getFinalCandidateResults?${query.toString()}`, {
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+      });
+      const candidateData = candidateResponse.ok ? await candidateResponse.json() : null;
+      const listCandidates = candidateData?.status && Array.isArray(candidateData.data) ? candidateData.data : [];
 
       const colors = ['#3F51B5', '#4CAF50', '#FF9800', '#9C27B0', '#2196F3', '#E91E63', '#795548', '#607D8B'];
 
@@ -647,6 +558,9 @@ export default {
         const percentage = totalVotes ? Number(((votes / totalVotes) * 100).toFixed(1)) : 0;
         return {
           id: candidate.id ?? index,
+          regionId: candidate.regionId,
+          provinceName: candidate.provinceName || '',
+          regname: candidate.regname || '',
           name: `${candidate.first_name || ''} ${candidate.last_name || ''}`.trim(),
           position: candidate.org_position_desc || '',
           org_position_desc: candidate.org_position_desc || '',
