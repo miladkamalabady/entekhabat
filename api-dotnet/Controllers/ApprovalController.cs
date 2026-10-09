@@ -60,6 +60,23 @@ public class ApprovalController : ControllerBase
         });
     }
 
+    // GET /api/getRegionalApprovalStatuses
+    [HttpGet("getRegionalApprovalStatuses")]
+    public async Task<IActionResult> GetRegionalApprovalStatuses([FromQuery] int? province = null)
+    {
+        await using var conn = _db.CreateConnection();
+        var rows = await conn.QueryAsync<dynamic>(@"
+            SELECT r.id AS regionId, r.name AS regionName, r.ProvinceCode AS provinceCode,
+                   ISNULL(fra.executive_approved,0) AS executiveApproved,
+                   ISNULL(fra.supervisor_approved,0) AS supervisorApproved,
+                   ISNULL(fra.is_active,0) AS isActive
+            FROM dbo.region r
+            LEFT JOIN dbo.final_results_approvals fra ON fra.region_id=r.id
+            WHERE r.id % 100 <> 0 AND (@province IS NULL OR r.ProvinceCode=@province)
+            ORDER BY r.ProvinceCode,r.id", new { province });
+        return Ok(new { status=true, data=rows });
+    }
+
     // POST /api/submitFinalResultsApproval  {role, passcode1, passcode2}
     [HttpPost("submitFinalResultsApproval")]
     public async Task<IActionResult> SubmitFinalResultsApproval([FromBody] SubmitApprovalRequest req)
