@@ -430,6 +430,7 @@ export default {
         'IR28': { id: 21, name: 'خراسان شمالی' },
         'IR29': { id: 22, name: 'خراسان جنوبی' },
         'IR30': { id: 16, name: 'خراسان رضوی' },
+        'IR31': { id: 28, name: 'قزوین' },
       },
       apiUrlrtb,
       infoVote: null,
