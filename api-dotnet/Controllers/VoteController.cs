@@ -652,7 +652,7 @@ END;");
         int provinceCode=Convert.ToInt32(voter.provinceCode);
         bool provinceWideVoting=Convert.ToInt32(voter.allowedVotes)<=0;
         var candidates=await conn.QueryAsync<dynamic>(@"
-            SELECT f.id, f.id AS codeentekhabati, u.first_name, u.last_name,
+            SELECT f.id, f.id AS codeentekhabati, u.first_name, u.last_name, u.gender,
                    u.org_position_desc, u.region_id, r.name AS regname,
                    r.ProvinceCode AS provinceCode
             FROM dbo.final_submissions f
