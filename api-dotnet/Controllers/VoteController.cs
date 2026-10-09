@@ -628,6 +628,44 @@ END;");
         return File(result, "text/csv; charset=utf-8", fileName);
     }
 
+    // GET /api/getVotingCandidates
+    [HttpGet("getVotingCandidates")]
+    public async Task<IActionResult> GetVotingCandidates()
+    {
+        await using var conn = _db.CreateConnection();
+        var voter = await conn.QueryFirstOrDefaultAsync<dynamic>(@"
+            SELECT u.region_id AS regionId, r.ProvinceCode AS provinceCode,
+                   COALESCE(m.maxVotes, CASE WHEN COUNT(v.national_id) < 1000 THEN 0
+                   ELSE CEILING(COUNT(v.national_id)/1000.0) END) AS allowedVotes
+            FROM dbo.users u
+            JOIN dbo.region r ON r.id=u.region_id
+            LEFT JOIN dbo.maxvotes m ON m.region_id=r.id
+            LEFT JOIN dbo.users v ON v.region_id=r.id
+                AND COALESCE(NULLIF(v.roles,''),'VOTER')='VOTER'
+            WHERE u.national_id=@nid
+            GROUP BY u.region_id,r.ProvinceCode,m.maxVotes",
+            new { nid=NationalId });
+        if (voter == null)
+            return BadRequest(new { status=false, message="منطقه کاربر مشخص نیست." });
+
+        int regionId=Convert.ToInt32(voter.regionId);
+        int provinceCode=Convert.ToInt32(voter.provinceCode);
+        bool provinceWideVoting=Convert.ToInt32(voter.allowedVotes)<=0;
+        var candidates=await conn.QueryAsync<dynamic>(@"
+            SELECT f.id, f.id AS codeentekhabati, u.first_name, u.last_name,
+                   u.org_position_desc, u.region_id, r.name AS regname,
+                   r.ProvinceCode AS provinceCode
+            FROM dbo.final_submissions f
+            JOIN dbo.users u ON u.national_id=f.nationalId
+            JOIN dbo.region r ON r.id=u.region_id
+            WHERE f.requestStatus='SUPERVISION_APPROVED'
+              AND ((@wide=0 AND u.region_id=@rid)
+                OR (@wide=1 AND r.ProvinceCode=@province))
+            ORDER BY u.last_name,u.first_name",
+            new { wide=provinceWideVoting, rid=regionId, province=provinceCode });
+        return Ok(new { status=true, data=candidates, provinceWideVoting });
+    }
+
     // GET /api/getAvailableVoteRegions
     // مناطق مجاز برای کاربرانی که منطقه خودشان ظرفیت رأی ندارد
     [HttpGet("getAvailableVoteRegions")]
