@@ -101,7 +101,7 @@ public class ApprovalController : ControllerBase
 
             var row = await conn.QueryRowDict(
                 "SELECT executive_approved, supervisor_approved FROM final_results_approvals WITH (UPDLOCK, ROWLOCK) WHERE region_id=@rid",
-                tx: tx);
+                new { rid = regionId }, tx: tx);
 
             bool ea = Convert.ToBoolean(row?.GetValueOrDefault("executive_approved") ?? false);
             bool sa = Convert.ToBoolean(row?.GetValueOrDefault("supervisor_approved") ?? false);
@@ -139,7 +139,7 @@ public class ApprovalController : ControllerBase
         {
             var row = await conn.QueryRowDict(
                 "SELECT executive_approved, supervisor_approved FROM final_results_approvals WITH (UPDLOCK, ROWLOCK) WHERE region_id=@rid",
-                tx: tx);
+                new { rid = regionId }, tx: tx);
 
             bool ea = Convert.ToBoolean(row?.GetValueOrDefault("executive_approved") ?? false);
             bool sa = Convert.ToBoolean(row?.GetValueOrDefault("supervisor_approved") ?? false);
