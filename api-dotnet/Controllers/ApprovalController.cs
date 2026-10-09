@@ -119,6 +119,69 @@ public class ApprovalController : ControllerBase
         });
     }
 
+    // POST /api/publishFinalResults - admin publishes a single approved region with minutes.
+    [HttpPost("publishFinalResults")]
+    [RequestSizeLimit(20 * 1024 * 1024)]
+    public async Task<IActionResult> PublishFinalResults([FromForm] int regionId, [FromForm] IFormFile? document)
+    {
+        if (document == null || document.Length == 0 || document.Length > 20 * 1024 * 1024)
+            return BadRequest(new { status=false, message="بارگذاری صورتجلسه معتبر الزامی است (حداکثر ۲۰ مگابایت)." });
+        var extension = Path.GetExtension(document.FileName).ToLowerInvariant();
+        if (!new[] { ".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx" }.Contains(extension))
+            return BadRequest(new { status=false, message="فرمت صورتجلسه مجاز نیست." });
+
+        await using var conn = _db.CreateConnection();
+        var role = await conn.QueryFirstOrDefaultAsync<string>(
+            "SELECT roles FROM dbo.users WHERE national_id=@nid", new { nid=NationalId });
+        if (!string.Equals(role?.Trim(), "ADMIN", StringComparison.OrdinalIgnoreCase))
+            return StatusCode(403, new { status=false, message="انتشار نتایج فقط توسط مدیر مجاز است." });
+
+        var approval = await conn.QueryRowDict(@"
+            SELECT executive_approved, supervisor_approved
+            FROM dbo.final_results_approvals WHERE region_id=@rid",
+            new { rid=regionId });
+        if (approval == null || !Convert.ToBoolean(approval.GetValueOrDefault("executive_approved") ?? false)
+            || !Convert.ToBoolean(approval.GetValueOrDefault("supervisor_approved") ?? false))
+            return BadRequest(new { status=false, message="تأیید اجرایی و نظارت این منطقه کامل نشده است." });
+
+        var folder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "final-results");
+        Directory.CreateDirectory(folder);
+        var fileName = Guid.NewGuid().ToString("N") + extension;
+        var fullPath = Path.Combine(folder, fileName);
+        await using (var stream = System.IO.File.Create(fullPath))
+            await document.CopyToAsync(stream);
+
+        try
+        {
+            await conn.ExecuteAsync(@"
+                IF OBJECT_ID(N'dbo.final_results_minutes',N'U') IS NULL
+                    CREATE TABLE dbo.final_results_minutes (
+                        region_id INT NOT NULL PRIMARY KEY,
+                        file_path NVARCHAR(500) NOT NULL,
+                        file_name NVARCHAR(255) NOT NULL,
+                        published_by NVARCHAR(50) NOT NULL,
+                        published_at DATETIME2 NOT NULL DEFAULT GETDATE()
+                    );");
+            await conn.ExecuteAsync(@"
+                UPDATE dbo.final_results_approvals SET is_active=1
+                WHERE region_id=@rid AND executive_approved=1 AND supervisor_approved=1;
+                UPDATE dbo.final_results_minutes
+                SET file_path=@path, file_name=@name, published_by=@nid, published_at=GETDATE()
+                WHERE region_id=@rid;
+                IF @@ROWCOUNT=0
+                    INSERT INTO dbo.final_results_minutes(region_id,file_path,file_name,published_by)
+                    VALUES(@rid,@path,@name,@nid);",
+                new { rid=regionId, path="uploads/final-results/"+fileName,
+                      name=Path.GetFileName(document.FileName), nid=NationalId });
+            return Ok(new { status=true, message="صورتجلسه ثبت و نتایج منطقه منتشر شد." });
+        }
+        catch
+        {
+            System.IO.File.Delete(fullPath);
+            throw;
+        }
+    }
+
     // POST /api/setFinalResultsApproval
     [HttpPost("setFinalResultsApproval")]
     public async Task<IActionResult> SetFinalResultsApproval()
