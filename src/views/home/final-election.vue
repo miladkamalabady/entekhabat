@@ -429,9 +429,10 @@ export default {
   computed: {
     ...mapGetters(["electionStatusAll", "ConfigInfo", "currentUser"]),
     isAdmin() {
-      console.log(this.currentUser);
-      
-      return this.currentUser?.roles[0] === 'ADMIN';
+      const roles = this.currentUser?.roles;
+      return Array.isArray(roles)
+        ? roles.some(role => String(role).toUpperCase() === 'ADMIN')
+        : String(roles || '').toUpperCase().split(/[,;\s]+/).includes('ADMIN');
     },
     areasForSelectedProvince() {
       if (!this.selectedProvince) return [];
@@ -576,7 +577,7 @@ export default {
         return { response, body };
       };
       let { response: candidateResponse, body: candidateData } = await loadCandidates();
-      if (candidateData?.secondPasswordRequired && this.isAdmin) {
+      if ((candidateData?.secondPasswordRequired || candidateData?.previewRequired) && this.isAdmin && !this.adminSecondPassword) {
         const entered = this.adminSecondPassword || window.prompt('برای مشاهده آرای نامزدها، رمز دوم مدیر را وارد کنید:');
         if (entered) {
           this.adminSecondPassword = entered;
@@ -588,6 +589,11 @@ export default {
         this.candidates = [];
         this.$bvToast.toast(candidateData?.message || 'دریافت نتایج نامزدها ناموفق بود.', {
           title: 'نتایج نامزدها', variant: 'warning', solid: true
+        });
+      }
+      if (candidateData?.previewRequired && this.isAdmin && this.adminSecondPassword) {
+        this.$bvToast.toast('رمز دوم مدیر معتبر نیست یا نتایج هنوز منتشر نشده‌اند.', {
+          title: 'دسترسی به نتایج', variant: 'warning', solid: true
         });
       }
       const listCandidates = candidateData?.status && Array.isArray(candidateData.data) ? candidateData.data : [];
