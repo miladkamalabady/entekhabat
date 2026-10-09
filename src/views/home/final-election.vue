@@ -227,12 +227,13 @@
         </div>
 
       </b-card>
-      <b-card v-if="!this.isActive">
+      <b-card v-if="isAdmin" class="mb-4">
         <div class="align-items-center mb-4">
-          <h4>تایید انتشار</h4>
+          <h4>بارگذاری صورتجلسه و انتشار نتایج منطقه</h4>
+          <p class="text-muted">ابتدا استان و منطقه موردنظر را از فیلتر بالای صفحه انتخاب کنید. انتشار تنها پس از تأیید اجرایی و نظارت همان منطقه امکان‌پذیر است.</p>
           <b-form-file v-model="document" placeholder="صورتجلسه را انتخاب کنید یا اینجا رها کنید"
             drop-placeholder="فایل‌ها را اینجا رها کنید" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"></b-form-file>
-          <b-button variant="success" @click="activateFinalResults">تایید و انتشار</b-button>
+          <b-button variant="success" :disabled="!selectedArea || !document || publishingResults" @click="activateFinalResults">{{ publishingResults ? 'در حال انتشار...' : 'تأیید و انتشار منطقه' }}</b-button>
         </div>
 
       </b-card>
@@ -349,6 +350,7 @@ export default {
       apiUrlrtb,
       isActive: false,
       document: null,
+      publishingResults: false,
       electionDate: '۱۴۰۲/۱۱/۱۵',
       viewMode: 'table',
       selectedProvince: null,
@@ -496,10 +498,30 @@ export default {
     ...mapActions(["getConfig", "getInfoVote", "getRegions", "getFinalResultsApprovalStatus", "setFinalResultsApproval"]),
     // Formatting
     async activateFinalResults() {
-      const response = await this.setFinalResultsApproval()
-      if (response.status) {
-        const response1 = await this.getFinalResultsApprovalStatus()
-        this.isActive = response1.isActive
+      if (!this.isAdmin || !this.selectedArea || !this.document) {
+        this.$bvToast.toast('انتخاب منطقه و فایل صورتجلسه الزامی است.', { variant: 'warning', solid: true });
+        return;
+      }
+      const token = this.currentUser?.token || JSON.parse(localStorage.getItem('user') || '{}')?.token;
+      const form = new FormData();
+      form.append('regionId', this.selectedArea);
+      form.append('document', this.document);
+      this.publishingResults = true;
+      try {
+        const response = await fetch(`${this.apiUrlrtb}/api/publishFinalResults`, {
+          method: 'POST',
+          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: form
+        });
+        const result = await response.json();
+        if (!response.ok || !result.status) throw new Error(result.message || 'انتشار نتایج ناموفق بود.');
+        this.document = null;
+        this.$bvToast.toast(result.message, { variant: 'success', solid: true });
+        await this.loadFinalResults();
+      } catch (error) {
+        this.$bvToast.toast(error.message || 'خطا در انتشار نتایج', { variant: 'danger', solid: true });
+      } finally {
+        this.publishingResults = false;
       }
     },
     formatNumber(num) {
