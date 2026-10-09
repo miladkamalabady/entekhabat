@@ -298,7 +298,8 @@ END;");
             SELECT CASE WHEN EXISTS (
                 SELECT 1
                 FROM dbo.region rg
-                    WHERE rg.id % 100 <> 0
+                LEFT JOIN dbo.final_results_approvals fra ON fra.region_id = rg.id
+                WHERE rg.id % 100 <> 0
                   AND (@region IS NULL OR rg.id=@region)
                   AND (@region IS NOT NULL OR @province IS NULL OR rg.ProvinceCode=@province)
                   AND ISNULL(fra.is_active,0)=0
