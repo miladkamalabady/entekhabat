@@ -580,7 +580,7 @@ END;");
                      u.region_id,rg.name,rg.ProvinceCode,pr.name
             ORDER BY rg.ProvinceCode,u.region_id,vote_count DESC",
             new { province, region, adminPreview });
-        return Ok(new { status=true, data=results });
+        return Ok(new { status=true, data=results, previewRequired = pending == 1 && !adminPreview });
     }
 
     // GET /api/exportResults?region=&province=  - خروجی CSV نتایج برای ادمین
