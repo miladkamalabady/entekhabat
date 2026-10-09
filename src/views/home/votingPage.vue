@@ -79,7 +79,7 @@
         <div class="candidates-header">
           <h3>📋 فهرست داوطلبان</h3>
           <p>حوزه انتخابیه: <strong>{{ currentUser?.regionName || 'منطقه نامشخص' }}</strong></p>
-          <div v-if="availableVoteRegions.length" class="region-select-box">
+          <div v-if="false" class="region-select-box">
             <label>منطقه ثبت رأی</label>
             <select v-model.number="selectedRegionId">
               <option :value="null">انتخاب کنید</option>
@@ -364,6 +364,7 @@ export default {
       selectedCandidates: [],
       selectedRegionId: null,
       availableVoteRegions: [],
+      provinceWideVoting: false,
       maxVotes: null,
       voteSessionToken: null,
       previewCandidateData: null,
@@ -397,7 +398,7 @@ export default {
     }
     try {
       await this.checkVoteStatus();
-      await this.loadAvailableVoteRegions();
+      await this.loadVotingCandidates();
     } catch (e) {
       this.$notify("warning", "هشدار", 'امکان ورود به صندوق رأی وجود ندارد', { duration: 6000 });
       this.$router.push('/home');
@@ -470,6 +471,21 @@ export default {
       });
     },
 
+    async loadVotingCandidates() {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${this.apiUrlrtb}/api/getVotingCandidates`, {
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+      });
+      if (!response.ok) throw new Error('خطا در دریافت نامزدهای مجاز');
+      const result = await response.json();
+      if (!result.status || !Array.isArray(result.data)) throw new Error('فهرست نامزدها نامعتبر است');
+      this.candidates = result.data;
+      this.provinceWideVoting = !!result.provinceWideVoting;
+      const allowedIds = new Set(this.candidates.map(x => Number(x.codeentekhabati)));
+      this.selectedCandidates = this.selectedCandidates.filter(id => allowedIds.has(Number(id)));
+      this.selectedRegionId = null;
+    },
+
     async loadAvailableVoteRegions() {
       try {
         const token = localStorage.getItem('token');
@@ -499,6 +515,11 @@ export default {
 
     async submitVote() {
       if (!this.confirmation.accepted) return;
+      await this.loadVotingCandidates();
+      if (!this.selectedCandidates.length) {
+        this.$bvToast.toast('نامزد مجازی برای ثبت رأی انتخاب نشده است.', { variant: 'warning' });
+        return;
+      }
       this.submitting = true;
       try {
         const response = await this.insertVote({
@@ -685,7 +706,7 @@ ${na}
         this.voteStatus = 'not_voted';
         const session = await this.createVoteToken();
         this.voteSessionToken = session.vote_token;
-        this.candidates = await this.getCandidsList();
+        await this.loadVotingCandidates();
       } else if (voteData) {
         this.voteStatus = 'voted';
         this.currentStep = 3;
