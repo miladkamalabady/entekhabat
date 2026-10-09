@@ -553,10 +553,9 @@ END;");
         bool adminPreview = false;
         if (pending == 1)
         {
+            // Approved regions remain publicly visible; pending regions are excluded
+            // unless an administrator supplies the second password.
             adminPreview = await IsAdminWithSecondPassword(conn, GetSecondPassword(secondPassword));
-            if (!adminPreview)
-                return StatusCode(403, new { status=false, secondPasswordRequired=true,
-                    message="مشاهده آرای تأییدنشده فقط با رمز دوم مدیر مجاز است." });
         }
 
         var results = await conn.QueryAsync<dynamic>(@"
