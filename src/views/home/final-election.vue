@@ -545,10 +545,29 @@ export default {
       const query = new URLSearchParams();
       if (this.selectedArea) query.set('region', this.selectedArea);
       else if (this.selectedProvince) query.set('province', this.selectedProvince);
-      const candidateResponse = await fetch(`${this.apiUrlrtb}/api/getFinalCandidateResults?${query.toString()}`, {
-        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
-      });
-      const candidateData = candidateResponse.ok ? await candidateResponse.json() : null;
+      if (this.isAdmin && this.adminSecondPassword) query.set('secondPassword', this.adminSecondPassword);
+      const loadCandidates = async () => {
+        const response = await fetch(`${this.apiUrlrtb}/api/getFinalCandidateResults?${query.toString()}`, {
+          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+        });
+        const body = await response.json().catch(() => ({}));
+        return { response, body };
+      };
+      let { response: candidateResponse, body: candidateData } = await loadCandidates();
+      if (candidateData?.secondPasswordRequired && this.isAdmin) {
+        const entered = this.adminSecondPassword || window.prompt('برای مشاهده آرای نامزدها، رمز دوم مدیر را وارد کنید:');
+        if (entered) {
+          this.adminSecondPassword = entered;
+          query.set('secondPassword', entered);
+          ({ response: candidateResponse, body: candidateData } = await loadCandidates());
+        }
+      }
+      if (!candidateResponse.ok || !candidateData?.status) {
+        this.candidates = [];
+        this.$bvToast.toast(candidateData?.message || 'دریافت نتایج نامزدها ناموفق بود.', {
+          title: 'نتایج نامزدها', variant: 'warning', solid: true
+        });
+      }
       const listCandidates = candidateData?.status && Array.isArray(candidateData.data) ? candidateData.data : [];
 
       const colors = ['#3F51B5', '#4CAF50', '#FF9800', '#9C27B0', '#2196F3', '#E91E63', '#795548', '#607D8B'];
