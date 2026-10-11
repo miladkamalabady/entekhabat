@@ -714,7 +714,6 @@ END;");
                    ELSE CEILING(COUNT(v.national_id)/1000.0) END) AS allowedVotes
             FROM dbo.users u
             JOIN dbo.region r ON r.id=u.region_id
-            LEFT JOIN dbo.user_documents ud ON ud.nationalId=f.nationalId
             LEFT JOIN dbo.maxvotes m ON m.region_id=r.id
             LEFT JOIN dbo.users v ON v.region_id=r.id
                 AND COALESCE(NULLIF(v.roles,''),'VOTER')='VOTER'
@@ -734,6 +733,7 @@ END;");
             FROM dbo.final_submissions f
             JOIN dbo.users u ON u.national_id=f.nationalId
             JOIN dbo.region r ON r.id=u.region_id
+            LEFT JOIN dbo.user_documents ud ON ud.nationalId=f.nationalId
             WHERE f.requestStatus='SUPERVISION_APPROVED'
               AND ((@wide=0 AND u.region_id=@rid)
                 OR (@wide=1 AND r.ProvinceCode=@province))
