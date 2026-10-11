@@ -714,6 +714,7 @@ END;");
                    ELSE CEILING(COUNT(v.national_id)/1000.0) END) AS allowedVotes
             FROM dbo.users u
             JOIN dbo.region r ON r.id=u.region_id
+            LEFT JOIN dbo.user_documents ud ON ud.nationalId=f.nationalId
             LEFT JOIN dbo.maxvotes m ON m.region_id=r.id
             LEFT JOIN dbo.users v ON v.region_id=r.id
                 AND COALESCE(NULLIF(v.roles,''),'VOTER')='VOTER'
@@ -728,7 +729,7 @@ END;");
         bool provinceWideVoting=Convert.ToInt32(voter.allowedVotes)<=0;
         var candidates=await conn.QueryAsync<dynamic>(@"
             SELECT f.id, f.id AS codeentekhabati, u.first_name, u.last_name, u.gender,
-                   u.org_position_desc, u.region_id, r.name AS regname,
+                   u.org_position_desc, u.region_id, r.name AS regname, ud.user_photo,
                    r.ProvinceCode AS provinceCode
             FROM dbo.final_submissions f
             JOIN dbo.users u ON u.national_id=f.nationalId
