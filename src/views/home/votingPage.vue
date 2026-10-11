@@ -398,7 +398,6 @@ export default {
     }
     try {
       await this.checkVoteStatus();
-      await this.loadVotingCandidates();
     } catch (e) {
       this.$notify("warning", "هشدار", 'امکان ورود به صندوق رأی وجود ندارد', { duration: 6000 });
       this.$router.push('/home');
