@@ -87,6 +87,14 @@ public class CandidateController : ControllerBase
     {
         await using var conn = _db.CreateConnection();
 
+        await conn.ExecuteAsync(@"
+IF OBJECT_ID(N'dbo.candidate_document_corrections',N'U') IS NOT NULL
+UPDATE f SET requestStatus='REJECTED',
+reson=N'مهلت ۴۸ ساعته رفع نقص مدارک پایان یافت'
+FROM dbo.final_submissions f
+JOIN dbo.candidate_document_corrections d ON d.national_id=f.nationalId
+WHERE f.nationalId=@nid AND f.requestStatus='DOCUMENT_CORRECTION_REQUIRED'
+AND d.resolved_at IS NULL AND d.deadline_at<GETDATE();",new {nid=NationalId});
         var hasCol = await conn.QueryFirstOrDefaultAsync<int>(
             @"SELECT COUNT(1)
               FROM sys.columns
@@ -104,11 +112,16 @@ public class CandidateController : ControllerBase
             return NotFound(new { status = false, message = "وضعیت یافت نشد!" });
 
         DateTime? editedAt = row.GetValueOrDefault("edited_at") is DateTime dt ? dt : null;
+        var correctionDeadline = await conn.QueryFirstOrDefaultAsync<DateTime?>(@"
+IF OBJECT_ID(N'dbo.candidate_document_corrections',N'U') IS NOT NULL
+SELECT deadline_at FROM dbo.candidate_document_corrections
+WHERE national_id=@nid AND resolved_at IS NULL;",new {nid=NationalId});
         return Ok(new
         {
             status = true,
             data = new
             {
+                correction_deadline = correctionDeadline,
                 requestStatus = row.Str("requestStatus"),
                 tracking_code = row.Str("tracking_code"),
                 reson         = row.Str("reson"),
@@ -186,7 +199,7 @@ public class CandidateController : ControllerBase
             return Ok(new
             {
                 status = true,
-                message = "ثبت نهایی با موفقیت انجام شد.",
+                message = "ثبت نهایی با موفقیت انجام شد. انصراف فقط تا ۴۸ ساعت پیش از شروع انتخابات مجاز است.",
                 data = new { nationalId = NationalId, tracking_code = req.tracking_code }
             });
         });
@@ -215,7 +228,7 @@ public class CandidateController : ControllerBase
             if (!votingStart.HasValue)
                 return StatusCode(403, new { status = false, message = "زمان انتخابات در سیستم تعریف نشده است." });
 
-            if (DateTime.Now > votingStart.Value.AddHours(-48))
+            if (DateTime.Now >= votingStart.Value.AddHours(-48))
                 return StatusCode(403, new { status = false, message = "زمان مجاز انصراف، 48 ساعت قبل شروع انتخابات می‌باشد." });
 
             await conn.ExecuteAsync("DELETE FROM final_submissions WHERE nationalId=@nid", new { nid = NationalId }, tx);
