@@ -174,23 +174,22 @@ END;");
             int allowedVotes = Convert.ToInt32(userRegion.allowedVotes);
             int effectiveRegionId = userRegionId;
 
-            // Small regions vote for approved candidates within their own province.
-            // No candidate from another province can be selected.
-            bool provinceWideVoting = allowedVotes <= 0;
-            if (provinceWideVoting)
+            // A voter from a merged region can vote only in the supervisor-assigned destination.
+            int? mappedRegion = await GetMappedRegion(conn, userRegionId);
+            if (mappedRegion.HasValue) effectiveRegionId = mappedRegion.Value;
+            if (req.regionId.HasValue && req.regionId.Value != effectiveRegionId)
+                return BadRequest(new { status=false, message="حوزه انتخابی با نگاشت تأییدشده مطابقت ندارد." });
+            bool provinceWideVoting = false;
+            if (mappedRegion.HasValue)
             {
                 allowedVotes = await conn.QueryFirstOrDefaultAsync<int>(@"
-                    SELECT COALESCE(MAX(m.maxVotes),1)
-                    FROM dbo.region r
-                    LEFT JOIN dbo.maxvotes m ON m.region_id=r.id
-                    WHERE r.ProvinceCode=@province AND r.id % 100 <> 0",
-                    new { province = provinceCode }, tx);
-                allowedVotes = Math.Max(1, allowedVotes);
+SELECT COALESCE((SELECT MAX(maxVotes) FROM dbo.maxvotes WHERE region_id=@rid),
+CEILING(COUNT(*)/2000.0)) FROM dbo.users
+WHERE region_id=@rid AND COALESCE(NULLIF(LTRIM(RTRIM(roles)),''),'VOTER')='VOTER'",
+                    new { rid = effectiveRegionId }, tx);
             }
-            else if (req.regionId.HasValue && req.regionId.Value != userRegionId)
-            {
-                return BadRequest(new { status=false, message="منطقه انتخابی با منطقه رأی‌دهنده مطابقت ندارد." });
-            }
+            else if (allowedVotes <= 0)
+                return BadRequest(new { status=false, message="برای منطقه فاقد سهمیه هنوز حوزه جایگزین تعیین نشده است." });
 
             // شناسه نامزدها باید یکتا باشد و همه نامزدها باید در حوزه رأی مؤثر،
             // فعال و تأییدشده باشند.
@@ -703,6 +702,14 @@ END;");
         return File(result, "text/csv; charset=utf-8", fileName);
     }
 
+    private static async Task<int?> GetMappedRegion(System.Data.IDbConnection conn, int sourceRegion)
+    {
+        return await conn.QueryFirstOrDefaultAsync<int?>(@"
+IF OBJECT_ID(N'dbo.election_region_mappings',N'U') IS NOT NULL
+ SELECT target_region_id FROM dbo.election_region_mappings WHERE source_region_id=@source;",
+            new { source = sourceRegion });
+    }
+
     // GET /api/getVotingCandidates
     [HttpGet("getVotingCandidates")]
     public async Task<IActionResult> GetVotingCandidates()
@@ -725,7 +732,9 @@ END;");
 
         int regionId=Convert.ToInt32(voter.regionId);
         int provinceCode=Convert.ToInt32(voter.provinceCode);
-        bool provinceWideVoting=Convert.ToInt32(voter.allowedVotes)<=0;
+        int? mappedRegion = await GetMappedRegion(conn, regionId);
+        int effectiveRegionId = mappedRegion ?? regionId;
+        bool provinceWideVoting = false;
         var candidates=await conn.QueryAsync<dynamic>(@"
             SELECT f.id, f.id AS codeentekhabati, u.first_name, u.last_name, u.gender,
                    u.org_position_desc, u.region_id, r.name AS regname, ud.user_photo,
@@ -738,8 +747,9 @@ END;");
               AND ((@wide=0 AND u.region_id=@rid)
                 OR (@wide=1 AND r.ProvinceCode=@province))
             ORDER BY u.last_name,u.first_name",
-            new { wide=provinceWideVoting, rid=regionId, province=provinceCode });
-        return Ok(new { status=true, data=candidates, provinceWideVoting });
+            new { wide=provinceWideVoting, rid=effectiveRegionId, province=provinceCode });
+        var mappedRegionName = mappedRegion.HasValue ? await conn.QueryFirstOrDefaultAsync<string>("SELECT name FROM dbo.region WHERE id=@rid", new { rid=effectiveRegionId }) : null;
+        return Ok(new { status=true, data=candidates, provinceWideVoting, mappedRegionId=mappedRegion, mappedRegionName });
     }
 
     // GET /api/getAvailableVoteRegions
