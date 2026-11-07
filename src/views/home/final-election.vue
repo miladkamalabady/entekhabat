@@ -1,5 +1,14 @@
 <template>
   <div class="election-results-page">
+    <b-container v-if="isCommitteeRole && electionStatusAll === 'ended'" class="mt-4">
+      <b-card header="صورتجلسه آمار و نتایج انتخابات منطقه" class="mb-3">
+        <p>صورتجلسه PDF را دریافت کنید، فایل را چاپ کرده و به امضای افراد مسئول برسانید؛ سپس نسخه امضاشده را در سامانه بارگذاری نمایید.</p>
+        <b-button variant="primary" class="mb-2" @click="downloadElectionMinutes" :disabled="minutesBusy">دریافت PDF صورتجلسه</b-button>
+        <b-form-file v-model="signedMinutesFile" accept=".pdf,application/pdf" placeholder="انتخاب فایل PDF امضاشده" class="mb-2" />
+        <b-button variant="success" :disabled="!signedMinutesFile || minutesBusy" @click="uploadSignedMinutes">بارگذاری صورتجلسه امضاشده</b-button>
+        <b-alert v-if="minutesError" variant="danger" show class="mt-2">{{ minutesError }}</b-alert>
+      </b-card>
+    </b-container>
     <b-container v-if="isSupervisorRole" class="mt-4">
       <b-card header="نگاشت استانی مناطق فاقد حدنصاب" class="mb-3">
         <p class="small">پس از پایان ثبت‌نام، ناظر استان می‌تواند مناطق دارای کمتر از دو برابر سهمیه نامزد تأییدشده را به منطقه دیگری در همان استان نگاشت کند.</p>
@@ -402,6 +411,9 @@ export default {
   data() {
     return {
       apiUrlrtb,
+      signedMinutesFile: null,
+      minutesBusy: false,
+      minutesError: '',
       provincialMappings: [],
       mappingTargets: {},
       mappingWindowOpen: false,
@@ -512,6 +524,11 @@ export default {
   },
   computed: {
     ...mapGetters(["electionStatusAll", "ConfigInfo", "currentUser"]),
+    isCommitteeRole() {
+      const roles = this.currentUser?.roles;
+      return (Array.isArray(roles) ? roles : String(roles || '').split(/[,;\\s|]+/))
+        .some(role => ['SUPERVISOR', 'EXECUTIVE'].includes(String(role).toUpperCase()));
+    },
     isSupervisorRole() {
       const roles = this.currentUser?.roles;
       return (Array.isArray(roles) ? roles : String(roles || '').split(/[,;\\s|]+/))
@@ -642,6 +659,40 @@ export default {
         this.$bvToast.toast('نگاشت ثبت شد.', { variant: 'success' });
       } catch (e) { this.mappingError = e.message; }
       finally { this.mappingSaving = false; }
+    },
+    async downloadElectionMinutes() {
+      this.minutesBusy = true;
+      this.minutesError = '';
+      try {
+        const token = this.currentUser?.token || JSON.parse(localStorage.getItem('user') || '{}')?.token;
+        const res = await fetch(`${this.apiUrlrtb}/api/regionalElectionMinutes`, { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) throw new Error('دریافت PDF صورتجلسه ناموفق بود.');
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url; link.download = 'regional-election-minutes.pdf';
+        document.body.appendChild(link); link.click(); link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 3000);
+      } catch (e) { this.minutesError = e.message; }
+      finally { this.minutesBusy = false; }
+    },
+    async uploadSignedMinutes() {
+      if (!this.signedMinutesFile) return;
+      this.minutesBusy = true;
+      this.minutesError = '';
+      try {
+        const token = this.currentUser?.token || JSON.parse(localStorage.getItem('user') || '{}')?.token;
+        const body = new FormData();
+        body.append('document', this.signedMinutesFile);
+        const res = await fetch(`${this.apiUrlrtb}/api/uploadSignedElectionMinutes`, {
+          method: 'POST', headers: { Authorization: `Bearer ${token}` }, body
+        });
+        const result = await res.json();
+        if (!res.ok || !result.status) throw new Error(result.message || 'بارگذاری ناموفق بود.');
+        this.signedMinutesFile = null;
+        this.$bvToast.toast('صورتجلسه امضاشده ثبت شد.', { variant: 'success' });
+      } catch (e) { this.minutesError = e.message; }
+      finally { this.minutesBusy = false; }
     },
     // Formatting
     async downloadResultsExcel() {
