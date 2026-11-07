@@ -155,8 +155,8 @@ END;");
                 SELECT r.id, r.ProvinceCode,
                        CASE
                            WHEN mv.maxVotes IS NOT NULL THEN mv.maxVotes
-                           WHEN COUNT(CASE WHEN COALESCE(NULLIF(LTRIM(RTRIM(u2.roles)), N''), N'VOTER') = N'VOTER' THEN 1 END) < 1000 THEN 0
-                           ELSE CEILING(COUNT(CASE WHEN COALESCE(NULLIF(LTRIM(RTRIM(u2.roles)), N''), N'VOTER') = N'VOTER' THEN 1 END) / 1000.0)
+                           WHEN COUNT(CASE WHEN COALESCE(NULLIF(LTRIM(RTRIM(u2.roles)), N''), N'VOTER') = N'VOTER' THEN 1 END) = 0 THEN 0
+                           ELSE CEILING(COUNT(CASE WHEN COALESCE(NULLIF(LTRIM(RTRIM(u2.roles)), N''), N'VOTER') = N'VOTER' THEN 1 END) / 2000.0)
                        END AS allowedVotes
                 FROM users u
                 JOIN region r ON r.id=u.region_id
@@ -710,8 +710,8 @@ END;");
         await using var conn = _db.CreateConnection();
         var voter = await conn.QueryFirstOrDefaultAsync<dynamic>(@"
             SELECT u.region_id AS regionId, r.ProvinceCode AS provinceCode,
-                   COALESCE(m.maxVotes, CASE WHEN COUNT(v.national_id) < 1000 THEN 0
-                   ELSE CEILING(COUNT(v.national_id)/1000.0) END) AS allowedVotes
+                   COALESCE(m.maxVotes, CASE WHEN COUNT(v.national_id) = 0 THEN 0
+                   ELSE CEILING(COUNT(v.national_id)/2000.0) END) AS allowedVotes
             FROM dbo.users u
             JOIN dbo.region r ON r.id=u.region_id
             LEFT JOIN dbo.maxvotes m ON m.region_id=r.id
@@ -766,7 +766,7 @@ END;");
             SELECT
                 r.id,
                 r.Name AS name,
-                COALESCE(m.maxVotes, CEILING(CAST(COUNT(u.id) AS decimal(18,2)) / 1000)) AS allowedVotes,
+                COALESCE(m.maxVotes, CEILING(CAST(COUNT(u.id) AS decimal(18,2)) / 2000)) AS allowedVotes,
                 COUNT(u.id) AS voterCount
             FROM region r
             LEFT JOIN maxvotes m ON m.region_id = r.id
@@ -775,7 +775,7 @@ END;");
             WHERE r.ProvinceCode=@province
               AND r.id % 100 <> 0
             GROUP BY r.id, r.Name, m.maxVotes
-            HAVING COALESCE(m.maxVotes, CEILING(CAST(COUNT(u.id) AS decimal(18,2)) / 1000)) > 0
+            HAVING COALESCE(m.maxVotes, CEILING(CAST(COUNT(u.id) AS decimal(18,2)) / 2000)) > 0
             ORDER BY r.Name
             """,
             new { province });
