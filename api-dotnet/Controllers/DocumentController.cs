@@ -145,6 +145,15 @@ public class DocumentController : ControllerBase
         return Ok(new { status = true, message = "فایل‌ها با موفقیت ذخیره شدند.", data = responseData });
     }
 
+    private const string CorrectionSql = @"IF OBJECT_ID(N'dbo.candidate_document_corrections',N'U') IS NULL
+CREATE TABLE dbo.candidate_document_corrections (
+ national_id NVARCHAR(20) NOT NULL PRIMARY KEY,
+ rejected_at DATETIME2 NOT NULL,
+ deadline_at DATETIME2 NOT NULL,
+ resolved_at DATETIME2 NULL,
+ rejected_document NVARCHAR(100) NOT NULL
+);";
+
     // POST /api/UpdateDocumentReview  {national_Id, documentKey, reviewStatus}
     [HttpPost("UpdateDocumentReview")]
     public async Task<IActionResult> UpdateDocumentReview([FromBody] DocumentReviewRequest req)
@@ -178,6 +187,20 @@ public class DocumentController : ControllerBase
                 "INSERT INTO logs (nationalId, action, description) VALUES (@nid,'بررسی مدرک',@desc)",
                 new { nid = NationalId, desc = $"بررسی {req.documentKey} برای {req.national_Id} با وضعیت {req.reviewStatus}" }, tx);
 
+            await conn.ExecuteAsync(CorrectionSql, transaction: tx);
+            if (req.reviewStatus == "rejected")
+            {
+                await conn.ExecuteAsync(@"
+UPDATE dbo.candidate_document_corrections
+SET rejected_at=GETDATE(),deadline_at=DATEADD(HOUR,48,GETDATE()),
+resolved_at=NULL,rejected_document=@key WHERE national_id=@nid;
+IF @@ROWCOUNT=0 INSERT INTO dbo.candidate_document_corrections
+(national_id,rejected_at,deadline_at,rejected_document)
+VALUES(@nid,GETDATE(),DATEADD(HOUR,48,GETDATE()),@key);
+UPDATE dbo.final_submissions SET requestStatus='DOCUMENT_CORRECTION_REQUIRED'
+WHERE nationalId=@nid AND requestStatus NOT IN ('WITHDRAWN','REJECTED');",
+                    new { nid=req.national_Id,key=req.documentKey },tx);
+            }
             await tx.CommitAsync();
             return Ok(new
             {
@@ -272,6 +295,20 @@ public class DocumentController : ControllerBase
             ["transparency_form"] = (transparency_form, AllowedDocs, "فرم تعهد شفافیت")
         };
 
+        await using (var deadlineConn = _db.CreateConnection())
+        {
+            await deadlineConn.ExecuteAsync(CorrectionSql);
+            var correction = await deadlineConn.QueryFirstOrDefaultAsync<dynamic>(
+                "SELECT deadline_at,resolved_at FROM dbo.candidate_document_corrections WHERE national_id=@nid",
+                new { nid=NationalId });
+            if (correction != null && correction.resolved_at == null && DateTime.Now > Convert.ToDateTime(correction.deadline_at))
+            {
+                await deadlineConn.ExecuteAsync(@"UPDATE dbo.final_submissions
+SET requestStatus='REJECTED',reson=N'مهلت ۴۸ ساعته رفع نقص مدارک پایان یافت'
+WHERE nationalId=@nid AND requestStatus='DOCUMENT_CORRECTION_REQUIRED'",new { nid=NationalId });
+                return StatusCode(403,new {status=false,message="مهلت ۴۸ ساعته اصلاح مدارک پایان یافته است."});
+            }
+        }
         var changed = supplied.Where(x => x.Value.file != null && x.Value.file.Length > 0).ToList();
         if (changed.Count == 0)
             return BadRequest(new { status = false, message = "هیچ فایل جدیدی برای ویرایش ارسال نشده است." });
@@ -372,6 +409,10 @@ public class DocumentController : ControllerBase
 
             await conn.ExecuteAsync(updateSql, parameters, tx);
 
+            await conn.ExecuteAsync(CorrectionSql, transaction: tx);
+            await conn.ExecuteAsync(@"UPDATE dbo.candidate_document_corrections
+SET resolved_at=GETDATE() WHERE national_id=@nid AND resolved_at IS NULL
+AND deadline_at>=GETDATE()",new {nid=NationalId},tx);
             // پرونده پس از اصلاح مدارک دوباره برای بررسی ارسال می‌شود.
             await conn.ExecuteAsync(
                 @"UPDATE dbo.final_submissions
