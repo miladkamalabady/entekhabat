@@ -1,5 +1,8 @@
 <template>
   <div class="voting-page-modern">
+    <div v-if="mappedRegionName" class="alert alert-info mx-3 mt-3" role="status">
+      حوزه رأی‌گیری شما به‌دلیل ادغام منطقه، به «{{ mappedRegionName }}» منتقل شده است. فقط نامزدهای همین حوزه قابل انتخاب هستند.
+    </div>
     <!-- فاصله از topbar -->
     <div class="page-spacer"></div>
 
@@ -365,6 +368,7 @@ export default {
       selectedRegionId: null,
       availableVoteRegions: [],
       provinceWideVoting: false,
+      mappedRegionName: null,
       maxVotes: null,
       voteSessionToken: null,
       previewCandidateData: null,
@@ -481,6 +485,7 @@ export default {
       if (!result.status || !Array.isArray(result.data)) throw new Error('فهرست نامزدها نامعتبر است');
       this.candidates = result.data;
       this.provinceWideVoting = !!result.provinceWideVoting;
+      this.mappedRegionName = result.mappedRegionName || null;
       const allowedIds = new Set(this.candidates.map(x => Number(x.codeentekhabati)));
       this.selectedCandidates = this.selectedCandidates.filter(id => allowedIds.has(Number(id)));
       this.selectedRegionId = null;
