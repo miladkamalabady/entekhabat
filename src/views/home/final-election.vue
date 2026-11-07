@@ -1,5 +1,24 @@
 <template>
   <div class="election-results-page">
+    <b-container v-if="isSupervisorRole" class="mt-4">
+      <b-card header="نگاشت استانی مناطق فاقد حدنصاب" class="mb-3">
+        <p class="small">پس از پایان ثبت‌نام، ناظر استان می‌تواند مناطق دارای کمتر از دو برابر سهمیه نامزد تأییدشده را به منطقه دیگری در همان استان نگاشت کند.</p>
+        <b-button variant="outline-primary" size="sm" class="mb-2" @click="loadProvincialMappings">دریافت مناطق</b-button>
+        <b-alert v-if="mappingError" show variant="danger">{{ mappingError }}</b-alert>
+        <b-alert v-if="!mappingWindowOpen" show variant="warning">پنجره ثبت نگاشت بسته است یا هنوز ثبت‌نام پایان نیافته است.</b-alert>
+        <b-table :items="underQuotaRegions" :fields="mappingFields" small responsive show-empty empty-text="منطقه فاقد حدنصاب وجود ندارد">
+          <template #cell(destination)="row">
+            <b-form-select size="sm" v-model="mappingTargets[row.item.regionId]" :disabled="!mappingWindowOpen">
+              <option :value="null">انتخاب مقصد</option>
+              <option v-for="target in mappingDestinations(row.item.regionId)" :key="target.regionId" :value="target.regionId">{{ target.regionName }}</option>
+            </b-form-select>
+          </template>
+          <template #cell(action)="row">
+            <b-button variant="success" size="sm" :disabled="!mappingWindowOpen || !mappingTargets[row.item.regionId] || mappingSaving" @click="saveProvincialMapping(row.item.regionId)">ثبت</b-button>
+          </template>
+        </b-table>
+      </b-card>
+    </b-container>
     <b-container class="ads-container mt-4" v-if="electionStatusAll !== 'ended' && !isAdmin">
       <b-alert variant="danger" class="text-center" show>زمان انتخابات به اتمام نرسیده است!</b-alert>
     </b-container>
@@ -383,6 +402,20 @@ export default {
   data() {
     return {
       apiUrlrtb,
+      provincialMappings: [],
+      mappingTargets: {},
+      mappingWindowOpen: false,
+      mappingError: '',
+      mappingSaving: false,
+      mappingFields: [
+        { key: 'regionName', label: 'منطقه' },
+        { key: 'memberCount', label: 'اعضا' },
+        { key: 'quota', label: 'سهمیه' },
+        { key: 'candidateCount', label: 'نامزد تأییدشده' },
+        { key: 'targetRegionName', label: 'مقصد فعلی' },
+        { key: 'destination', label: 'مقصد جدید' },
+        { key: 'action', label: 'عملیات' }
+      ],
       isActive: false,
       document: null,
       publishingResults: false,
@@ -479,6 +512,14 @@ export default {
   },
   computed: {
     ...mapGetters(["electionStatusAll", "ConfigInfo", "currentUser"]),
+    isSupervisorRole() {
+      const roles = this.currentUser?.roles;
+      return (Array.isArray(roles) ? roles : String(roles || '').split(/[,;\\s|]+/))
+        .some(role => String(role).toUpperCase() === 'SUPERVISOR');
+    },
+    underQuotaRegions() {
+      return this.provincialMappings.filter(r => Number(r.candidateCount) < 2 * Number(r.quota));
+    },
     canExportResults() {
       const roles = this.currentUser?.roles;
       const roleList = Array.isArray(roles) ? roles : String(roles || '').split(/[,;\s|]+/);
@@ -545,6 +586,7 @@ export default {
     },
   },
   async mounted() {
+    if (this.isSupervisorRole) await this.loadProvincialMappings();
     if (!this.ConfigInfo) {
       await this.getConfig();
     }
@@ -569,6 +611,38 @@ export default {
   },
   methods: {
     ...mapActions(["getConfig", "getInfoVote", "getRegions", "getFinalResultsApprovalStatus", "setFinalResultsApproval"]),
+    mappingDestinations(source) {
+      return this.provincialMappings.filter(r => Number(r.regionId) !== Number(source) &&
+        !r.targetRegionId && !this.provincialMappings.some(m => Number(m.targetRegionId) === Number(source) && Number(m.regionId) === Number(r.regionId)));
+    },
+    async loadProvincialMappings() {
+      try {
+        this.mappingError = '';
+        const token = this.currentUser?.token || JSON.parse(localStorage.getItem('user') || '{}')?.token;
+        const res = await fetch(`${this.apiUrlrtb}/api/provincialRegionMappings`, { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) throw new Error(res.status === 403 ? 'فقط ناظر استانی مجاز به مشاهده این بخش است.' : 'دریافت مناطق ناموفق بود.');
+        const data = await res.json();
+        this.provincialMappings = data.data || [];
+        this.mappingWindowOpen = !!data.canMap;
+        this.mappingTargets = Object.fromEntries(this.provincialMappings.map(r => [r.regionId, r.targetRegionId || null]));
+      } catch (e) { this.mappingError = e.message; }
+    },
+    async saveProvincialMapping(sourceRegionId) {
+      if (!this.mappingWindowOpen) return;
+      this.mappingSaving = true;
+      try {
+        const token = this.currentUser?.token || JSON.parse(localStorage.getItem('user') || '{}')?.token;
+        const res = await fetch(`${this.apiUrlrtb}/api/setProvincialRegionMapping`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ sourceRegionId, targetRegionId: this.mappingTargets[sourceRegionId] })
+        });
+        const data = await res.json();
+        if (!res.ok || !data.status) throw new Error(data.message || 'ثبت نگاشت ناموفق بود.');
+        await this.loadProvincialMappings();
+        this.$bvToast.toast('نگاشت ثبت شد.', { variant: 'success' });
+      } catch (e) { this.mappingError = e.message; }
+      finally { this.mappingSaving = false; }
+    },
     // Formatting
     async downloadResultsExcel() {
       if (!this.canExportResults) return;
