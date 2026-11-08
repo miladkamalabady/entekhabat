@@ -47,7 +47,9 @@ CREATE TABLE dbo.election_signed_minutes(
     {
         var date=await conn.QueryFirstOrDefaultAsync<dynamic>(
             "SELECT TOP(1) end_date FROM dbo.election_schedule_events WHERE event_key='voting'");
-        return date!=null && _jalali.NormalizeToGregorian(date.end_date) is DateTime end && DateTime.Now>end;
+        if (date == null) return false;
+        DateTime? votingEnd = _jalali.NormalizeToGregorian((object?)date.end_date);
+        return votingEnd.HasValue && DateTime.Now > votingEnd.Value;
     }
 
     [HttpGet("regionalElectionMinutes")]
