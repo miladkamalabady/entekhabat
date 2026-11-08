@@ -173,6 +173,26 @@ CREATE TABLE dbo.candidate_document_corrections (
 
         await using var conn = _db.CreateConnection();
         await conn.OpenAsync();
+        // Enforce the reviewer\'s jurisdiction on the server; national ID is untrusted input.
+        var reviewer = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            @"SELECT u.region_id AS regionId, r.ProvinceCode AS provinceCode
+              FROM dbo.users u JOIN dbo.region r ON r.id=u.region_id
+              WHERE u.national_id=@nid", new { nid=NationalId });
+        var candidate = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            @"SELECT u.region_id AS regionId, r.ProvinceCode AS provinceCode
+              FROM dbo.users u JOIN dbo.region r ON r.id=u.region_id
+              WHERE u.national_id=@nid", new { nid=req.national_Id });
+        if (reviewer == null || candidate == null)
+            return NotFound(new { status=false, message="کاربر یا حوزه یافت نشد." });
+        int reviewerRegion = Convert.ToInt32(reviewer.regionId);
+        int candidateRegion = Convert.ToInt32(candidate.regionId);
+        bool sameRegion = reviewerRegion == candidateRegion;
+        bool provinceSupervisor = UserRole == "SUPERVISOR"
+            && reviewerRegion != 1000 && reviewerRegion % 100 == 0
+            && Convert.ToInt32(reviewer.provinceCode) == Convert.ToInt32(candidate.provinceCode);
+        if (!sameRegion && !provinceSupervisor)
+            return StatusCode(403, new { status=false, message="بررسی مدارک خارج از حوزه مسئولیت مجاز نیست." });
+
         await using var tx = await conn.BeginTransactionAsync();
         try
         {
