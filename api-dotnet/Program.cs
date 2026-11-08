@@ -82,6 +82,24 @@ app.UseStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Security audit: log mutations and denied API requests without credentials, tokens or payloads.
+// Configure a persistent structured log sink in production for retention and review.
+app.Use(async (ctx, next) =>
+{
+    await next();
+    if (!ctx.Request.Path.StartsWithSegments("/api")) return;
+    bool mutation = !HttpMethods.IsGet(ctx.Request.Method)
+        && !HttpMethods.IsHead(ctx.Request.Method)
+        && !HttpMethods.IsOptions(ctx.Request.Method);
+    bool denied = ctx.Response.StatusCode is 401 or 403;
+    if (!mutation && !denied) return;
+    var logger = ctx.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("SecurityAudit");
+    var nationalId = ctx.User.FindFirst("national_id")?.Value ?? "anonymous";
+    logger.LogInformation("API_AUDIT method={Method} path={Path} user={User} status={Status} trace={Trace}",
+        ctx.Request.Method, ctx.Request.Path.Value, nationalId,
+        ctx.Response.StatusCode, ctx.TraceIdentifier);
+});
 app.MapControllers();
 
 app.Run();
