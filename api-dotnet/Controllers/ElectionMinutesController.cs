@@ -106,7 +106,8 @@ ORDER BY COUNT(v.id) DESC,u.last_name,u.first_name",new {rid=access.Region})).To
                     {
                         table.Cell().Text((++n).ToString());
                         table.Cell().Text($"{candidate.first_name} {candidate.last_name}");
-                        table.Cell().Text(Convert.ToString(candidate.votes)??"0");
+                         string voteCount = Convert.ToString((object?)candidate.votes) ?? "0";
+                         table.Cell().Text(voteCount);
                     }
                 });
                 col.Item().PaddingTop(18).AlignRight().Text("این صورتجلسه را چاپ کرده، به امضای اعضای اجرایی و نظارت برسانید و سپس نسخه امضاشده PDF را در سامانه بارگذاری نمایید.").Bold();
