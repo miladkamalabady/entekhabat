@@ -150,46 +150,17 @@ END;");
             // اگر منطقه کاربر ظرفیت داشته باشد، فقط همان منطقه معتبر است.
             // اگر ظرفیت منطقه کاربر صفر باشد، کاربر فقط می‌تواند یک منطقه دارای ظرفیت
             // از همان استان را به عنوان حوزه جایگزین انتخاب کند.
-            var userRegion = await conn.QueryFirstOrDefaultAsync<dynamic>(
-                @"
-                SELECT r.id, r.ProvinceCode,
-                       CASE
-                           WHEN mv.maxVotes IS NOT NULL THEN mv.maxVotes
-                           WHEN COUNT(CASE WHEN COALESCE(NULLIF(LTRIM(RTRIM(u2.roles)), N''), N'VOTER') = N'VOTER' THEN 1 END) = 0 THEN 0
-                           ELSE CEILING(COUNT(CASE WHEN COALESCE(NULLIF(LTRIM(RTRIM(u2.roles)), N''), N'VOTER') = N'VOTER' THEN 1 END) / 2000.0)
-                       END AS allowedVotes
-                FROM users u
-                JOIN region r ON r.id=u.region_id
-                OUTER APPLY (SELECT MAX(maxVotes) AS maxVotes FROM maxvotes WHERE region_id=r.id) mv
-                LEFT JOIN users u2 ON u2.region_id=r.id
-                WHERE u.national_id=@nid
-                GROUP BY r.id, r.ProvinceCode, mv.maxVotes",
-                new { nid = NationalId }, tx);
-
-            if (userRegion == null)
+            var scope = await EffectiveVotingRegion.Resolve(conn, NationalId, tx);
+            if (scope == null)
                 return BadRequest(new { status=false, message="منطقه رأی‌دهنده یافت نشد." });
-
-            int userRegionId = Convert.ToInt32(userRegion.id);
-            int provinceCode = Convert.ToInt32(userRegion.ProvinceCode);
-            int allowedVotes = Convert.ToInt32(userRegion.allowedVotes);
-            int effectiveRegionId = userRegionId;
-
-            // A voter from a merged region can vote only in the supervisor-assigned destination.
-            int? mappedRegion = await GetMappedRegion(conn, userRegionId);
-            if (mappedRegion.HasValue) effectiveRegionId = mappedRegion.Value;
-            if (req.regionId.HasValue && req.regionId.Value != effectiveRegionId)
-                return BadRequest(new { status=false, message="حوزه انتخابی با نگاشت تأییدشده مطابقت ندارد." });
+            int effectiveRegionId = scope.RegionId;
+            int provinceCode = scope.ProvinceCode;
+            int allowedVotes = scope.AllowedVotes;
             bool provinceWideVoting = false;
-            if (mappedRegion.HasValue)
-            {
-                allowedVotes = await conn.QueryFirstOrDefaultAsync<int>(@"
-SELECT COALESCE((SELECT MAX(maxVotes) FROM dbo.maxvotes WHERE region_id=@rid),
-CEILING(COUNT(*)/2000.0)) FROM dbo.users
-WHERE region_id=@rid AND COALESCE(NULLIF(LTRIM(RTRIM(roles)),''),'VOTER')='VOTER'",
-                    new { rid = effectiveRegionId }, tx);
-            }
-            else if (allowedVotes <= 0)
-                return BadRequest(new { status=false, message="برای منطقه فاقد سهمیه هنوز حوزه جایگزین تعیین نشده است." });
+            if (req.regionId.HasValue && req.regionId.Value != effectiveRegionId)
+                return BadRequest(new { status=false, message="حوزه انتخابی با حوزه مجاز رأی‌دهنده مطابقت ندارد." });
+            if (allowedVotes <= 0)
+                return BadRequest(new { status=false, message="برای حوزه رأی‌دهنده سهمیه معتبر تعیین نشده است." });
 
             // شناسه نامزدها باید یکتا باشد و همه نامزدها باید در حوزه رأی مؤثر،
             // فعال و تأییدشده باشند.
@@ -715,25 +686,12 @@ IF OBJECT_ID(N'dbo.election_region_mappings',N'U') IS NOT NULL
     public async Task<IActionResult> GetVotingCandidates()
     {
         await using var conn = _db.CreateConnection();
-        var voter = await conn.QueryFirstOrDefaultAsync<dynamic>(@"
-            SELECT u.region_id AS regionId, r.ProvinceCode AS provinceCode,
-                   COALESCE(m.maxVotes, CASE WHEN COUNT(v.national_id) = 0 THEN 0
-                   ELSE CEILING(COUNT(v.national_id)/2000.0) END) AS allowedVotes
-            FROM dbo.users u
-            JOIN dbo.region r ON r.id=u.region_id
-            LEFT JOIN dbo.maxvotes m ON m.region_id=r.id
-            LEFT JOIN dbo.users v ON v.region_id=r.id
-                AND COALESCE(NULLIF(v.roles,''),'VOTER')='VOTER'
-            WHERE u.national_id=@nid
-            GROUP BY u.region_id,r.ProvinceCode,m.maxVotes",
-            new { nid=NationalId });
-        if (voter == null)
+        var scope = await EffectiveVotingRegion.Resolve(conn, NationalId);
+        if (scope == null)
             return BadRequest(new { status=false, message="منطقه کاربر مشخص نیست." });
-
-        int regionId=Convert.ToInt32(voter.regionId);
-        int provinceCode=Convert.ToInt32(voter.provinceCode);
-        int? mappedRegion = await GetMappedRegion(conn, regionId);
-        int effectiveRegionId = mappedRegion ?? regionId;
+        int effectiveRegionId = scope.RegionId;
+        int provinceCode = scope.ProvinceCode;
+        int? mappedRegion = scope.IsMapped ? scope.RegionId : (int?)null;
         bool provinceWideVoting = false;
         var candidates=await conn.QueryAsync<dynamic>(@"
             SELECT f.id, f.id AS codeentekhabati, u.first_name, u.last_name, u.gender,
@@ -759,41 +717,19 @@ IF OBJECT_ID(N'dbo.election_region_mappings',N'U') IS NOT NULL
     {
         await using var conn = _db.CreateConnection();
 
-        var province = await conn.QueryFirstOrDefaultAsync<int?>(
-            """
-            SELECT r.ProvinceCode
-            FROM users u
-            INNER JOIN region r ON r.id = u.region_id
-            WHERE u.national_id=@nid
-            """,
-            new { nid = NationalId });
-
-        if (!province.HasValue)
-            return BadRequest(new { status = false, message = "منطقه کاربر یافت نشد" });
-
+        var scope = await EffectiveVotingRegion.Resolve(conn, NationalId);
+        if (scope == null)
+            return BadRequest(new { status=false, message="منطقه کاربر یافت نشد." });
         var rows = await conn.QueryAsync<dynamic>(
-            """
-            SELECT
-                r.id,
-                r.Name AS name,
-                COALESCE(m.maxVotes, CEILING(CAST(COUNT(u.id) AS decimal(18,2)) / 2000)) AS allowedVotes,
-                COUNT(u.id) AS voterCount
-            FROM region r
-            LEFT JOIN maxvotes m ON m.region_id = r.id
-            LEFT JOIN users u ON u.region_id = r.id
-                AND COALESCE(NULLIF(u.roles,''),'VOTER') = 'VOTER'
-            WHERE r.ProvinceCode=@province
-              AND r.id % 100 <> 0
-            GROUP BY r.id, r.Name, m.maxVotes
-            HAVING COALESCE(m.maxVotes, CEILING(CAST(COUNT(u.id) AS decimal(18,2)) / 2000)) > 0
-            ORDER BY r.Name
-            """,
-            new { province });
-
-        return Ok(new
-        {
+            "SELECT id, name FROM dbo.region WHERE id=@region",
+            new { region = scope.RegionId });
+        return Ok(new {
             status = true,
-            regions = rows
+            regions = rows.Select(r => new {
+                id = (int)r.id, name = (string)r.name,
+                allowedVotes = scope.AllowedVotes
+            }),
+            mappedRegionId = scope.IsMapped ? scope.RegionId : (int?)null
         });
     }
 
