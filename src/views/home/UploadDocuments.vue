@@ -37,6 +37,8 @@
         <!-- Upload Documents -->
         <b-card>
           <h6 class="mb-3">بارگذاری مدارک موردنیاز</h6>
+          <b-alert show variant="info">تصاویر حجیم پیش از ارسال، در مرورگر شما به‌صورت خودکار فشرده می‌شوند. فایل‌های PDF بدون تغییر ارسال می‌شوند.</b-alert>
+          <div v-for="(message, key) in compressionMessages" :key="key" class="small text-info mb-1">{{ message }}</div>
           <b-row>
             <b-colxx xxs="12" xs="4">
               <document-upload title="عکس پرسنلی" :file.sync="files.photo" />
@@ -205,7 +207,7 @@ export default {
         return false;
       });
 
-      return allFilesPresent && !this.hasValidationErrors;
+      return allFilesPresent && !this.hasValidationErrors && !Object.values(this.compressingFiles).some(Boolean);
     },
     hasValidationErrors() {
       return Object.values(this.fileErrors).some(msg => !!msg);
@@ -225,6 +227,8 @@ export default {
       loadingExistingDocuments: false,
       existingDocuments: {},
       submitting: false,
+      compressingFiles: {},
+      compressionMessages: {},
       files: {
         photo: null,
         degree: null,
@@ -406,6 +410,76 @@ export default {
       });
     },
 
+    // Image compression is entirely client-side; preserve the existing file object shape.
+    async compressImage(file, maxBytes) {
+      const url = URL.createObjectURL(file);
+      try {
+        const image = await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error('تصویر انتخاب‌شده قابل خواندن نیست.'));
+          img.src = url;
+        });
+        let best = null;
+        for (const maxEdge of [2400, 1800, 1400, 1100, 850, 650]) {
+          const scale = Math.min(1, maxEdge / Math.max(image.naturalWidth, image.naturalHeight));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+          canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+          const ctx = canvas.getContext('2d');
+          if (!ctx) throw new Error('مرورگر امکان فشرده‌سازی تصویر را ندارد.');
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+          for (const quality of [0.85, 0.72, 0.58, 0.45]) {
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
+            if (!blob) continue;
+            if (!best || blob.size < best.size) best = blob;
+            if (blob.size <= maxBytes) {
+              return new File([blob], file.name.replace(/\\.[^.]+$/, '') + '.jpg', {
+                type: 'image/jpeg', lastModified: Date.now()
+              });
+            }
+          }
+        }
+        if (!best || best.size > maxBytes) throw new Error('حجم تصویر حتی پس از فشرده‌سازی بیشتر از حد مجاز است.');
+        return new File([best], file.name.replace(/\\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
+      } finally {
+        URL.revokeObjectURL(url);
+      }
+    },
+
+    async prepareFile(key, fileObj) {
+      if (!fileObj || !fileObj.raw) {
+        this.$set(this.compressionMessages, key, '');
+        this.validateFile(key, fileObj);
+        return;
+      }
+      const config = this.fileValidationConfig[key];
+      const original = fileObj.raw;
+      if (original.size > config.maxSize && original.type.startsWith('image/')) {
+        this.$set(this.compressingFiles, key, true);
+        this.$set(this.compressionMessages, key, 'در حال کاهش حجم ' + config.label + '...');
+        try {
+          const compressed = await this.compressImage(original, config.maxSize);
+          if (this.files[key] !== fileObj) return;
+          this.$set(this.files, key, { ...fileObj, raw: compressed });
+          this.$set(this.compressionMessages, key,
+            config.label + ': حجم از ' + (original.size / 1024).toFixed(0) +
+            ' به ' + (compressed.size / 1024).toFixed(0) + ' کیلوبایت کاهش یافت.');
+        } catch (error) {
+          if (this.files[key] === fileObj) {
+            this.$set(this.fileErrors, key, error.message);
+            this.$set(this.compressionMessages, key, '');
+          }
+        } finally {
+          this.$set(this.compressingFiles, key, false);
+        }
+      } else {
+        await this.validateFile(key, fileObj);
+      }
+    },
+
     async validateFile(key, fileObj) {
       const config = this.fileValidationConfig[key];
       if (!config) return;
@@ -530,11 +604,11 @@ export default {
     }
   },
   watch: {
-    'files.photo'(val) { this.validateFile('photo', val); },
-    'files.degree'(val) { this.validateFile('degree', val); },
-    'files.soPishine'(val) { this.validateFile('soPishine', val); },
-    'files.ravan'(val) { this.validateFile('ravan', val); },
-    'files.transparencyForm'(val) { this.validateFile('transparencyForm', val); },
+    'files.photo'(val) { this.prepareFile('photo', val); },
+    'files.degree'(val) { this.prepareFile('degree', val); },
+    'files.soPishine'(val) { this.prepareFile('soPishine', val); },
+    'files.ravan'(val) { this.prepareFile('ravan', val); },
+    'files.transparencyForm'(val) { this.prepareFile('transparencyForm', val); },
     UploadUserDocumentsInfo(val) {
       if (val) {
         this.setCandidateFiles({ ...this.files });
