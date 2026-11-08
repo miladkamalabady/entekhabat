@@ -85,6 +85,18 @@ END;");
         return Request.Headers.TryGetValue("X-Admin-Second-Password", out var v) ? v.ToString() : null;
     }
 
+    // Enforce the voting window on the server, independently of frontend state.
+    private async Task<bool> VotingWindowOpen(System.Data.IDbConnection conn, System.Data.IDbTransaction? tx = null)
+    {
+        var row = await conn.QueryFirstOrDefaultAsync<dynamic>(
+            "SELECT TOP (1) start_date, end_date FROM dbo.election_schedule_events WHERE event_key='voting'",
+            transaction: tx);
+        if (row == null) return false;
+        var start = _jalali.NormalizeToGregorian(row.start_date);
+        var end = _jalali.NormalizeToGregorian(row.end_date);
+        return start.HasValue && end.HasValue && DateTime.Now >= start.Value && DateTime.Now <= end.Value;
+    }
+
     // GET /api/createVoteToken
     [HttpGet("createVoteToken")]
     [HttpPost("createVoteToken")]
@@ -94,6 +106,16 @@ END;");
 
         return await DbHelper.WithTransaction(conn, async tx =>
         {
+            if (!await VotingWindowOpen(conn, tx))
+                return StatusCode(403, new { status=false, message="رأی‌گیری در این زمان فعال نیست." });
+            var priorParticipant = await conn.QueryFirstOrDefaultAsync<int?>(
+                "SELECT TOP(1) id FROM dbo.election_participants WHERE national_id=@nid",
+                new { nid=NationalId }, tx);
+            var priorVote = await conn.QueryFirstOrDefaultAsync<int?>(
+                "SELECT TOP(1) id FROM dbo.votes WHERE national_id=@nid",
+                new { nid=NationalId }, tx);
+            if (priorParticipant.HasValue || priorVote.HasValue)
+                return StatusCode(409, new { status=false, message="شما قبلاً رأی ثبت کرده‌اید." });
             var already = await conn.QueryFirstOrDefaultAsync<string>(
                 "SELECT usernationalid FROM voters WHERE usernationalid=@nid", new { nid = NationalId }, tx);
             if (already != null)
@@ -122,6 +144,23 @@ END;");
 
         return await DbHelper.WithTransaction(conn, async tx =>
         {
+            // Serialize submissions for the same voter across different tokens and API instances.
+            var lockResult = await conn.ExecuteScalarAsync<int>(
+                "DECLARE @result INT; EXEC @result=sp_getapplock @Resource=@resource, @LockMode='Exclusive', @LockOwner='Transaction', @LockTimeout=10000; SELECT @result;",
+                new { resource="election-vote:" + NationalId }, tx);
+            if (lockResult < 0)
+                return StatusCode(409, new { status=false, message="درخواست رأی دیگری در حال پردازش است؛ دوباره تلاش کنید." });
+            if (!await VotingWindowOpen(conn, tx))
+                return StatusCode(403, new { status=false, message="رأی‌گیری در این زمان فعال نیست." });
+            var previousParticipant = await conn.QueryFirstOrDefaultAsync<int?>(
+                "SELECT TOP(1) id FROM dbo.election_participants WHERE national_id=@nid",
+                new { nid=NationalId }, tx);
+            var previousVote = await conn.QueryFirstOrDefaultAsync<int?>(
+                "SELECT TOP(1) id FROM dbo.votes WHERE national_id=@nid",
+                new { nid=NationalId }, tx);
+            if (previousParticipant.HasValue || previousVote.HasValue)
+                return StatusCode(409, new { status=false, message="شما قبلاً رأی ثبت کرده‌اید." });
+
             // کد رهگیری یکتا
             string trackingCode;
             do
