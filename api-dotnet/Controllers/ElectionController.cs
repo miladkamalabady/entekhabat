@@ -95,6 +95,10 @@ END");
 
         await using var conn = _db.CreateConnection();
         await conn.OpenAsync();
+        var role = await conn.QueryFirstOrDefaultAsync<string>(
+            "SELECT roles FROM dbo.users WHERE national_id=@nid", new { nid=NationalId });
+        if (!string.Equals(role?.Trim(), "ADMIN", StringComparison.OrdinalIgnoreCase))
+            return StatusCode(403, new { status=false, message="ویرایش زمان‌بندی فقط برای مدیر مجاز است." });
 
         await conn.ExecuteAsync(@"IF OBJECT_ID(N'dbo.election_schedule_events', N'U') IS NULL
 BEGIN
