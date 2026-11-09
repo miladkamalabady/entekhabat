@@ -1,5 +1,9 @@
 <template>
   <div id="app-container">
+    <template v-if="$route.name === 'landing'">
+      <slot></slot>
+    </template>
+    <template v-else>
     <Topnav />
     <div style="" class="d-flex">
    <div class=""  v-if="currentUser"
@@ -16,6 +20,7 @@
         <slot></slot>
       </div>
 </div>
+    </template>
   </div>
 </template>
 
