@@ -145,7 +145,11 @@ public class AuthController : ControllerBase
         int    userType            = d.TryGetProperty("userType",             out p) ? p.GetInt32()      : 0;
         int    verified            = d.TryGetProperty("verified",             out p) && p.GetBoolean() ? 1 : 0;
         string employeeKey         = GetStr(d, "employeeKey");
-        long   personnelCode       = d.TryGetProperty("personnelCode",        out p) ? p.GetInt64()      : 0;
+        // SSO may return personnelCode as null or empty for non-educational users.
+        // Reject before creating/updating a user; never expose a JSON parser exception.
+        string personnelCodeRaw = GetStr(d, "personnelCode").Trim();
+        if (!long.TryParse(personnelCodeRaw, out long personnelCode) || personnelCode <= 0)
+            return BadRequest(new { status = false, message = "شما فرهنگی نمی‌باشید." });
         int    orgPositionCode     = d.TryGetProperty("orgPositionCode",      out p) ? p.GetInt32()      : 0;
         string orgPositionDesc     = GetStr(d, "orgPositionDesc");
         int    orgPositionTypeCode = d.TryGetProperty("orgPositionTypeCode",  out p) ? p.GetInt32()      : 0;
